@@ -6066,8 +6066,13 @@ NoteDrag::motion (GdkEvent * event, bool first_move)
 	if (first_move) {
 		_earliest = _region->earliest_in_selection().to_double();
 		if (_copy) {
+			/* snapshot the note selection */
+			_region->start_note_diff_command (_("Copy Notes"));
 			/* make copies of all the selected notes */
 			_primary = _region->copy_selection (_primary);
+		} else {
+			/* snapshot the note selection */
+			_region->start_note_diff_command (_("Move Notes"));
 		}
 	}
 
@@ -6155,9 +6160,12 @@ NoteDrag::finished (GdkEvent* ev, bool moved)
 }
 
 void
-NoteDrag::aborted (bool)
+NoteDrag::aborted (bool move_threshold_passed)
 {
 	/* XXX: TODO */
+	if (move_threshold_passed) {
+		_editor->abort_reversible_command();
+	}
 }
 
 /** Make an AutomationRangeDrag for lines in an AutomationTimeAxisView */

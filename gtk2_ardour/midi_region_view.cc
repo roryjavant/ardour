@@ -2751,8 +2751,6 @@ MidiRegionView::note_dropped(NoteBase *, double d_qn, int8_t dnote, bool copy)
 			highest_note_difference = highest_note_in_selection - 127;
 		}
 
-		start_note_diff_command (_("move notes"));
-
 		for (Selection::iterator i = _selection.begin(); i != _selection.end() ; ++i) {
 
 			Evoral::Beats new_time = Evoral::Beats ((*i)->note()->time().to_double() + d_qn);
@@ -2788,8 +2786,6 @@ MidiRegionView::note_dropped(NoteBase *, double d_qn, int8_t dnote, bool copy)
 		if (highest_note_in_selection + dnote > 127) {
 			highest_note_difference = highest_note_in_selection - 127;
 		}
-
-		start_note_diff_command (_("copy notes"));
 
 		for (CopyDragEvents::iterator i = _copy_drag_events.begin(); i != _copy_drag_events.end() ; ++i) {
 
