@@ -46,6 +46,7 @@
 
 #include "ardour/import_status.h"
 #include "ardour/tempo.h"
+#include "ardour/beats_frames_converter.h"
 #include "ardour/location.h"
 #include "ardour/types.h"
 
@@ -1661,6 +1662,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	bool _maximised;
 
 	TempoLines* tempo_lines;
+	ARDOUR::BeatsFramesConverter* _tempo_lines_bfc;
 
 	ArdourCanvas::Container* global_rect_group;
 	ArdourCanvas::Container* time_line_group;
