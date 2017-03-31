@@ -394,7 +394,8 @@ Editor::draw_measures (std::vector<ARDOUR::TempoMap::BBTPoint>& grid)
 	}
 
 	if (tempo_lines == 0) {
-		tempo_lines = new TempoLines (time_line_group, ArdourCanvas::LineSet::Vertical);
+		_tempo_lines_bfc = new BeatsFramesConverter (_session->tempo_map(), 0);
+		tempo_lines = new TempoLines (time_line_group, ArdourCanvas::LineSet::Vertical, _tempo_lines_bfc);
 	}
 
 	const unsigned divisions = get_grid_beat_divisions(leftmost_frame);
