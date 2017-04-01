@@ -1147,6 +1147,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	};
 
 	VisualChange pending_visual_change;
+	bool visual_change_queued;
+
+	void pre_render ();
 
 	static int _idle_visual_changer (void *arg);
 	int idle_visual_changer ();
