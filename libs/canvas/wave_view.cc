@@ -481,8 +481,7 @@ void
 WaveView::draw_image (Cairo::RefPtr<Cairo::ImageSurface>& image, PeakData* peaks, int n_peaks,
                       boost::shared_ptr<WaveViewDrawRequest> req)
 {
-	const int height = image->get_height();
-	assert (req->image->props.height == height);
+	const double height = image->get_height();
 
 	ImageSet images;
 
