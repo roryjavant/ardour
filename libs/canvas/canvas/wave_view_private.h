@@ -178,7 +178,7 @@ public: // member variables
 	uint64_t timestamp;
 
 public: // methods
-	bool finished() { return (cairo_image); }
+	bool finished() { return static_cast<bool>(cairo_image); }
 
 	bool
 	contains_image_with_properties (WaveViewProperties const& other_props)
