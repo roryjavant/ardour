@@ -3103,6 +3103,7 @@ Editor::separate_regions_between (const TimeSelection& ts)
 		if ((playlist = rtv->playlist()) != 0) {
 
 			playlist->clear_changes ();
+			playlist->clear_owned_changes ();
 
 			/* XXX need to consider musical time selections here at some point */
 
