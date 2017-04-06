@@ -18,6 +18,7 @@
 */
 
 #include "ardour/session.h"
+#include "ardour/session_playlists.h"
 
 #include "canvas/debug.h"
 
@@ -107,7 +108,12 @@ EditorSummary::set_session (Session* s)
 	 */
 
 	if (_session) {
-		Region::RegionPropertyChanged.connect (region_property_connection, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context());
+		vector<boost::shared_ptr<ARDOUR::Playlist> > playlists;
+		_session->playlists->get (playlists);
+		for (vector<boost::shared_ptr<ARDOUR::Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
+			(*i)->ContentsChanged.connect (playlist_property_connections, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context ());
+		}
+
 		PresentationInfo::Change.connect (route_ctrl_id_connection, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context());
 		_editor->playhead_cursor->PositionChanged.connect (position_connection, invalidator (*this), boost::bind (&EditorSummary::playhead_position_changed, this, _1), gui_context());
 		_session->StartTimeChanged.connect (_session_connections, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context());
@@ -1059,6 +1065,7 @@ EditorSummary::routes_added (list<RouteTimeAxisView*> const & r)
 		boost::shared_ptr<Track> tr = boost::dynamic_pointer_cast<Track> ((*i)->route ());
 		if (tr) {
 			tr->PlaylistChanged.connect (*this, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context ());
+			tr->playlist()->ContentsChanged.connect (playlist_property_connections, invalidator (*this), boost::bind (&EditorSummary::set_background_dirty, this), gui_context ());
 		}
 	}
 

@@ -130,7 +130,7 @@ private:
 
 	PBD::ScopedConnectionList position_connection;
 	PBD::ScopedConnection route_ctrl_id_connection;
-	PBD::ScopedConnectionList region_property_connection;
+	PBD::ScopedConnectionList playlist_property_connections;
 };
 
 #endif
