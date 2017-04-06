@@ -42,7 +42,7 @@ TempoTest::recomputeMapTest48 ()
 	Meter meterB (3, 4);
 	map.add_meter (meterB, 12.0, BBT_Time (4, 1, 0), 0, MusicTime);
 	//map.dump (map._metrics, std::cout);
-	list<MetricSection*>::iterator i = map._metrics.begin();
+	Metrics::iterator i = map._metrics.begin();
 	CPPUNIT_ASSERT_EQUAL (framepos_t (0), (*i)->frame ());
 	i = map._metrics.end();
 	--i;
@@ -140,7 +140,7 @@ TempoTest::recomputeMapTest44 ()
 	Meter meterB (3, 4);
 	map.add_meter (meterB, 12.0, BBT_Time (4, 1, 0), 288e3, MusicTime);
 
-	list<MetricSection*>::iterator i = map._metrics.begin();
+	Metrics::iterator i = map._metrics.begin();
 	CPPUNIT_ASSERT_EQUAL (framepos_t (0), (*i)->frame ());
 	i = map._metrics.end();
 	--i;
@@ -253,7 +253,7 @@ TempoTest::qnDistanceTestConstant ()
 	Meter meterB (3, 4);
 	map.add_meter (meterB, 12.0, BBT_Time (4, 1, 0), 288e3, MusicTime);
 
-	list<MetricSection*>::iterator i = map._metrics.begin();
+	Metrics::iterator i = map._metrics.begin();
 	CPPUNIT_ASSERT_EQUAL (framepos_t (0), (*i)->frame ());
 	i = map._metrics.end();
 	--i;
@@ -333,7 +333,7 @@ TempoTest::qnDistanceTestRamp ()
 	map.dump (std::cout);
 	map.recompute_map (map._metrics, 1);
 
-	list<MetricSection*>::iterator i = map._metrics.begin();
+	Metrics::iterator i = map._metrics.begin();
 	CPPUNIT_ASSERT_EQUAL (framepos_t (0), (*i)->frame ());
 	i = map._metrics.end();
 	--i;
@@ -506,7 +506,7 @@ TempoTest::tempoAtPulseTest ()
 	TempoSection* tB = 0;
 	TempoSection* tC = 0;
 
-	list<MetricSection*>::iterator i;
+	Metrics::iterator i;
 
 	for (i = map._metrics.begin(); i != map._metrics.end(); ++i) {
 		TempoSection* t;
@@ -583,7 +583,7 @@ TempoTest::tempoFundamentalsTest ()
 	TempoSection* tC = 0;
 	TempoSection* tD = 0;
 	TempoSection* tE = 0;
-	list<MetricSection*>::iterator i;
+	Metrics::iterator i;
 
 	for (i = map._metrics.begin(); i != map._metrics.end(); ++i) {
 		TempoSection* t;

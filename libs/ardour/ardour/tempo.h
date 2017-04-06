@@ -276,7 +276,7 @@ class LIBARDOUR_API TempoSection : public MetricSection, public Tempo {
 	bool _legacy_end;
 };
 
-typedef std::list<MetricSection*> Metrics;
+typedef std::vector<MetricSection*> Metrics;
 
 /** Helper class to keep track of the Meter *AND* Tempo in effect
     at a given point in time.
