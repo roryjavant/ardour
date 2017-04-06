@@ -1418,9 +1418,7 @@ TempoMap::first_tempo () const
 			if (!t->active()) {
 				continue;
 			}
-			if (t->initial()) {
-				return *t;
-			}
+			return *t;
 		}
 	}
 
@@ -1439,9 +1437,7 @@ TempoMap::first_tempo ()
 			if (!t->active()) {
 				continue;
 			}
-			if (t->initial()) {
-				return *t;
-			}
+			return *t;
 		}
 	}
 
