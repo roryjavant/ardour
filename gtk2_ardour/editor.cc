@@ -3690,8 +3690,9 @@ Editor::duplicate_range (bool with_dialog)
 	} else if (get_smart_mode()) {
 		if (selection->time.length()) {
 			duplicate_selection (times);
-		} else
+		} else {
 			duplicate_some_regions (rs, times);
+		}
 	} else {
 		duplicate_some_regions (rs, times);
 	}
