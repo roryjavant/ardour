@@ -216,7 +216,7 @@ class LIBARDOUR_API Region
 	void set_start (framepos_t);
 	void set_position (framepos_t, int32_t sub_num = 0);
 	void set_position_music (double qn);
-	void set_initial_position (framepos_t);
+	void set_initial_position (MusicFrame);
 	void special_set_position (framepos_t);
 	virtual void update_after_tempo_map_change (bool send_change = true);
 	void nudge_position (frameoffset_t);

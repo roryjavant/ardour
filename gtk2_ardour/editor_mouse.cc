@@ -2271,7 +2271,7 @@ Editor::cancel_time_selection ()
 }
 
 void
-Editor::point_trim (GdkEvent* event, framepos_t new_bound)
+Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
 {
 	RegionView* rv = clicked_regionview;
 
@@ -2286,7 +2286,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 			{
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes ();
-					(*i)->region()->trim_front (new_bound);
+					(*i)->region()->trim_front (new_bound.frame, new_bound.division);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2294,7 +2294,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 		} else {
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_front (new_bound);
+				rv->region()->trim_front (new_bound.frame, new_bound.division);
 				_session->add_command(new StatefulDiffCommand (rv->region()));
 			}
 		}
@@ -2311,7 +2311,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 			{
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes();
-					(*i)->region()->trim_end (new_bound);
+					(*i)->region()->trim_end (new_bound.frame, new_bound.division);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2320,7 +2320,7 @@ Editor::point_trim (GdkEvent* event, framepos_t new_bound)
 
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_end (new_bound);
+				rv->region()->trim_end (new_bound.frame, new_bound.division);
 				_session->add_command (new StatefulDiffCommand (rv->region()));
 			}
 		}

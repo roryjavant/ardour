@@ -714,14 +714,14 @@ Region::set_position_music_internal (double qn)
  *  _last_position to prevent an implied move.
  */
 void
-Region::set_initial_position (framepos_t pos)
+Region::set_initial_position (MusicFrame pos)
 {
 	if (!can_move()) {
 		return;
 	}
 
-	if (_position != pos) {
-		_position = pos;
+	if (_position != pos.frame) {
+		_position = pos.frame;
 
 		/* check that the new _position wouldn't make the current
 		   length impossible - if so, change the length.
@@ -734,7 +734,7 @@ Region::set_initial_position (framepos_t pos)
 			_length = max_framepos - _position;
 		}
 
-		recompute_position_from_lock_style (0);
+		recompute_position_from_lock_style (pos.division);
 		/* ensure that this move doesn't cause a range move */
 		_last_position = _position;
 	}
