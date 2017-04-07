@@ -333,11 +333,44 @@ namespace ARDOUR {
 		framepos_t frame;
 		int32_t    division;
 
+		MusicFrame (framepos_t f) : frame (f), division (0) {}
 		MusicFrame (framepos_t f, int32_t d) : frame (f), division (d) {}
 
-		void set (framepos_t f, int32_t d) {frame = f; division = d; }
+		bool operator== (const MusicFrame& other) const {
+			return frame == other.frame && division == other.division;
+		}
+		bool operator!= (const MusicFrame& other) const {
+			return !(*this == other);
+		}
+		bool operator< (const MusicFrame& other) const {
+			return frame < other.frame;
+		}
+		bool operator<= (const MusicFrame& other) const {
+			return frame < other.frame || frame == other.frame;
+		}
 
-		MusicFrame operator- (MusicFrame other) { return MusicFrame (frame - other.frame, 0); }
+		MusicFrame & operator+= (const MusicFrame &other) {
+			frame += other.frame;
+			(other.division == 0 || division == 0) ? division = 0 : division = std::max (division, other.division);
+			return *this;
+		}
+		MusicFrame & operator-= (const MusicFrame &other) {
+			frame -= other.frame;
+			(other.division == 0 || division == 0) ? division = 0 : division = std::max (division, other.division);
+			return *this;
+		}
+
+		MusicFrame operator- (const MusicFrame &other) const {
+			MusicFrame ret = *this;
+			ret -= other;
+			return ret;
+		}
+		MusicFrame operator+ (const MusicFrame &other) const {
+			MusicFrame ret = *this;
+			ret += other;
+			return ret;
+		}
+
 	};
 
 	/* XXX: slightly unfortunate that there is this and Evoral::Range<>,

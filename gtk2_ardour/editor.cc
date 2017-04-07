@@ -2718,7 +2718,7 @@ Editor::snap_to_with_modifier (MusicFrame& start, GdkEvent const * event, RoundM
 		if (_snap_mode == SnapOff) {
 			snap_to_internal (start, direction, for_mark);
 		} else {
-			start.set (start.frame, 0);
+			start.division = 0;
 		}
 	} else {
 		if (_snap_mode != SnapOff) {
@@ -2727,7 +2727,7 @@ Editor::snap_to_with_modifier (MusicFrame& start, GdkEvent const * event, RoundM
 			/* SnapOff, but we pressed the snap_delta modifier */
 			snap_to_internal (start, direction, for_mark);
 		} else {
-			start.set (start.frame, 0);
+			start.division = 0;
 		}
 	}
 }
@@ -2736,7 +2736,7 @@ void
 Editor::snap_to (MusicFrame& start, RoundMode direction, bool for_mark, bool ensure_snap)
 {
 	if (!_session || (_snap_mode == SnapOff && !ensure_snap)) {
-		start.set (start.frame, 0);
+		start.division = 0;
 		return;
 	}
 
@@ -2809,7 +2809,8 @@ Editor::timecode_snap_to_internal (MusicFrame& pos, RoundMode direction, bool /*
 		abort(); /*NOTREACHED*/
 	}
 
-	pos.set (start, 0);
+	pos.frame = start;
+	pos.division = 0;
 }
 
 void
@@ -2837,7 +2838,7 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 			start.frame = (framepos_t) floor ((double) start.frame / (one_second / 75)) * (one_second / 75);
 		}
 
-		start.set (start.frame, 0);
+		start.division = 0;
 
 		break;
 
@@ -2851,7 +2852,7 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 			start.frame = (framepos_t) floor ((double) start.frame / one_second) * one_second;
 		}
 
-		start.set (start.frame, 0);
+		start.division = 0;
 
 		break;
 
@@ -2865,7 +2866,7 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 			start.frame = (framepos_t) floor ((double) start.frame / one_minute) * one_minute;
 		}
 
-		start.set (start.frame, 0);
+		start.division = 0;
 
 		break;
 
@@ -2957,7 +2958,7 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 			}
 		}
 
-		start.set (start.frame, 0);
+		start.division = 0;
 
 		break;
 
@@ -2991,7 +2992,7 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 			}
 		}
 
-		start.set (start.frame, 0);
+		start.division = 0;
 
 		break;
 	}
@@ -3008,12 +3009,14 @@ Editor::snap_to_internal (MusicFrame& start, RoundMode direction, bool for_mark,
 
 		if (presnap > start.frame) {
 			if (presnap > (start.frame + pixel_to_sample(snap_threshold))) {
-				start.set (presnap, 0);
+				start.frame = presnap;
+				start.division = 0;
 			}
 
 		} else if (presnap < start.frame) {
 			if (presnap < (start.frame - pixel_to_sample(snap_threshold))) {
-				start.set (presnap, 0);
+				start.frame = presnap;
+				start.division = 0;
 			}
 		}
 
@@ -4790,7 +4793,12 @@ Editor::set_loop_range (framepos_t start, framepos_t end, string cmd)
 	Location* tll;
 
 	if ((tll = transport_loop_location()) == 0) {
-		Location* loc = new Location (*_session, start, end, _("Loop"),  Location::IsAutoLoop, get_grid_music_divisions(0));
+		Location* loc = new Location (*_session,
+					      MusicFrame (start, get_grid_music_divisions(0)),
+					      MusicFrame (end, get_grid_music_divisions(0)),
+					      _("Loop"),
+					      Location::IsAutoLoop);
+
 		XMLNode &before = _session->locations()->get_state();
 		_session->locations()->add (loc, true);
 		_session->set_auto_loop_location (loc);
@@ -4817,7 +4825,12 @@ Editor::set_punch_range (framepos_t start, framepos_t end, string cmd)
 	Location* tpl;
 
 	if ((tpl = transport_punch_location()) == 0) {
-		Location* loc = new Location (*_session, start, end, _("Punch"),  Location::IsAutoPunch, get_grid_music_divisions(0));
+		Location* loc = new Location (*_session,
+					      MusicFrame (start, get_grid_music_divisions(0)),
+					      MusicFrame (end, get_grid_music_divisions(0)),\
+					      _("Punch"),
+					      Location::IsAutoPunch);
+
 		XMLNode &before = _session->locations()->get_state();
 		_session->locations()->add (loc, true);
 		_session->set_auto_punch_location (loc);

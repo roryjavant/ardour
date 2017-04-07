@@ -4729,7 +4729,7 @@ void
 ARDOUR_UI::create_xrun_marker (framepos_t where)
 {
 	if (_session) {
-		Location *location = new Location (*_session, where, where, _("xrun"), Location::IsMark, 0);
+		Location *location = new Location (*_session, where, where, _("xrun"), Location::IsMark);
 		_session->locations()->add (location);
 	}
 }

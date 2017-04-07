@@ -58,7 +58,7 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 	};
 
 	Location (Session &);
-	Location (Session &, framepos_t, framepos_t, const std::string &, Flags bits = Flags(0), const uint32_t sub_num = 0);
+	Location (Session &, MusicFrame, MusicFrame, const std::string &, Flags bits = Flags(0));
 	Location (const Location& other);
 	Location (Session &, const XMLNode&);
 	Location* operator= (const Location& other);
@@ -70,12 +70,14 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 	void unlock ();
 
 	framepos_t start() const  { return _start; }
+	double     start_beat() const  { return _start_beat; }
 	framepos_t end() const { return _end; }
+	double     end_beat() const { return _end_beat; }
 	framecnt_t length() const { return _end - _start; }
 
-	int set_start (framepos_t s, bool force = false, bool allow_beat_recompute = true, const uint32_t sub_num = 0);
-	int set_end (framepos_t e, bool force = false, bool allow_beat_recompute = true, const uint32_t sub_num = 0);
-	int set (framepos_t start, framepos_t end, bool allow_beat_recompute = true, const uint32_t sub_num = 0);
+	int set_start (const MusicFrame& s, bool force = false, bool allow_beat_recompute = true);
+	int set_end (const MusicFrame& e, bool force = false, bool allow_beat_recompute = true);
+	int set (const MusicFrame& start, const MusicFrame& end, bool allow_beat_recompute = true);
 
 	int move_to (framepos_t pos, const uint32_t sub_num);
 
@@ -161,7 +163,8 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 
 	void set_mark (bool yn);
 	bool set_flag_internal (bool yn, Flags flag);
-	void recompute_beat_from_frames (const uint32_t sub_num);
+	void recompute_start_beat_from_frames (const uint32_t sub_num);
+	void recompute_end_beat_from_frames (const uint32_t sub_num);
 };
 
 /** A collection of session locations including unique dedicated locations (loop, punch, etc) */

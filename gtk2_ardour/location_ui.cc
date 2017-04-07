@@ -418,10 +418,10 @@ LocationEditRow::to_playhead_button_pressed (LocationPart part)
 
 	switch (part) {
 		case LocStart:
-			location->set_start (_session->transport_frame (), false, true, divisions);
+			location->set_start (MusicFrame (_session->transport_frame (), divisions), false, true);
 			break;
 		case LocEnd:
-			location->set_end (_session->transport_frame (), false, true,divisions);
+			location->set_end (MusicFrame (_session->transport_frame (), divisions), false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}
@@ -467,16 +467,16 @@ LocationEditRow::clock_changed (LocationPart part)
 
 	switch (part) {
 		case LocStart:
-			location->set_start (start_clock.current_time(), false, true, divisions);
+			location->set_start (MusicFrame (start_clock.current_time(), divisions), false, true);
 			break;
 		case LocEnd:
-			location->set_end (end_clock.current_time(), false, true, divisions);
+			location->set_end (MusicFrame (end_clock.current_time(), divisions), false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}
 			break;
 		case LocLength:
-			location->set_end (location->start() + length_clock.current_duration(), false, true, divisions);
+			location->set_end (MusicFrame (location->start() + length_clock.current_duration(), divisions), false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}

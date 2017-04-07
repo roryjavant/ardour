@@ -685,7 +685,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, MusicFrame* pending_r
 		if (sync_offset == 0 && sd == 0) {
 			*pending_region_position = sync_snap;
 		} else {
-			pending_region_position->set (_primary->region()->adjust_to_sync (sync_snap.frame) - sd, 0);
+			*pending_region_position = _primary->region()->adjust_to_sync (sync_snap.frame) - sd;
 		}
 	} else {
 		*pending_region_position = _last_position;
@@ -1504,11 +1504,11 @@ RegionMoveDrag::finished_copy (bool const changed_position, bool const /*changed
 		double quarter_note;
 
 		if (changed_position && !_x_constrained) {
-			where.set (i->view->region()->position() - drag_delta, 0);
+			where =  i->view->region()->position() - drag_delta;
 			quarter_note = i->view->region()->quarter_note() - qn_delta;
 		} else {
 			/* region has not moved - divisor will not affect musical pos */
-			where.set (i->view->region()->position(), 0);
+			where = i->view->region()->position();
 			quarter_note = i->view->region()->quarter_note();
 		}
 
@@ -1653,10 +1653,10 @@ RegionMoveDrag::finished_no_copy (
 		double quarter_note;
 
 		if (changed_position && !_x_constrained) {
-			where.set (rv->region()->position() - drag_delta, 0);
+			where = rv->region()->position() - drag_delta;
 			quarter_note = i->view->region()->quarter_note() - qn_delta;
 		} else {
-			where.set (rv->region()->position(), 0);
+			where = rv->region()->position();
 			quarter_note = i->view->region()->quarter_note();
 		}
 
@@ -4510,7 +4510,7 @@ MarkerDrag::motion (GdkEvent* event, bool)
 		if (copy_location->is_mark()) {
 
 			/* now move it */
-			copy_location->set_start (copy_location->start() + f_delta, false, true, divisions);
+			copy_location->set_start (MusicFrame (copy_location->start() + f_delta, divisions), false, true);
 
 		} else {
 
@@ -4520,27 +4520,27 @@ MarkerDrag::motion (GdkEvent* event, bool)
 			if (is_start) { // start-of-range marker
 
 				if (move_both || (*x).move_both) {
-					copy_location->set_start (new_start, false, true, divisions);
-					copy_location->set_end (new_end, false, true, divisions);
+					copy_location->set_start (MusicFrame (new_start, divisions), false, true);
+					copy_location->set_end (MusicFrame (new_end, divisions), false, true);
 				} else	if (new_start < copy_location->end()) {
-					copy_location->set_start (new_start, false, true, divisions);
+					copy_location->set_start (MusicFrame (new_start, divisions), false, true);
 				} else if (newframe > 0) {
 					//_editor->snap_to (next, RoundUpAlways, true);
-					copy_location->set_end (next, false, true, divisions);
-					copy_location->set_start (newframe, false, true, divisions);
+					copy_location->set_end (MusicFrame (next, divisions), false, true);
+					copy_location->set_start (MusicFrame (newframe, divisions), false, true);
 				}
 
 			} else { // end marker
 
 				if (move_both || (*x).move_both) {
-					copy_location->set_end (new_end, divisions);
-					copy_location->set_start (new_start, false, true, divisions);
+					copy_location->set_end (MusicFrame (new_end, divisions), false, true);
+					copy_location->set_start (MusicFrame (new_start, divisions), false, true);
 				} else if (new_end > copy_location->start()) {
-					copy_location->set_end (new_end, false, true, divisions);
+					copy_location->set_end (MusicFrame (new_end, divisions), false, true);
 				} else if (newframe > 0) {
 					//_editor->snap_to (next, RoundDownAlways, true);
-					copy_location->set_start (next, false, true, divisions);
-					copy_location->set_end (newframe, false, true, divisions);
+					copy_location->set_start (MusicFrame (next, divisions), false, true);
+					copy_location->set_end (MusicFrame (newframe, divisions), false, true);
 				}
 			}
 		}
@@ -4636,9 +4636,9 @@ MarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 				in_command = true;
 			}
 			if (location->is_mark()) {
-				location->set_start (((*x).location)->start(), false, true, divisions);
+				location->set_start (MusicFrame (((*x).location)->start(), divisions), false, true);
 			} else {
-				location->set (((*x).location)->start(), ((*x).location)->end(), true, divisions);
+				location->set (MusicFrame (((*x).location)->start(), divisions), MusicFrame (((*x).location)->end(), divisions), true);
 			}
 
 			if (location->is_session_range()) {
@@ -5761,8 +5761,8 @@ RangeMarkerBarDrag::start_grab (GdkEvent* event, Gdk::Cursor *)
 void
 RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 {
-	framepos_t start = 0;
-	framepos_t end = 0;
+	MusicFrame start = 0;
+	MusicFrame end = 0;
 	ArdourCanvas::Rectangle *crect;
 
 	switch (_operation) {
@@ -5818,8 +5818,8 @@ RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 	if (start != end) {
 		_editor->temp_location->set (start, end);
 
-		double x1 = _editor->sample_to_pixel (start);
-		double x2 = _editor->sample_to_pixel (end);
+		double x1 = _editor->sample_to_pixel (start.frame);
+		double x2 = _editor->sample_to_pixel (end.frame);
 		crect->set_x0 (x1);
 		crect->set_x1 (x2);
 
@@ -5863,9 +5863,11 @@ RangeMarkerBarDrag::finished (GdkEvent* event, bool movement_occurred)
 				flags = Location::IsRangeMarker;
 				_editor->range_bar_drag_rect->hide();
 			}
+			int32_t const division = _editor->get_grid_music_divisions (event->button.state);
 			newloc = new Location (
-				*_editor->session(), _editor->temp_location->start(), _editor->temp_location->end(), rangename, (Location::Flags) flags
-				, _editor->get_grid_music_divisions (event->button.state));
+				*_editor->session(), MusicFrame (_editor->temp_location->start(), division),
+				MusicFrame (_editor->temp_location->end(), division),
+				rangename, (Location::Flags) flags);
 
 			_editor->session()->locations()->add (newloc, true);
 			XMLNode &after = _editor->session()->locations()->get_state();

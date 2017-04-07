@@ -646,7 +646,13 @@ Editor::mouse_add_new_marker (framepos_t where, bool is_cd)
 		if (!choose_new_marker_name(markername)) {
 			return;
 		}
-		Location *location = new Location (*_session, where, where, markername, (Location::Flags) flags, get_grid_music_divisions (0));
+		int32_t const division = get_grid_music_divisions (0);
+		Location *location = new Location (*_session,
+						   MusicFrame (where, division),
+						   MusicFrame (where, division),
+						   markername,
+						   (Location::Flags) flags);
+
 		begin_reversible_command (_("add marker"));
 
 		XMLNode &before = _session->locations()->get_state();
@@ -1244,13 +1250,13 @@ Editor::marker_menu_set_from_playhead ()
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {
-			l->set_start (_session->audible_frame (), false, true, divisions);
+			l->set_start (MusicFrame (_session->audible_frame (), divisions), false, true);
 		}
 		else {
 			if (is_start) {
-				l->set_start (_session->audible_frame (), false, true, divisions);
+				l->set_start (MusicFrame (_session->audible_frame (), divisions), false, true);
 			} else {
-				l->set_end (_session->audible_frame (), false, true, divisions);
+				l->set_end (MusicFrame (_session->audible_frame (), divisions), false, true);
 			}
 		}
 	}

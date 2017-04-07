@@ -1688,7 +1688,7 @@ Session::set_session_extents (framepos_t start, framepos_t end)
 	Location* existing;
 	if ((existing = _locations->session_range_location()) == 0) {
 		//if there is no existing session, we need to make a new session location  (should never happen)
-		existing = new Location (*this, 0, 0, _("session"), Location::IsSessionRange, 0);
+		existing = new Location (*this, 0, 0, _("session"), Location::IsSessionRange);
 	}
 
 	if (end <= start) {
@@ -6437,7 +6437,7 @@ Session::current_end_frame () const
 void
 Session::set_session_range_location (framepos_t start, framepos_t end)
 {
-	_session_range_location = new Location (*this, start, end, _("session"), Location::IsSessionRange, 0);
+	_session_range_location = new Location (*this, start, end, _("session"), Location::IsSessionRange);
 	_locations->add (_session_range_location);
 }
 
