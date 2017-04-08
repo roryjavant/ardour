@@ -2390,7 +2390,7 @@ ARDOUR_UI::toggle_roll (bool with_abort, bool roll_out_of_bounded_mode)
 
 			if (UIConfiguration::instance().get_follow_edits() && ( editor->get_selection().time.front().start == _session->transport_frame() ) ) {  //if playhead is exactly at the start of a range, we can assume it was placed there by follow_edits
 				_session->request_play_range (&editor->get_selection().time, true);
-				_session->set_requested_return_frame( editor->get_selection().time.front().start );  //force an auto-return here
+				_session->set_requested_return_frame( editor->get_selection().time.front().start.frame );  //force an auto-return here
 			}
 			_session->request_transport_speed (1.0f);
 		}

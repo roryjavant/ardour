@@ -1113,7 +1113,7 @@ Editor::time_selection_changed ()
 
 	if (_session && !_drags->active()) {
 		if (selection->time.length() != 0) {
-			_session->set_range_selection (selection->time.start(), selection->time.end_frame());
+			_session->set_range_selection (selection->time.start().frame, selection->time.end_frame());
 		} else {
 			_session->clear_range_selection ();
 		}
@@ -1773,10 +1773,10 @@ Editor::select_all_selectables_using_time_selection ()
 		return;
 	}
 
-	framepos_t start = selection->time[clicked_selection].start;
-	framepos_t end = selection->time[clicked_selection].end;
+	MusicFrame start = selection->time[clicked_selection].start;
+	MusicFrame end = selection->time[clicked_selection].end;
 
-	if (end - start < 1)  {
+	if (end.frame - start.frame < 1)  {
 		return;
 	}
 
@@ -1792,7 +1792,7 @@ Editor::select_all_selectables_using_time_selection ()
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (start, end - 1, 0, DBL_MAX, touched);
+		(*iter)->get_selectables (start.frame, end.frame - 1, 0, DBL_MAX, touched);
 	}
 
 	begin_reversible_selection_op (X_("select all from range"));
@@ -1970,8 +1970,8 @@ Editor::select_all_selectables_using_edit (bool after, bool from_context_menu)
 void
 Editor::select_all_selectables_between (bool within)
 {
-	framepos_t start;
-	framepos_t end;
+	MusicFrame start (0);
+	MusicFrame end (0);
 	list<Selectable *> touched;
 
 	if (!get_edit_op_range (start, end)) {
@@ -1981,7 +1981,7 @@ Editor::select_all_selectables_between (bool within)
 	if (internal_editing()) {
 		for (RegionSelection::iterator i = selection->regions.begin(); i != selection->regions.end(); ++i) {
 			MidiRegionView* mrv = dynamic_cast<MidiRegionView*>(*i);
-			mrv->select_range (start, end);
+			mrv->select_range (start.frame, end.frame);
 		}
 		return;
 	}
@@ -1998,7 +1998,7 @@ Editor::select_all_selectables_between (bool within)
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (start, end, 0, DBL_MAX, touched, within);
+		(*iter)->get_selectables (start.frame, end.frame, 0, DBL_MAX, touched, within);
 	}
 
 	begin_reversible_selection_op (X_("Select all Selectables Between"));
@@ -2009,8 +2009,8 @@ Editor::select_all_selectables_between (bool within)
 void
 Editor::select_range_between ()
 {
-	framepos_t start;
-	framepos_t end;
+	MusicFrame start (0);
+	MusicFrame end (0);
 
 	if ( !selection->time.empty() ) {
 		selection->clear_time ();
@@ -2027,7 +2027,7 @@ Editor::select_range_between ()
 }
 
 bool
-Editor::get_edit_op_range (framepos_t& start, framepos_t& end) const
+Editor::get_edit_op_range (MusicFrame& start, MusicFrame& end) const
 {
 //	framepos_t m;
 //	bool ignored;

@@ -98,11 +98,11 @@ AnalysisGraph::analyze_region (boost::shared_ptr<AudioRegion> region)
 }
 
 void
-AnalysisGraph::analyze_range (boost::shared_ptr<Route> route, boost::shared_ptr<AudioPlaylist> pl, const std::list<AudioRange>& range)
+AnalysisGraph::analyze_range (boost::shared_ptr<Route> route, boost::shared_ptr<AudioPlaylist> pl, const std::list<MusicFrameRange>& range)
 {
 	const uint32_t n_audio = route->n_inputs().n_audio();
 
-	for (std::list<AudioRange>::const_iterator j = range.begin(); j != range.end(); ++j) {
+	for (std::list<MusicFrameRange>::const_iterator j = range.begin(); j != range.end(); ++j) {
 
 		interleaver.reset (new Interleaver<Sample> ());
 		interleaver->init (n_audio, _max_chunksize);
@@ -117,7 +117,7 @@ AnalysisGraph::analyze_range (boost::shared_ptr<Route> route, boost::shared_ptr<
 			framecnt_t chunk = std::min (_max_chunksize, (*j).length() - x);
 			framecnt_t n = 0;
 			for (uint32_t channel = 0; channel < n_audio; ++channel) {
-				n = pl->read (_buf, _mixbuf, _gainbuf, (*j).start + x, chunk, channel);
+				n = pl->read (_buf, _mixbuf, _gainbuf, (*j).start.frame + x, chunk, channel);
 
 				ConstProcessContext<Sample> context (_buf, n, 1);
 				if (n < _max_chunksize) {
@@ -135,11 +135,11 @@ AnalysisGraph::analyze_range (boost::shared_ptr<Route> route, boost::shared_ptr<
 
 		std::string name = string_compose (_("%1 (%2..%3)"), route->name(),
 				Timecode::timecode_format_sampletime (
-					(*j).start,
+					(*j).start.frame,
 					_session->nominal_frame_rate(),
 					100, false),
 				Timecode::timecode_format_sampletime (
-					(*j).start + (*j).length(),
+					(*j).start.frame + (*j).length(),
 					_session->nominal_frame_rate(),
 					100, false)
 				);

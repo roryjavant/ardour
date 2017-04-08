@@ -6932,9 +6932,9 @@ Session::reconnect_ltc_output ()
 }
 
 void
-Session::set_range_selection (framepos_t start, framepos_t end)
+Session::set_range_selection (MusicFrame start, MusicFrame end)
 {
-	_range_selection = Evoral::Range<framepos_t> (start, end);
+	_range_selection = Evoral::Range<MusicFrame> (start, end);
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif
@@ -6952,7 +6952,7 @@ Session::set_object_selection (framepos_t start, framepos_t end)
 void
 Session::clear_range_selection ()
 {
-	_range_selection = Evoral::Range<framepos_t> (-1,-1);
+	_range_selection = Evoral::Range<MusicFrame> (-1,-1);
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif

@@ -327,8 +327,8 @@ Editor::move_range_selection_start_or_end_to_region_boundary (bool move_end, boo
 		return;
 	}
 
-	framepos_t start = selection->time.start ();
-	framepos_t end = selection->time.end_frame ();
+	framepos_t start = selection->time.start ().frame;
+	framepos_t end = selection->time.end_frame ().frame;
 
 	/* the position of the thing we may move */
 	framepos_t pos = move_end ? end : start;
@@ -1074,7 +1074,7 @@ Editor::cursor_to_selection_start (EditorCursor *cursor)
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.start ();
+			pos = selection->time.start ().frame;
 		}
 		break;
 
@@ -1103,7 +1103,7 @@ Editor::cursor_to_selection_end (EditorCursor *cursor)
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.end_frame ();
+			pos = selection->time.end_frame ().frame;
 		}
 		break;
 
@@ -1271,7 +1271,7 @@ Editor::selected_marker_to_selection_start ()
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.start ();
+			pos = selection->time.start ().frame;
 		}
 		break;
 
@@ -1306,7 +1306,7 @@ Editor::selected_marker_to_selection_end ()
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.end_frame ();
+			pos = selection->time.end_frame ().frame;
 		}
 		break;
 
@@ -1945,8 +1945,8 @@ Editor::get_selection_extents (framepos_t &start, framepos_t &end) const
 		}
 
 	} else if (!selection->time.empty()) {
-		start = selection->time.start();
-		end = selection->time.end_frame();
+		start = selection->time.start().frame;
+		end = selection->time.end_frame().frame;
 	} else
 		ret = false;  //no selection found
 
@@ -2604,8 +2604,8 @@ Editor::play_selection ()
 	if (!get_selection_extents ( start, end))
 		return;
 
-	AudioRange ar (start, end, 0);
-	list<AudioRange> lar;
+	MusicFrameRange ar (start, end, 0);
+	list<MusicFrameRange> lar;
 	lar.push_back (ar);
 
 	_session->request_play_range (&lar, true);
@@ -2648,8 +2648,8 @@ Editor::play_with_preroll ()
 
 		end = end + preroll;  //"post-roll"
 
-		AudioRange ar (start, end, 0);
-		list<AudioRange> lar;
+		MusicFrameRange ar (start, end, 0);
+		list<MusicFrameRange> lar;
 		lar.push_back (ar);
 
 		_session->request_play_range (&lar, true);
@@ -2876,10 +2876,10 @@ Editor::rename_region ()
 void
 Editor::play_edit_range ()
 {
-	framepos_t start, end;
+	MusicFrame start = 0, end = 0;
 
 	if (get_edit_op_range (start, end)) {
-		_session->request_bounded_roll (start, end);
+		_session->request_bounded_roll (start.frame, end.frame);
 	}
 }
 
@@ -2924,8 +2924,8 @@ Editor::region_from_selection ()
 		return;
 	}
 
-	framepos_t start = selection->time[clicked_selection].start;
-	framepos_t end = selection->time[clicked_selection].end;
+	framepos_t start = selection->time[clicked_selection].start.frame;
+	framepos_t end = selection->time[clicked_selection].end.frame;
 
 	TrackViewList tracks = get_tracks_for_range_action ();
 
@@ -2968,11 +2968,11 @@ Editor::create_region_from_selection (vector<boost::shared_ptr<Region> >& new_re
 
 	framepos_t start, end;
 	if (clicked_selection) {
-		start = selection->time[clicked_selection].start;
-		end = selection->time[clicked_selection].end;
+		start = selection->time[clicked_selection].start.frame;
+		end = selection->time[clicked_selection].end.frame;
 	} else {
-		start = selection->time.start();
-		end = selection->time.end_frame();
+		start = selection->time.start().frame;
+		end = selection->time.end_frame().frame;
 	}
 
 	TrackViewList ts = selection->tracks.filter_to_unique_playlists ();
@@ -3029,10 +3029,10 @@ Editor::new_region_from_selection ()
 }
 
 static void
-add_if_covered (RegionView* rv, const AudioRange* ar, RegionSelection* rs)
+add_if_covered (RegionView* rv, const MusicFrameRange* ar, RegionSelection* rs)
 {
-	switch (rv->region()->coverage (ar->start, ar->end - 1)) {
-	// n.b. -1 because AudioRange::end is one past the end, but coverage expects inclusive ranges
+	switch (rv->region()->coverage (ar->start.frame, ar->end.frame - 1)) {
+	// n.b. -1 because MusicFrameRange::end is one past the end, but coverage expects inclusive ranges
 	case Evoral::OverlapNone:
 		break;
 	default:
@@ -3111,19 +3111,16 @@ Editor::separate_regions_between (const TimeSelection& ts)
 			playlist->clear_changes ();
 			playlist->clear_owned_changes ();
 
-			/* XXX need to consider musical time selections here at some point */
-
-			double speed = rtv->track()->speed();
-
-			for (list<AudioRange>::const_iterator t = ts.begin(); t != ts.end(); ++t) {
+			for (list<MusicFrameRange>::const_iterator t = ts.begin(); t != ts.end(); ++t) {
 
 				sigc::connection c = rtv->view()->RegionViewAdded.connect (
 					sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
 				latest_regionviews.clear ();
+				float speed = 1.0f;
 
-				playlist->partition ((framepos_t)((*t).start * speed),
-				                     (framepos_t)((*t).end * speed), false);
+				playlist->partition ((framepos_t)((*t).start.frame),
+				                     (framepos_t)((*t).end.frame), false);
 
 				c.disconnect ();
 
@@ -3183,12 +3180,12 @@ Editor::separate_region_from_selection ()
 
 	} else {
 
-		framepos_t start;
-		framepos_t end;
+		MusicFrame start = 0;
+		MusicFrame end = 0;
 
 		if (get_edit_op_range (start, end)) {
 
-			AudioRange ar (start, end, 1);
+			MusicFrameRange ar (start, end, 1);
 			TimeSelection ts;
 			ts.push_back (ar);
 
@@ -3222,7 +3219,7 @@ Editor::separate_regions_using_location (Location& loc)
 		return;
 	}
 
-	AudioRange ar (loc.start(), loc.end(), 1);
+	MusicFrameRange ar (loc.start(), loc.end(), 1);
 	TimeSelection ts;
 
 	ts.push_back (ar);
@@ -3315,8 +3312,8 @@ Editor::crop_region_to_selection ()
 
 	} else {
 
-		framepos_t start;
-		framepos_t end;
+		MusicFrame start = 0;
+		MusicFrame end = 0;
 
 		if (get_edit_op_range (start, end)) {
 			crop_region_to (start, end);
@@ -3326,7 +3323,7 @@ Editor::crop_region_to_selection ()
 }
 
 void
-Editor::crop_region_to (framepos_t start, framepos_t end)
+Editor::crop_region_to (const MusicFrame& start, const MusicFrame& end)
 {
 	vector<boost::shared_ptr<Playlist> > playlists;
 	boost::shared_ptr<Playlist> playlist;
@@ -3371,8 +3368,8 @@ Editor::crop_region_to (framepos_t start, framepos_t end)
 	for (vector<boost::shared_ptr<Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
 
 		/* Only the top regions at start and end have to be cropped */
-		boost::shared_ptr<Region> region_at_start = (*i)->top_region_at(start);
-		boost::shared_ptr<Region> region_at_end = (*i)->top_region_at(end);
+		boost::shared_ptr<Region> region_at_start = (*i)->top_region_at(start.frame);
+		boost::shared_ptr<Region> region_at_end = (*i)->top_region_at(end.frame);
 
 		vector<boost::shared_ptr<Region> > regions;
 
@@ -3387,13 +3384,13 @@ Editor::crop_region_to (framepos_t start, framepos_t end)
 		for (vector<boost::shared_ptr<Region> >::iterator i = regions.begin(); i != regions.end(); ++i) {
 
 			pos = (*i)->position();
-			new_start = max (start, pos);
+			new_start = max (start.frame, pos);
 			if (max_framepos - pos > (*i)->length()) {
 				new_end = pos + (*i)->length() - 1;
 			} else {
 				new_end = max_framepos;
 			}
-			new_end = min (end, new_end);
+			new_end = min (end.frame, new_end);
 			new_length = new_end - new_start + 1;
 
 			if(!in_command) {
@@ -3998,8 +3995,8 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		}
 	}
 
-	framepos_t start = selection->time[clicked_selection].start;
-	framepos_t end = selection->time[clicked_selection].end;
+	framepos_t start = selection->time[clicked_selection].start.frame;
+	framepos_t end = selection->time[clicked_selection].end.frame;
 	framepos_t cnt = end - start + 1;
 	bool in_command = false;
 
@@ -4025,9 +4022,9 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		boost::shared_ptr<Region> r;
 
 		if (enable_processing) {
-			r = rtv->track()->bounce_range (start, start+cnt, itt, rtv->track()->main_outs(), false);
+			r = rtv->track()->bounce_range (start, (start+cnt), itt, rtv->track()->main_outs(), false);
 		} else {
-			r = rtv->track()->bounce_range (start, start+cnt, itt, boost::shared_ptr<Processor>(), false);
+			r = rtv->track()->bounce_range (start, (start+cnt), itt, boost::shared_ptr<Processor>(), false);
 		}
 
 		if (!r) {
@@ -4035,8 +4032,8 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		}
 
 		if (replace) {
-			list<AudioRange> ranges;
-			ranges.push_back (AudioRange (start, start+cnt, 0));
+			list<MusicFrameRange> ranges;
+			ranges.push_back (MusicFrameRange (start, start+cnt, 0));
 			playlist->cut (ranges); // discard result
 			playlist->add_region (r, start);
 		}
@@ -4186,7 +4183,7 @@ Editor::cut_copy (CutCopyOp op)
 			}
 		}
 	} else if (selection->time.empty()) {
-		framepos_t start, end;
+		MusicFrame start = 0, end = 0;
 		/* no time selection, see if we can get an edit range
 		   and use that.
 		*/
@@ -4271,7 +4268,7 @@ Editor::cut_copy_points (Editing::CutCopyOp op, Evoral::Beats earliest, bool mid
 		}
 
 		/* Add all selected points to the relevant copy ControlLists */
-		MusicFrame start (std::numeric_limits<framepos_t>::max(), 0);
+		MusicFrame start = std::numeric_limits<framepos_t>::max();
 		for (PointSelection::iterator sel_point = selection->points.begin(); sel_point != selection->points.end(); ++sel_point) {
 			boost::shared_ptr<AutomationList>    al = (*sel_point)->line().the_list();
 			AutomationList::const_iterator ctrl_evt = (*sel_point)->model ();
@@ -4921,9 +4918,9 @@ Editor::duplicate_selection (float times)
 
 			if (clicked_selection) {
 				distance =
-				    selection->time[clicked_selection].end - selection->time[clicked_selection].start;
+				    selection->time[clicked_selection].end.frame - selection->time[clicked_selection].start.frame;
 			} else {
-				distance = selection->time.end_frame () - selection->time.start ();
+				distance = selection->time.end_frame ().frame - selection->time.start ().frame;
 			}
 
 			selection->move_time (distance);
@@ -6666,9 +6663,9 @@ Editor::set_tempo_from_region ()
 void
 Editor::use_range_as_bar ()
 {
-	framepos_t start, end;
+	MusicFrame start = 0, end = 0;
 	if (get_edit_op_range (start, end)) {
-		define_one_bar (start, end);
+		define_one_bar (start.frame, end.frame);
 	}
 }
 
@@ -7668,8 +7665,8 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 				in_command = true;
 			}
 
-			std::list<AudioRange> rl;
-			AudioRange ar(pos, pos+frames, 0);
+			std::list<MusicFrameRange> rl;
+			MusicFrameRange ar(pos, pos+frames, 0);
 			rl.push_back(ar);
 			pl->cut (rl);
 			pl->shift (pos, -frames, true, ignore_music_glue);

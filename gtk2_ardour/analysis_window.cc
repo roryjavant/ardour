@@ -256,7 +256,7 @@ AnalysisWindow::analyze_data (Gtk::Button * /*button*/)
 				// std::cerr << "Analyzing ranges on track " << rui->route()->name() << std::endl;
 
 				FFTResult *res = fft_graph.prepareResult(rui->route_color(), rui->route()->name());
-				for (std::list<AudioRange>::iterator j = ts.begin(); j != ts.end(); ++j) {
+				for (std::list<MusicFrameRange>::iterator j = ts.begin(); j != ts.end(); ++j) {
 
 					int n;
 					for (int channel = 0; channel < n_inputs; channel++) {
@@ -271,7 +271,7 @@ AnalysisWindow::analyze_data (Gtk::Button * /*button*/)
 								n = (*j).length() - x;
 							}
 
-							n = pl->read(buf, mixbuf, gain, (*j).start + x, n, channel);
+							n = pl->read(buf, mixbuf, gain, (*j).start.frame + x, n, channel);
 
 							if ( n < fft_graph.windowSize()) {
 								for (int j = n; j < fft_graph.windowSize(); j++) {

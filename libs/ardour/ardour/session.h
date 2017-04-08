@@ -994,7 +994,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	/* ranges */
 
-	void request_play_range (std::list<AudioRange>*, bool leave_rolling = false);
+	void request_play_range (std::list<MusicFrameRange>*, bool leave_rolling = false);
 	void request_cancel_play_range ();
 	bool get_play_range () const { return _play_range; }
 
@@ -1015,7 +1015,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 	/* temporary hacks to allow selection to be pushed from GUI into backend.
 	   Whenever we move the selection object into libardour, these will go away.
 	 */
-	void set_range_selection (framepos_t start, framepos_t end);
+	void set_range_selection (MusicFrame start, MusicFrame end);
 	void set_object_selection (framepos_t start, framepos_t end);
 	void clear_range_selection ();
 	void clear_object_selection ();
@@ -1923,15 +1923,15 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	/* range playback */
 
-	std::list<AudioRange> current_audio_range;
+	std::list<MusicFrameRange> current_audio_range;
 	bool _play_range;
-	void set_play_range (std::list<AudioRange>&, bool leave_rolling);
+	void set_play_range (std::list<MusicFrameRange>&, bool leave_rolling);
 	void unset_play_range ();
 
 	/* temporary hacks to allow selection to be pushed from GUI into backend
 	   Whenever we move the selection object into libardour, these will go away.
 	*/
-	Evoral::Range<framepos_t> _range_selection;
+	Evoral::Range<MusicFrame> _range_selection;
 	Evoral::Range<framepos_t> _object_selection;
 
 	void unset_preroll_record_punch ();

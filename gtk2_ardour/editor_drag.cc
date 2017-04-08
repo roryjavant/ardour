@@ -5388,7 +5388,7 @@ SelectionDrag::start_grab (GdkEvent* event, Gdk::Cursor*)
 	}
 
 	if (_operation == SelectionMove) {
-		show_verbose_cursor_time (_editor->selection->time[_editor->clicked_selection].start);
+		show_verbose_cursor_time (_editor->selection->time[_editor->clicked_selection].start.frame);
 	} else {
 		show_verbose_cursor_time (adjusted_current_frame (event).frame);
 	}
@@ -5404,11 +5404,11 @@ SelectionDrag::setup_pointer_frame_offset ()
 
 	case SelectionStartTrim:
 	case SelectionMove:
-		_pointer_frame_offset = raw_grab_frame() - _editor->selection->time[_editor->clicked_selection].start;
+		_pointer_frame_offset = raw_grab_frame() - _editor->selection->time[_editor->clicked_selection].start.frame;
 		break;
 
 	case SelectionEndTrim:
-		_pointer_frame_offset = raw_grab_frame() - _editor->selection->time[_editor->clicked_selection].end;
+		_pointer_frame_offset = raw_grab_frame() - _editor->selection->time[_editor->clicked_selection].end.frame;
 		break;
 
 	case SelectionExtend:
@@ -5634,7 +5634,7 @@ SelectionDrag::finished (GdkEvent* event, bool movement_occurred)
 				s->request_play_range (&_editor->selection->time, true);
 			} else if (!s->config.get_external_sync()) {
 				if (UIConfiguration::instance().get_follow_edits() && !s->transport_rolling()) {
-					s->request_locate (_editor->get_selection().time.start());
+					s->request_locate (_editor->get_selection().time.start().frame);
 				}
 			}
 
@@ -6167,7 +6167,7 @@ NoteDrag::aborted (bool move_threshold_passed)
 }
 
 /** Make an AutomationRangeDrag for lines in an AutomationTimeAxisView */
-AutomationRangeDrag::AutomationRangeDrag (Editor* editor, AutomationTimeAxisView* atv, list<AudioRange> const & r)
+AutomationRangeDrag::AutomationRangeDrag (Editor* editor, AutomationTimeAxisView* atv, list<MusicFrameRange> const & r)
 	: Drag (editor, atv->base_item ())
 	, _ranges (r)
 	, _y_origin (atv->y_position())
@@ -6178,7 +6178,7 @@ AutomationRangeDrag::AutomationRangeDrag (Editor* editor, AutomationTimeAxisView
 }
 
 /** Make an AutomationRangeDrag for region gain lines or MIDI controller regions */
-AutomationRangeDrag::AutomationRangeDrag (Editor* editor, RegionView* rv, list<AudioRange> const & r)
+AutomationRangeDrag::AutomationRangeDrag (Editor* editor, RegionView* rv, list<MusicFrameRange> const & r)
 	: Drag (editor, rv->get_canvas_group ())
 	, _ranges (r)
 	, _y_origin (rv->get_time_axis_view().y_position())
@@ -6217,8 +6217,8 @@ AutomationRangeDrag::setup (list<boost::shared_ptr<AutomationLine> > const & lin
 
 		pair<framepos_t, framepos_t> r = (*i)->get_point_x_range ();
 
-		/* check this range against all the AudioRanges that we are using */
-		list<AudioRange>::const_iterator k = _ranges.begin ();
+		/* check this range against all the MusicFrameRanges that we are using */
+		list<MusicFrameRange>::const_iterator k = _ranges.begin ();
 		while (k != _ranges.end()) {
 			if (k->coverage (r.first, r.second) != Evoral::OverlapNone) {
 				break;
@@ -6294,13 +6294,13 @@ AutomationRangeDrag::motion (GdkEvent*, bool first_move)
 
 		if (!_ranges.empty()) {
 
-			for (list<AudioRange>::const_iterator i = _ranges.begin(); i != _ranges.end(); ++i) {
+			for (list<MusicFrameRange>::const_iterator i = _ranges.begin(); i != _ranges.end(); ++i) {
 
-				framecnt_t const half = (i->start + i->end) / 2;
+				framecnt_t const half = (i->start.frame + i->end.frame) / 2;
 
 				/* find the line that this audio range starts in */
 				list<Line>::iterator j = _lines.begin();
-				while (j != _lines.end() && (j->range.first > i->start || j->range.second < i->start)) {
+				while (j != _lines.end() && (j->range.first > i->start.frame || j->range.second < i->start.frame)) {
 					++j;
 				}
 
@@ -6311,12 +6311,12 @@ AutomationRangeDrag::motion (GdkEvent*, bool first_move)
 				   64 samples length plucked out of thin air.
 				*/
 
-					framepos_t a = i->start + 64;
+					framepos_t a = i->start.frame + 64;
 					if (a > half) {
 						a = half;
 					}
 
-					double const p = j->line->time_converter().from (i->start - j->line->time_converter().origin_b ());
+					double const p = j->line->time_converter().from (i->start.frame - j->line->time_converter().origin_b ());
 					double const q = j->line->time_converter().from (a - j->line->time_converter().origin_b ());
 
 					XMLNode &before = the_list->get_state();
@@ -6332,7 +6332,7 @@ AutomationRangeDrag::motion (GdkEvent*, bool first_move)
 				/* same thing for the end */
 
 				j = _lines.begin();
-				while (j != _lines.end() && (j->range.first > i->end || j->range.second < i->end)) {
+				while (j != _lines.end() && (j->range.first > i->end.frame || j->range.second < i->end.frame)) {
 					++j;
 				}
 
@@ -6343,13 +6343,13 @@ AutomationRangeDrag::motion (GdkEvent*, bool first_move)
 					   64 samples length plucked out of thin air.
 					*/
 
-					framepos_t b = i->end - 64;
+					framepos_t b = i->end.frame - 64;
 					if (b < half) {
 						b = half;
 					}
 
 					double const p = j->line->time_converter().from (b - j->line->time_converter().origin_b ());
-					double const q = j->line->time_converter().from (i->end - j->line->time_converter().origin_b ());
+					double const q = j->line->time_converter().from (i->end.frame - j->line->time_converter().origin_b ());
 
 					XMLNode &before = the_list->get_state();
 					bool const add_p = the_list->editor_add (p, value (the_list, p), false);
@@ -6378,8 +6378,8 @@ AutomationRangeDrag::motion (GdkEvent*, bool first_move)
 					double const w = i->line->time_converter().to ((*p->model())->when) + i->line->time_converter().origin_b ();
 
 					/* see if it's inside a range */
-					list<AudioRange>::const_iterator k = _ranges.begin ();
-					while (k != _ranges.end() && (k->start >= w || k->end <= w)) {
+					list<MusicFrameRange>::const_iterator k = _ranges.begin ();
+					while (k != _ranges.end() && (k->start.frame >= w || k->end.frame <= w)) {
 						++k;
 					}
 

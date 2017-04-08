@@ -128,8 +128,8 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 	void set (RegionView*, bool also_clear_tracks = true);
 	void set (MidiRegionView*);
 	void set (std::vector<RegionView*>&);
-	long set (framepos_t, framepos_t);
-	void set_preserving_all_ranges (framepos_t, framepos_t);
+	long set (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
+	void set_preserving_all_ranges (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
 	void set (boost::shared_ptr<Evoral::ControlList>);
 	void set (boost::shared_ptr<ARDOUR::Playlist>);
 	void set (const std::list<boost::shared_ptr<ARDOUR::Playlist> >&);
@@ -159,7 +159,7 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 	void add (MidiRegionView*);
 	void add (MidiCutBuffer*);
 	void add (std::vector<RegionView*>&);
-	long add (framepos_t, framepos_t);
+	long add (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
 	void add (boost::shared_ptr<Evoral::ControlList>);
 	void add (boost::shared_ptr<ARDOUR::Playlist>);
 	void add (const std::list<boost::shared_ptr<ARDOUR::Playlist> >&);
@@ -188,7 +188,7 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 
         void move_time (framecnt_t);
 
-	void replace (uint32_t time_index, framepos_t start, framepos_t end);
+	void replace (uint32_t time_index, ARDOUR::MusicFrame start, ARDOUR::MusicFrame end);
 
 /*
  * A note about items in an editing Selection:

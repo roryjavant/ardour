@@ -1243,7 +1243,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void lower_region_to_bottom ();
 	void split_region_at_transients ();
 	void crop_region_to_selection ();
-	void crop_region_to (framepos_t start, framepos_t end);
+	void crop_region_to (const ARDOUR::MusicFrame& start, const ARDOUR::MusicFrame& end);
 	void set_sync_point (framepos_t, const RegionSelection&);
 	void set_region_sync_position ();
 	void remove_region_sync();
@@ -2004,7 +2004,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void external_edit_region ();
 
 	int write_audio_selection (TimeSelection&);
-	bool write_audio_range (ARDOUR::AudioPlaylist&, const ARDOUR::ChanCount& channels, std::list<ARDOUR::AudioRange>&);
+	bool write_audio_range (ARDOUR::AudioPlaylist&, const ARDOUR::ChanCount& channels, std::list<ARDOUR::MusicFrameRange>&);
 
 	void write_selection ();
 
@@ -2155,7 +2155,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void selected_marker_moved (ARDOUR::Location*);
 
-	bool get_edit_op_range (framepos_t& start, framepos_t& end) const;
+	bool get_edit_op_range (ARDOUR::MusicFrame& start, ARDOUR::MusicFrame& end) const;
 
 	void get_regions_at (RegionSelection&, framepos_t where, const TrackViewList& ts) const;
 	void get_regions_after (RegionSelection&, framepos_t where, const TrackViewList& ts) const;

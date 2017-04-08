@@ -1815,7 +1815,7 @@ Editor::loudness_analyze_range_selection ()
 		if (!pl || !rui) {
 			continue;
 		}
-		for (std::list<AudioRange>::iterator j = ts.begin (); j != ts.end (); ++j) {
+		for (std::list<MusicFrameRange>::iterator j = ts.begin (); j != ts.end (); ++j) {
 			total_work += j->length ();
 		}
 	}

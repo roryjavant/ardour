@@ -1137,21 +1137,20 @@ Playlist::partition_internal (framepos_t start, framepos_t end, bool cutting, Re
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t, framecnt_t,bool), list<AudioRange>& ranges, bool result_is_hidden)
+Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool), list<MusicFrameRange>& ranges, bool result_is_hidden)
 {
 	boost::shared_ptr<Playlist> ret;
 	boost::shared_ptr<Playlist> pl;
-	framepos_t start;
 
 	if (ranges.empty()) {
 		return boost::shared_ptr<Playlist>();
 	}
 
-	start = ranges.front().start;
+	MusicFrame start = ranges.front().start;
 
-	for (list<AudioRange>::iterator i = ranges.begin(); i != ranges.end(); ++i) {
+	for (list<MusicFrameRange>::iterator i = ranges.begin(); i != ranges.end(); ++i) {
 
-		pl = (this->*pmf)((*i).start, (*i).length(), result_is_hidden);
+		pl = (this->*pmf)((*i).start, (*i).end, result_is_hidden);
 
 		if (i == ranges.begin()) {
 			ret = pl;
@@ -1162,7 +1161,7 @@ Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t, fra
 			   chopped.
 			*/
 
-			ret->paste (pl, (*i).start - start, 1.0f, 0);
+			ret->paste (pl, (*i).start.frame - start.frame, 1.0f, start.division);
 		}
 	}
 
@@ -1170,21 +1169,21 @@ Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t, fra
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut (list<AudioRange>& ranges, bool result_is_hidden)
+Playlist::cut (list<MusicFrameRange>& ranges, bool result_is_hidden)
 {
-	boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t,framecnt_t,bool) = &Playlist::cut;
+	boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool) = &Playlist::cut;
 	return cut_copy (pmf, ranges, result_is_hidden);
 }
 
 boost::shared_ptr<Playlist>
-Playlist::copy (list<AudioRange>& ranges, bool result_is_hidden)
+Playlist::copy (list<MusicFrameRange>& ranges, bool result_is_hidden)
 {
-	boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t,framecnt_t,bool) = &Playlist::copy;
+	boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool) = &Playlist::copy;
 	return cut_copy (pmf, ranges, result_is_hidden);
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut (framepos_t start, framecnt_t cnt, bool result_is_hidden)
+Playlist::cut (MusicFrame& start, MusicFrame& end, bool result_is_hidden)
 {
 	boost::shared_ptr<Playlist> the_copy;
 	RegionList thawlist;
@@ -1195,13 +1194,13 @@ Playlist::cut (framepos_t start, framecnt_t cnt, bool result_is_hidden)
 	new_name += '.';
 	new_name += buf;
 
-	if ((the_copy = PlaylistFactory::create (shared_from_this(), start, cnt, new_name, result_is_hidden)) == 0) {
+	if ((the_copy = PlaylistFactory::create (shared_from_this(), start.frame, (end - start).frame, new_name, result_is_hidden)) == 0) {
 		return boost::shared_ptr<Playlist>();
 	}
 
 	{
 		RegionWriteLock rlock (this);
-		partition_internal (start, start+cnt-1, true, thawlist);
+		partition_internal (start.frame, end.frame - 1, true, thawlist);
 	}
 
 	for (RegionList::iterator i = thawlist.begin(); i != thawlist.end(); ++i) {
@@ -1212,7 +1211,7 @@ Playlist::cut (framepos_t start, framecnt_t cnt, bool result_is_hidden)
 }
 
 boost::shared_ptr<Playlist>
-Playlist::copy (framepos_t start, framecnt_t cnt, bool result_is_hidden)
+Playlist::copy (MusicFrame& start, MusicFrame& end, bool result_is_hidden)
 {
 	char buf[32];
 
@@ -1223,7 +1222,7 @@ Playlist::copy (framepos_t start, framecnt_t cnt, bool result_is_hidden)
 
 	// cnt = min (_get_extent().second - start, cnt);  (We need the full range length when copy/pasting in Ripple.  Why was this limit here?  It's not in CUT... )
 
-	return PlaylistFactory::create (shared_from_this(), start, cnt, new_name, result_is_hidden);
+	return PlaylistFactory::create (shared_from_this(), start.frame, (end - start).frame, new_name, result_is_hidden);
 }
 
 int
@@ -1336,15 +1335,16 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, framepos_t position
 }
 
 void
-Playlist::duplicate_range (AudioRange& range, float times)
+Playlist::duplicate_range (MusicFrameRange& range, float times)
 {
-	boost::shared_ptr<Playlist> pl = copy (range.start, range.length(), true);
-	framecnt_t offset = range.end - range.start;
-	paste (pl, range.start + offset, times, 0);
+	MusicFrame len (range.length());
+	boost::shared_ptr<Playlist> pl = copy (range.start, len, true);
+	framecnt_t offset = range.end.frame - range.start.frame;
+	paste (pl, range.start.frame + offset, times, 0);
 }
 
 void
-Playlist::duplicate_ranges (std::list<AudioRange>& ranges, float times)
+Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
 {
 	if (ranges.empty()) {
 		return;
@@ -1353,11 +1353,11 @@ Playlist::duplicate_ranges (std::list<AudioRange>& ranges, float times)
 	framepos_t min_pos = max_framepos;
 	framepos_t max_pos = 0;
 
-	for (std::list<AudioRange>::const_iterator i = ranges.begin();
+	for (std::list<MusicFrameRange>::const_iterator i = ranges.begin();
 	     i != ranges.end();
 	     ++i) {
-		min_pos = min (min_pos, (*i).start);
-		max_pos = max (max_pos, (*i).end);
+		min_pos = min (min_pos, (*i).start.frame);
+		max_pos = max (max_pos, (*i).end.frame);
 	}
 
 	framecnt_t offset = max_pos - min_pos;
@@ -1365,9 +1365,10 @@ Playlist::duplicate_ranges (std::list<AudioRange>& ranges, float times)
 	int count = 1;
 	int itimes = (int) floor (times);
 	while (itimes--) {
-		for (list<AudioRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
-			boost::shared_ptr<Playlist> pl = copy ((*i).start, (*i).length (), true);
-			paste (pl, (*i).start + (offset * count), 1.0f, 0);
+               for (list<MusicFrameRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
+		       MusicFrame len ((*i).length ());
+			boost::shared_ptr<Playlist> pl = copy ((*i).start, len, true);
+			paste (pl, (*i).start.frame + (offset * count), 1.0f, 0);
 		}
 		++count;
 	}
@@ -3317,16 +3318,16 @@ Playlist::uncombine (boost::shared_ptr<Region> target)
 }
 
 void
-Playlist::fade_range (list<AudioRange>& ranges)
+Playlist::fade_range (list<MusicFrameRange>& ranges)
 {
 	RegionReadLock rlock (this);
-	for (list<AudioRange>::iterator r = ranges.begin(); r != ranges.end(); ) {
-		list<AudioRange>::iterator tmpr = r;
+	for (list<MusicFrameRange>::iterator r = ranges.begin(); r != ranges.end(); ) {
+		list<MusicFrameRange>::iterator tmpr = r;
 		++tmpr;
 		for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ) {
 			RegionList::const_iterator tmpi = i;
 			++tmpi;
-			(*i)->fade_range ((*r).start, (*r).end);
+			(*i)->fade_range ((*r).start.frame, (*r).end.frame);
 			i = tmpi;
 		}
 		r = tmpr;
@@ -3410,7 +3411,7 @@ Playlist::coalesce_and_check_crossfades (list<Evoral::Range<framepos_t> > ranges
 	*/
 
 	/* XXX: xfade: this is implemented in Evoral::RangeList */
-
+/*
 restart:
 	for (list<Evoral::Range<framepos_t> >::iterator i = ranges.begin(); i != ranges.end(); ++i) {
 		for (list<Evoral::Range<framepos_t> >::iterator j = ranges.begin(); j != ranges.end(); ++j) {
@@ -3428,6 +3429,7 @@ restart:
 			}
 		}
 	}
+*/
 }
 
 void

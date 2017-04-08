@@ -376,25 +376,25 @@ namespace ARDOUR {
 	/* XXX: slightly unfortunate that there is this and Evoral::Range<>,
 	   but this has a uint32_t id which Evoral::Range<> does not.
 	*/
-	struct AudioRange {
-		framepos_t start;
-		framepos_t end;
+	struct MusicFrameRange {
+		MusicFrame start;
+		MusicFrame end;
 		uint32_t id;
 
-		AudioRange (framepos_t s, framepos_t e, uint32_t i) : start (s), end (e) , id (i) {}
+		MusicFrameRange (MusicFrame s, MusicFrame e, uint32_t i) : start (s), end (e) , id (i) {}
 
-		framecnt_t length() const { return end - start + 1; }
+		framecnt_t length() const { return end.frame - start.frame + 1; }
 
-		bool operator== (const AudioRange& other) const {
+		bool operator== (const MusicFrameRange& other) const {
 			return start == other.start && end == other.end && id == other.id;
 		}
 
-		bool equal (const AudioRange& other) const {
+		bool equal (const MusicFrameRange& other) const {
 			return start == other.start && end == other.end;
 		}
 
 		Evoral::OverlapType coverage (framepos_t s, framepos_t e) const {
-			return Evoral::coverage (start, end, s, e);
+			return Evoral::coverage (start.frame, end.frame, s, e);
 		}
 	};
 

@@ -613,7 +613,7 @@ LuaInstance::register_classes (lua_State* L)
 		.addFunction ("regionlist", &RegionSelection::regionlist) // XXX check windows binding (libardour)
 		.endClass ()
 
-		.deriveClass <TimeSelection, std::list<ARDOUR::AudioRange> > ("TimeSelection")
+		.deriveClass <TimeSelection, std::list<ARDOUR::MusicFrameRange> > ("TimeSelection")
 		.addFunction ("start", &TimeSelection::start)
 		.addFunction ("end_frame", &TimeSelection::end_frame)
 		.addFunction ("length", &TimeSelection::length)

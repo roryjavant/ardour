@@ -148,12 +148,12 @@ public:
 	void duplicate (boost::shared_ptr<Region>, framepos_t position, float times);
 	void duplicate (boost::shared_ptr<Region>, framepos_t position, framecnt_t gap, float times);
 	void duplicate_until (boost::shared_ptr<Region>, framepos_t position, framecnt_t gap, framepos_t end);
-	void duplicate_range (AudioRange&, float times);
-	void duplicate_ranges (std::list<AudioRange>&, float times);
+	void duplicate_range (MusicFrameRange&, float times);
+	void duplicate_ranges (std::list<MusicFrameRange>&, float times);
 	void nudge_after (framepos_t start, framecnt_t distance, bool forwards);
 	boost::shared_ptr<Region> combine (const RegionList&);
 	void uncombine (boost::shared_ptr<Region>);
-	void fade_range (std::list<AudioRange>&);
+	void fade_range (std::list<MusicFrameRange>&);
 
 	void shuffle (boost::shared_ptr<Region>, int dir);
 	void ripple (framepos_t at, framecnt_t distance, RegionList *exclude);
@@ -166,8 +166,8 @@ public:
 
 	void update_after_tempo_map_change ();
 
-	boost::shared_ptr<Playlist> cut  (std::list<AudioRange>&, bool result_is_hidden = true);
-	boost::shared_ptr<Playlist> copy (std::list<AudioRange>&, bool result_is_hidden = true);
+	boost::shared_ptr<Playlist> cut  (std::list<MusicFrameRange>&, bool result_is_hidden = true);
+	boost::shared_ptr<Playlist> copy (std::list<MusicFrameRange>&, bool result_is_hidden = true);
 	int                         paste (boost::shared_ptr<Playlist>, framepos_t position, float times, const int32_t sub_num);
 
 	const RegionListProperty& region_list_property () const { return regions; }
@@ -380,10 +380,10 @@ public:
 
 	std::pair<framepos_t, framepos_t> _get_extent() const;
 
-	boost::shared_ptr<Playlist> cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(framepos_t, framecnt_t, bool),
-					      std::list<AudioRange>& ranges, bool result_is_hidden);
-	boost::shared_ptr<Playlist> cut (framepos_t start, framecnt_t cnt, bool result_is_hidden);
-	boost::shared_ptr<Playlist> copy (framepos_t start, framecnt_t cnt, bool result_is_hidden);
+	boost::shared_ptr<Playlist> cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&, bool),
+					      std::list<MusicFrameRange>& ranges, bool result_is_hidden);
+	boost::shared_ptr<Playlist> cut (MusicFrame& start, MusicFrame& end, bool result_is_hidden);
+	boost::shared_ptr<Playlist> copy (MusicFrame& start, MusicFrame& end, bool result_is_hidden);
 
 	void relayer ();
 

@@ -1500,8 +1500,8 @@ RouteTimeAxisView::fade_range (TimeSelection& selection)
 	float const speed = tr->speed();
 	if (speed != 1.0f) {
 		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = session_frame_to_track_frame((*i).start, speed);
-			(*i).end   = session_frame_to_track_frame((*i).end,   speed);
+			(*i).start = session_frame_to_track_frame((*i).start.frame, speed);
+			(*i).end   = session_frame_to_track_frame((*i).end.frame,   speed);
 		}
 	}
 
@@ -1535,8 +1535,8 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 	float const speed = tr->speed();
 	if (speed != 1.0f) {
 		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = session_frame_to_track_frame((*i).start, speed);
-			(*i).end   = session_frame_to_track_frame((*i).end,   speed);
+			(*i).start = session_frame_to_track_frame((*i).start.frame, speed);
+			(*i).end   = session_frame_to_track_frame((*i).end.frame,   speed);
 		}
 	}
 
@@ -1547,7 +1547,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 	case Delete:
 		if (playlist->cut (time) != 0) {
 			if (Config->get_edit_mode() == Ripple)
-				playlist->ripple(time.start(), -time.length(), NULL);
+				playlist->ripple(time.start().frame, -time.length(), NULL);
 				// no need to exclude any regions from rippling here
 
                         vector<Command*> cmds;
@@ -1562,7 +1562,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 		if ((what_we_got = playlist->cut (time)) != 0) {
 			_editor.get_cut_buffer().add (what_we_got);
 			if (Config->get_edit_mode() == Ripple)
-				playlist->ripple(time.start(), -time.length(), NULL);
+				playlist->ripple(time.start().frame, -time.length(), NULL);
 				// no need to exclude any regions from rippling here
 
                         vector<Command*> cmds;
@@ -1581,7 +1581,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 	case Clear:
 		if ((what_we_got = playlist->cut (time)) != 0) {
 			if (Config->get_edit_mode() == Ripple)
-				playlist->ripple(time.start(), -time.length(), NULL);
+				playlist->ripple(time.start().frame, -time.length(), NULL);
 				// no need to exclude any regions from rippling here
 
                         vector<Command*> cmds;

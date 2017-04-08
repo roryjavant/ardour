@@ -292,7 +292,7 @@ Session::request_play_loop (bool yn, bool change_transport_roll)
 }
 
 void
-Session::request_play_range (list<AudioRange>* range, bool leave_rolling)
+Session::request_play_range (list<MusicFrameRange>* range, bool leave_rolling)
 {
 	SessionEvent* ev = new SessionEvent (SessionEvent::SetPlayAudioRange, SessionEvent::Add, SessionEvent::Immediate, 0, (leave_rolling ? 1.0 : 0.0));
 	if (range) {
@@ -1959,7 +1959,7 @@ Session::unset_play_range ()
 }
 
 void
-Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
+Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 {
 	SessionEvent* ev;
 
@@ -1983,12 +1983,12 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 	/* cancel loop play */
 	unset_play_loop ();
 
-	list<AudioRange>::size_type sz = range.size();
+	list<MusicFrameRange>::size_type sz = range.size();
 
 	if (sz > 1) {
 
-		list<AudioRange>::iterator i = range.begin();
-		list<AudioRange>::iterator next;
+		list<MusicFrameRange>::iterator i = range.begin();
+		list<MusicFrameRange>::iterator next;
 
 		while (i != range.end()) {
 
@@ -1998,7 +1998,7 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 			/* locating/stopping is subject to delays for declicking.
 			 */
 
-			framepos_t requested_frame = i->end;
+			framepos_t requested_frame = i->end.frame;
 
 			if (requested_frame > current_block_size) {
 				requested_frame -= current_block_size;
@@ -2009,7 +2009,7 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 			if (next == range.end()) {
 				ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, requested_frame, 0, 0.0f);
 			} else {
-				ev = new SessionEvent (SessionEvent::RangeLocate, SessionEvent::Add, requested_frame, (*next).start, 0.0f);
+				ev = new SessionEvent (SessionEvent::RangeLocate, SessionEvent::Add, requested_frame, (*next).start.frame, 0.0f);
 			}
 
 			merge_event (ev);
@@ -2019,7 +2019,7 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 
 	} else if (sz == 1) {
 
-		ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, range.front().end, 0, 0.0f);
+		ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, range.front().end.frame, 0, 0.0f);
 		merge_event (ev);
 
 	}
@@ -2030,7 +2030,7 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 
 	/* now start rolling at the right place */
 
-	ev = new SessionEvent (SessionEvent::LocateRoll, SessionEvent::Add, SessionEvent::Immediate, range.front().start, 0.0f, false);
+	ev = new SessionEvent (SessionEvent::LocateRoll, SessionEvent::Add, SessionEvent::Immediate, range.front().start.frame, 0.0f, false);
 	merge_event (ev);
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("send TSC5 with speed = %1\n", _transport_speed));
@@ -2040,8 +2040,8 @@ Session::set_play_range (list<AudioRange>& range, bool leave_rolling)
 void
 Session::request_bounded_roll (framepos_t start, framepos_t end)
 {
-	AudioRange ar (start, end, 0);
-	list<AudioRange> lar;
+	MusicFrameRange ar (start, end, 0);
+	list<MusicFrameRange> lar;
 
 	lar.push_back (ar);
 	request_play_range (&lar, true);

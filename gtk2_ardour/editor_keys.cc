@@ -43,7 +43,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 {
 	if (_session) {
 
-		MusicFrame start (selection->time.start(), 0);
+		MusicFrame start = selection->time.start();
 		framepos_t end;
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
 			end = _session->audible_frame();
@@ -58,7 +58,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 		if ( (_edit_point == EditAtPlayhead) && selection->tracks.empty() )
 			select_all_tracks();
 
-		selection->set (start.frame, end);
+		selection->set (start, end);
 
 		//if session is playing a range, cancel that
 		if (_session->get_play_range())
@@ -73,7 +73,7 @@ Editor::keyboard_selection_begin (Editing::EditIgnoreOption ign)
 	if (_session) {
 
 		MusicFrame start (0, 0);
-		MusicFrame end (selection->time.end_frame(), 0);
+		MusicFrame end = selection->time.end_frame();
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
 			start.frame = _session->audible_frame();
 		} else {
@@ -92,13 +92,14 @@ Editor::keyboard_selection_begin (Editing::EditIgnoreOption ign)
 #else
 			end.frame = max_framepos;
 #endif
+			end.division = 0;
 		}
 
 		//if no tracks are selected and we're working from the keyboard, enable all tracks (_something_ has to be selected for any range selection)
 		if ( selection->tracks.empty() )
 			select_all_tracks();
 
-		selection->set (start.frame, end.frame);
+		selection->set (start, end);
 
 		//if session is playing a range, cancel that
 		if (_session->get_play_range())

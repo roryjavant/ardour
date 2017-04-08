@@ -993,8 +993,8 @@ AutomationTimeAxisView::cut_copy_clear_one (AutomationLine& line, Selection& sel
 
 	/* convert time selection to automation list model coordinates */
 	const Evoral::TimeConverter<double, ARDOUR::framepos_t>& tc = line.time_converter ();
-	double const start = tc.from (selection.time.front().start - tc.origin_b ());
-	double const end = tc.from (selection.time.front().end - tc.origin_b ());
+	double const start = tc.from (selection.time.front().start.frame - tc.origin_b ());
+	double const end = tc.from (selection.time.front().end.frame - tc.origin_b ());
 
 	switch (op) {
 	case Delete:

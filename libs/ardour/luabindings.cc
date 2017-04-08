@@ -213,7 +213,7 @@ CLASSKEYS(std::vector<boost::shared_ptr<ARDOUR::Source> >);
 
 CLASSKEYS(std::list<ArdourMarker*>);
 CLASSKEYS(std::list<TimeAxisView*>);
-CLASSKEYS(std::list<ARDOUR::AudioRange>);
+CLASSKEYS(std::list<ARDOUR::MusicFrameRange>);
 CLASSKEYS(std::list<boost::shared_ptr<ARDOUR::Port> >);
 CLASSKEYS(std::list<boost::shared_ptr<ARDOUR::Region> >);
 CLASSKEYS(std::list<boost::shared_ptr<ARDOUR::Route> >);
@@ -691,13 +691,13 @@ LuaBindings::common (lua_State* L)
 		.addData ("division", &MusicFrame::division)
 		.endClass ()
 
-		.beginClass <AudioRange> ("AudioRange")
+		.beginClass <MusicFrameRange> ("MusicFrameRange")
 		.addConstructor <void (*) (framepos_t, framepos_t, uint32_t)> ()
-		.addFunction ("length", &AudioRange::length)
-		.addFunction ("equal", &AudioRange::equal)
-		.addData ("start", &AudioRange::start)
-		.addData ("_end", &AudioRange::end) // XXX "end" is a lua reserved word
-		.addData ("id", &AudioRange::id)
+		.addFunction ("length", &MusicFrameRange::length)
+		.addFunction ("equal", &MusicFrameRange::equal)
+		.addData ("start", &MusicFrameRange::start)
+		.addData ("_end", &MusicFrameRange::end) // XXX "end" is a lua reserved word
+		.addData ("id", &MusicFrameRange::id)
 		.endClass ()
 
 		.beginWSPtrClass <PluginInfo> ("PluginInfo")
@@ -1027,7 +1027,7 @@ LuaBindings::common (lua_State* L)
 		.addFunction ("uncombine", &Playlist::uncombine)
 		.addFunction ("split_region", &Playlist::split_region)
 		.addFunction ("split", (void (Playlist::*)(framepos_t))&Playlist::split)
-		.addFunction ("cut", (boost::shared_ptr<Playlist> (Playlist::*)(std::list<AudioRange>&, bool))&Playlist::cut)
+		.addFunction ("cut", (boost::shared_ptr<Playlist> (Playlist::*)(std::list<MusicFrameRange>&, bool))&Playlist::cut)
 #if 0
 		.addFunction ("copy", &Playlist::copy)
 		.addFunction ("paste", &Playlist::paste)
@@ -1464,7 +1464,7 @@ LuaBindings::common (lua_State* L)
 		.endClass ()
 
 		// used by Playlist::cut/copy
-		.beginConstStdList <AudioRange> ("AudioRangeList")
+		.beginConstStdList <MusicFrameRange> ("MusicFrameRangeList")
 		.endClass ()
 
 		.beginConstStdList <Location*> ("LocationList")

@@ -850,12 +850,12 @@ TimeAxisView::show_selection (TimeSelection& ts)
 	selection_group->show();
 	selection_group->raise_to_top();
 
-	for (list<AudioRange>::iterator i = ts.begin(); i != ts.end(); ++i) {
+	for (list<MusicFrameRange>::iterator i = ts.begin(); i != ts.end(); ++i) {
 		framepos_t start, end;
 		framecnt_t cnt;
 
-		start = (*i).start;
-		end = (*i).end;
+		start = (*i).start.frame;
+		end = (*i).end.frame;
 		cnt = end - start + 1;
 
 		rect = get_selection_rect ((*i).id);
