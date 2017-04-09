@@ -1925,6 +1925,13 @@ TempoMap::quarter_note_at_tempo (const Tempo& tempo) const
 	return pulse_at_tempo_locked (_metrics, tempo) * 4.0;;
 }
 
+AudioMusic
+TempoMap::audiomusic_at_musicframe (const MusicFrame& mf) const
+{
+	Glib::Threads::RWLock::ReaderLock lm (lock);
+
+	return AudioMusic (mf.frame, exact_qn_at_frame_locked (_metrics, mf.frame, mf.division));
+}
 /** Returns the whole-note pulse corresponding to the supplied  BBT (meter-based) beat.
  * @param metrics the list of metric sections used to calculate the pulse.
  * @param beat The BBT (meter-based) beat.

@@ -711,6 +711,10 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	framecnt_t convert_to_frames (AnyTime const & position);
 	framecnt_t any_duration_to_frames (framepos_t position, AnyTime const & duration);
+	AudioMusic audiomusic_at_musicframe (const MusicFrame& position);
+	AudioMusic audiomusic_at_qn (const double quarter_note);
+	double qn_at_beat (const double beat);
+	double beat_at_qn (const double quarter_note);
 
 	static PBD::Signal1<void, framepos_t> StartTimeChanged;
 	static PBD::Signal1<void, framepos_t> EndTimeChanged;

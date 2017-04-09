@@ -288,3 +288,27 @@ Session::any_duration_to_frames (framepos_t position, AnyTime const & duration)
 
 	return duration.frames;
 }
+
+ARDOUR::AudioMusic
+Session::audiomusic_at_musicframe (const MusicFrame& pos)
+{
+	return _tempo_map->audiomusic_at_musicframe (pos);
+}
+
+ARDOUR::AudioMusic
+Session::audiomusic_at_qn (const double quarter_note)
+{
+	return AudioMusic (_tempo_map->frame_at_quarter_note (quarter_note), quarter_note);
+}
+
+double
+Session::qn_at_beat (const double beat)
+{
+	return _tempo_map->quarter_note_at_beat (beat);
+}
+
+double
+Session::beat_at_qn (const double qn)
+{
+	return _tempo_map->beat_at_quarter_note (qn);
+}

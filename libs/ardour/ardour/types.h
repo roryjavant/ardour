@@ -319,6 +319,57 @@ namespace ARDOUR {
 		}
 	};
 
+	struct AudioMusic {
+
+		framecnt_t     frames;
+		double         qnotes;
+
+		AudioMusic (framecnt_t f, double q) : frames (f), qnotes (q) {}
+
+		bool operator== (const AudioMusic& other) const {
+			return frames == other.frames;
+		}
+		bool operator!= (const AudioMusic& other) const {
+			return !(*this == other);
+		}
+
+		AudioMusic& operator= (const AudioMusic &other) {
+			if (this != &other) {
+				frames = other.frames;
+				qnotes = other.qnotes;
+			}
+			return *this;
+		}
+
+		AudioMusic & operator+= (const AudioMusic &other) {
+			frames += other.frames;
+			qnotes += other.qnotes;
+			return *this;
+		}
+		AudioMusic & operator-= (const AudioMusic &other) {
+			frames -= other.frames;
+			qnotes -= other.qnotes;
+			return *this;
+		}
+
+		AudioMusic operator+ (const AudioMusic &other) const {
+			AudioMusic ret = *this;
+			ret += other;
+			return ret;
+		}
+		AudioMusic operator- (const AudioMusic &other) const {
+			AudioMusic ret = *this;
+			ret -= other;
+			return ret;
+		}
+		bool operator< (const AudioMusic& other) const {
+			return frames < other.frames;
+		}
+		bool operator> (const AudioMusic& other) const {
+			return frames > other.frames;
+		}
+	};
+
 	/* used for translating audio frames to an exact musical position using a note divisor.
 	   an exact musical position almost never falls exactly on an audio frame, but for sub-sample
 	   musical accuracy we need to derive exact musical locations from a frame position
