@@ -103,9 +103,8 @@ Editor::time_stretch (RegionSelection& regions, float fraction)
 
 		MidiStretch stretch (*_session, request);
 		stretch.run (*i);
-
 		playlist->replace_region (regions.front()->region(), stretch.results[0],
-					  regions.front()->region()->position());
+					  regions.front()->region()->position_am());
 		midi_playlists_affected.insert (playlist);
 	}
 
@@ -350,8 +349,7 @@ Editor::do_timefx ()
 
 		if (!fx->results.empty()) {
 			new_region = fx->results.front();
-
-			playlist->replace_region (region, new_region, region->position());
+			playlist->replace_region (region, new_region, region->position_am());
 			playlists_affected.insert (playlist);
 		}
 

@@ -59,8 +59,8 @@ public:
 
 	/** This constructor does NOT notify others (session) */
 	MidiPlaylist (boost::shared_ptr<const MidiPlaylist> other,
-	              framepos_t                            start,
-	              framecnt_t                            cnt,
+	              const AudioMusic&                     start,
+	              const AudioMusic&                     cnt,
 	              std::string                           name,
 	              bool                                  hidden = false);
 
@@ -111,7 +111,6 @@ public:
 	 * @param time Time stamp of all written note offs.
 	 */
 	void resolve_note_trackers (Evoral::EventSink<framepos_t>& dst, framepos_t time);
-
 protected:
 	void remove_dependents (boost::shared_ptr<Region> region);
 	void region_going_away (boost::weak_ptr<Region> region);

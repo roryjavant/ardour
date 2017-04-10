@@ -78,8 +78,8 @@ MidiPlaylist::MidiPlaylist (boost::shared_ptr<const MidiPlaylist> other, string 
 }
 
 MidiPlaylist::MidiPlaylist (boost::shared_ptr<const MidiPlaylist> other,
-                            framepos_t                            start,
-                            framecnt_t                            dur,
+                            const AudioMusic&                     start,
+                            const AudioMusic&                     dur,
                             string                                name,
                             bool                                  hidden)
 	: Playlist (other, start, dur, name, hidden)
@@ -407,9 +407,9 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 	string before_name;
 	string after_name;
 	const double before_qn = _session.tempo_map().exact_qn_at_frame (playlist_position.frame, playlist_position.division) - region->quarter_note();
-	const double after_qn = mr->length_beats() - before_qn;
-	MusicFrame before (playlist_position.frame - region->position(), playlist_position.division);
-	MusicFrame after (region->length() - before.frame, playlist_position.division);
+	const double after_qn = mr->length_qn() - before_qn;
+	AudioMusic before (playlist_position.frame - region->position(), before_qn);
+	AudioMusic after (region->length() - before.frames, region->length_qn() - before_qn);
 
 	/* split doesn't change anything about length, so don't try to splice */
 	bool old_sp = _splicing;
@@ -420,8 +420,8 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 	{
 		PropertyList plist;
 
-		plist.add (Properties::length, before.frame);
-		plist.add (Properties::length_beats, before_qn);
+		plist.add (Properties::length, before.frames);
+		plist.add (Properties::length_qn, before_qn);
 		plist.add (Properties::name, before_name);
 		plist.add (Properties::left_of_split, true);
 		plist.add (Properties::layering_index, region->layering_index ());
@@ -439,19 +439,18 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 	{
 		PropertyList plist;
 
-		plist.add (Properties::length, after.frame);
-		plist.add (Properties::length_beats, after_qn);
+		plist.add (Properties::length, after.frames);
+		plist.add (Properties::length_qn, after_qn);
 		plist.add (Properties::name, after_name);
 		plist.add (Properties::right_of_split, true);
 		plist.add (Properties::layering_index, region->layering_index ());
 		plist.add (Properties::layer, region->layer ());
 
 		/* same note as above */
-		right = RegionFactory::create (region, before, plist, true);
+		right = RegionFactory::create (region, MusicFrame (before.frames, playlist_position.division), plist, true);
 	}
-
-	add_region_internal (left, region->position(), 0, region->quarter_note(), true);
-	add_region_internal (right, region->position() + before.frame, before.division, region->quarter_note() + before_qn, true);
+	add_region_internal (left, region->position_am());
+	add_region_internal (right, AudioMusic (before.frames, before_qn) + region->position_am());
 
 	remove_region_internal (region);
 

@@ -846,13 +846,13 @@ RegionView::trim_front (framepos_t new_bound, bool no_overlap, const int32_t sub
 
 	framepos_t const pre_trim_first_frame = _region->first_frame();
 
-	const framepos_t speed_bound = (framepos_t) (new_bound * speed);
+	AudioMusic speed_bound = trackview.session()->audiomusic_at_musicframe (MusicFrame (new_bound * speed, sub_num));
 
-	if (_region->position() == speed_bound) {
+	if (_region->position() == speed_bound.frames) {
 		return false;
 	}
 
-	_region->trim_front (speed_bound, sub_num);
+	_region->trim_front (speed_bound);
 
 	if (no_overlap) {
 		// Get the next region on the left of this region and shrink/expand it.
@@ -867,7 +867,8 @@ RegionView::trim_front (framepos_t new_bound, bool no_overlap, const int32_t sub
 
 		// Only trim region on the left if the first frame has gone beyond the left region's last frame.
 		if (region_left != 0 &&	(region_left->last_frame() > _region->first_frame() || regions_touching)) {
-			region_left->trim_end (_region->first_frame() - 1);
+			AudioMusic new_end (_region->first_frame() - 1, _region->quarter_note());
+			region_left->trim_end (new_end);
 		}
 	}
 
@@ -888,7 +889,7 @@ RegionView::trim_end (framepos_t new_bound, bool no_overlap, const int32_t sub_n
 
 	framepos_t const pre_trim_last_frame = _region->last_frame();
 
-	_region->trim_end ((framepos_t) (new_bound * speed), sub_num);
+	_region->trim_end (trackview.session()->audiomusic_at_musicframe (MusicFrame (new_bound * speed, sub_num)));
 
 	if (no_overlap) {
 		// Get the next region on the right of this region and shrink/expand it.
@@ -903,7 +904,7 @@ RegionView::trim_end (framepos_t new_bound, bool no_overlap, const int32_t sub_n
 
 		// Only trim region on the right if the last frame has gone beyond the right region's first frame.
 		if (region_right != 0 && (region_right->first_frame() < _region->last_frame() || regions_touching)) {
-			region_right->trim_front (_region->last_frame() + 1, sub_num);
+			region_right->trim_front (AudioMusic (_region->last_frame() + 1, _region->end_qn()));
 		}
 
 		region_changed (ARDOUR::bounds_change);
@@ -928,13 +929,14 @@ RegionView::thaw_after_trim ()
 
 
 void
-RegionView::move_contents (frameoffset_t distance)
+RegionView::move_contents (AudioMusic& distance)
 {
 	if (_region->locked()) {
 		return;
 	}
 	_region->move_start (distance);
 	region_changed (PropertyChange (ARDOUR::Properties::start));
+	region_changed (PropertyChange (ARDOUR::Properties::start_qn));
 }
 
 /** Snap a frame offset within our region using the current snap settings.

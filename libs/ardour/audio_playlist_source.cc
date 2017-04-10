@@ -42,13 +42,13 @@ using namespace ARDOUR;
 using namespace PBD;
 
 AudioPlaylistSource::AudioPlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<AudioPlaylist> p,
-					  uint32_t chn, frameoffset_t begin, framecnt_t len, Source::Flag flags)
+					  uint32_t chn, const AudioMusic& begin, const AudioMusic& len, Source::Flag flags)
 	: Source (s, DataType::AUDIO, name)
 	, PlaylistSource (s, orig, name, p, DataType::AUDIO, begin, len, flags)
 	, AudioSource (s, name)
 	, _playlist_channel (chn)
 {
-	AudioSource::_length = len;
+	AudioSource::_length = len.frames;
 	ensure_buffers_for_level (_level, _session.frame_rate());
 }
 
@@ -109,9 +109,9 @@ AudioPlaylistSource::set_state (const XMLNode& node, int version, bool with_desc
 	}
 
 	XMLProperty const * prop;
-	pair<framepos_t,framepos_t> extent = _playlist->get_extent();
+	pair<AudioMusic, AudioMusic> extent = _playlist->get_extent();
 
-	AudioSource::_length = extent.second - extent.first;
+	AudioSource::_length = (extent.second - extent.first).frames;
 
 	if ((prop = node.property (X_("channel"))) == 0) {
 		throw failed_constructor ();

@@ -542,7 +542,7 @@ SoundFileBox::audition ()
 			audition_position = _session->current_start_frame();
 			break;
 		case ImportAtEditPoint:
-			audition_position = PublicEditor::instance().get_preferred_edit_position ();
+			audition_position = PublicEditor::instance().get_preferred_edit_position();
 			break;
 	}
 	r->set_position(audition_position);
@@ -2035,7 +2035,7 @@ SoundFileOmega::do_something (int action)
 
 	switch (pos) {
 	case ImportAtEditPoint:
-		where = PublicEditor::instance().get_preferred_edit_position ();
+		where = PublicEditor::instance().get_preferred_edit_position();
 		break;
 	case ImportAtTimestamp:
 		where = -1;

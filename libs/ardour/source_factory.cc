@@ -395,7 +395,7 @@ SourceFactory::createForRecovery (DataType type, Session& s, const std::string& 
 
 boost::shared_ptr<Source>
 SourceFactory::createFromPlaylist (DataType type, Session& s, boost::shared_ptr<Playlist> p, const PBD::ID& orig, const std::string& name,
-				   uint32_t chn, frameoffset_t start, framecnt_t len, bool copy, bool defer_peaks)
+				   uint32_t chn, AudioMusic& start, const AudioMusic& len, bool copy, bool defer_peaks)
 {
 	if (type == DataType::AUDIO) {
 		try {
@@ -406,7 +406,7 @@ SourceFactory::createFromPlaylist (DataType type, Session& s, boost::shared_ptr<
 
 				if (copy) {
 					ap.reset (new AudioPlaylist (ap, start, len, name, true));
-					start = 0;
+					start = AudioMusic (0, 0.0);
 				}
 
 				Source* src = new AudioPlaylistSource (s, orig, name, ap, chn, start, len, Source::Flag (0));
@@ -436,7 +436,7 @@ SourceFactory::createFromPlaylist (DataType type, Session& s, boost::shared_ptr<
 
 				if (copy) {
 					ap.reset (new MidiPlaylist (ap, start, len, name, true));
-					start = 0;
+					start = AudioMusic (0, 0.0);
 				}
 
 				Source* src = new MidiPlaylistSource (s, orig, name, ap, chn, start, len, Source::Flag (0));

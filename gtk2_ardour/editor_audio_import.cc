@@ -777,6 +777,7 @@ Editor::add_sources (vector<string>            paths,
 		PropertyList plist;
 
 		plist.add (ARDOUR::Properties::start, 0);
+		plist.add (ARDOUR::Properties::start_qn, 0.0);
 		plist.add (ARDOUR::Properties::length, sources[0]->length (pos));
 		plist.add (ARDOUR::Properties::name, region_name);
 		plist.add (ARDOUR::Properties::layer, 0);
@@ -1003,8 +1004,10 @@ Editor::finish_bringing_in_material (boost::shared_ptr<Region> region,
 		boost::shared_ptr<Region> copy (RegionFactory::create (region, region->properties()));
 		playlist->clear_changes ();
 		playlist->add_region (copy, pos);
-		if (Config->get_edit_mode() == Ripple)
-			playlist->ripple (pos, copy->length(), copy);
+
+		if (Config->get_edit_mode() == Ripple) {
+			playlist->ripple (_session->audiomusic_at_musicframe (pos), AudioMusic (copy->length(), copy->length_qn()), copy);
+		}
 
 		_session->add_command (new StatefulDiffCommand (playlist));
 		break;

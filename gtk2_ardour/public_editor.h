@@ -332,7 +332,7 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual void foreach_time_axis_view (sigc::slot<void,TimeAxisView&>) = 0;
 	virtual void add_to_idle_resize (TimeAxisView*, int32_t) = 0;
 	virtual framecnt_t get_nudge_distance (framepos_t pos, framecnt_t& next) = 0;
-	virtual framecnt_t get_paste_offset (framepos_t pos, unsigned paste_count, framecnt_t duration) = 0;
+	virtual ARDOUR::AudioMusic get_paste_offset (const ARDOUR::AudioMusic& pos, unsigned paste_count, framecnt_t duration) = 0;
 	virtual unsigned get_grid_beat_divisions(framepos_t position) = 0;
 	virtual Evoral::Beats get_grid_type_as_beats (bool& success, framepos_t position) = 0;
 	virtual int32_t get_grid_music_divisions (uint32_t event_state) = 0;

@@ -969,13 +969,14 @@ AudioRegion::fade_range (framepos_t start, framepos_t end)
 
 	switch (coverage (start, end)) {
 	case Evoral::OverlapStart:
-		trim_front(start);
+		/* why do we change the region bounds here? */
+		trim_front (_session.audiomusic_at_musicframe (start));
 		s = _position;
 		e = end;
 		set_fade_in (FadeConstantPower, e - s);
 		break;
 	case Evoral::OverlapEnd:
-		trim_end(end);
+		trim_end (_session.audiomusic_at_musicframe (end));
 		s = start;
 		e = _position + _length;
 		set_fade_out (FadeConstantPower, e - s);

@@ -114,14 +114,17 @@ StepEditor::prepare_step_edit_region ()
 		step_edit_region_view = dynamic_cast<MidiRegionView*> (rv);
 
 	} else {
+		TempoMap& tmap (_mtv.session()->tempo_map());
+		const Meter& m = tmap.meter_at_frame (step_edit_insert_position);
+		double const baf = max (0.0, tmap.beat_at_frame (step_edit_insert_position));
+		double const next_bar_in_beats =  baf + m.divisions_per_bar();
+		framecnt_t const next_bar_pos = tmap.frame_at_beat (next_bar_in_beats);
+		double const next_bar_qn = tmap.quarter_note_at_beat (next_bar_in_beats);
+		AudioMusic len (next_bar_pos - step_edit_insert_position, next_bar_qn - tmap.quarter_note_at_frame (step_edit_insert_position));
+		MusicFrame snap = step_edit_insert_position;
+		_editor.snap_to (snap);
 
-		const Meter& m = _mtv.session()->tempo_map().meter_at_frame (step_edit_insert_position);
-		double baf = max (0.0, _mtv.session()->tempo_map().beat_at_frame (step_edit_insert_position));
-		double next_bar_in_beats =  baf + m.divisions_per_bar();
-		framecnt_t next_bar_pos = _mtv.session()->tempo_map().frame_at_beat (next_bar_in_beats);
-		framecnt_t len = next_bar_pos - step_edit_insert_position;
-
-		step_edit_region = _mtv.add_region (step_edit_insert_position, len, true);
+		step_edit_region = _mtv.add_region (_mtv.session()->audiomusic_at_musicframe (snap), len, true);
 
 		RegionView* rv = _mtv.midi_view()->find_view (step_edit_region);
 		step_edit_region_view = dynamic_cast<MidiRegionView*>(rv);

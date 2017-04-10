@@ -2512,8 +2512,11 @@ Editor::insert_region_list_selection (float times)
 	begin_reversible_command (_("insert region"));
 	playlist->clear_changes ();
 	playlist->add_region ((RegionFactory::create (region, true)), get_preferred_edit_position(), times);
-	if (Config->get_edit_mode() == Ripple)
-		playlist->ripple (get_preferred_edit_position(), region->length() * times, boost::shared_ptr<Region>());
+
+	if (Config->get_edit_mode() == Ripple) {
+		AudioMusic const ripple_at = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
+		playlist->ripple (ripple_at, AudioMusic (region->length() * times, region->length_qn() * times), boost::shared_ptr<Region>());
+	}
 
 	_session->add_command(new StatefulDiffCommand (playlist));
 	commit_reversible_command ();
@@ -3108,6 +3111,11 @@ Editor::separate_regions_between (const TimeSelection& ts)
 
 		if ((playlist = rtv->playlist()) != 0) {
 
+			if (!in_command) {
+				begin_reversible_command (_("separate"));
+				in_command = true;
+			}
+
 			playlist->clear_changes ();
 			playlist->clear_owned_changes ();
 
@@ -3117,10 +3125,12 @@ Editor::separate_regions_between (const TimeSelection& ts)
 					sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
 				latest_regionviews.clear ();
-				float speed = 1.0f;
 
-				playlist->partition ((framepos_t)((*t).start.frame),
-				                     (framepos_t)((*t).end.frame), false);
+				AudioMusic start = _session->audiomusic_at_musicframe ((*t).start);
+				AudioMusic end = _session->audiomusic_at_musicframe ((*t).end);
+
+				playlist->partition (start,
+				                     end, false);
 
 				c.disconnect ();
 
@@ -3129,11 +3139,6 @@ Editor::separate_regions_between (const TimeSelection& ts)
 					rtv->view()->foreach_regionview (sigc::bind (
 						                                 sigc::ptr_fun (add_if_covered),
 						                                 &(*t), &new_selection));
-
-					if (!in_command) {
-						begin_reversible_command (_("separate"));
-						in_command = true;
-					}
 
 					/* pick up changes to existing regions */
 
@@ -3285,10 +3290,12 @@ Editor::separate_under_selected_regions ()
 		}
 
 		//Partition on the region bounds
-		playlist->partition ((*rl)->first_frame() - 1, (*rl)->last_frame() + 1, true);
+		AudioMusic const begin = _session->audiomusic_at_musicframe ((*rl)->first_frame() - 1);
+		AudioMusic const end ((*rl)->last_frame() + 1, (*rl)->end_qn());
+		playlist->partition (begin, end, true);
 
 		//Re-add region that was just removed due to the partition operation
-		playlist->add_region( (*rl), (*rl)->first_frame() );
+		playlist->add_region( (*rl), (*rl)->position_am());
 	}
 
 	vector<PlaylistState>::iterator pl;
@@ -3321,11 +3328,13 @@ Editor::crop_region_to_selection ()
 }
 
 void
-Editor::crop_region_to (const MusicFrame& start, const MusicFrame& end)
+Editor::crop_region_to (const MusicFrame& s, const MusicFrame& e)
 {
 	vector<boost::shared_ptr<Playlist> > playlists;
 	boost::shared_ptr<Playlist> playlist;
 	TrackViewList ts;
+	AudioMusic start = _session->audiomusic_at_musicframe (s);
+	AudioMusic end = _session->audiomusic_at_musicframe (e);
 
 	if (selection->tracks.empty()) {
 		ts = track_views.filter_to_unique_playlists();
@@ -3357,17 +3366,17 @@ Editor::crop_region_to (const MusicFrame& start, const MusicFrame& end)
 		return;
 	}
 
-	framepos_t pos;
-	framepos_t new_start;
-	framepos_t new_end;
-	framecnt_t new_length;
+	AudioMusic pos (0, 0.0);
+	AudioMusic new_start (0, 0.0);
+	AudioMusic new_end (0, 0.0);
+	AudioMusic new_length (0, 0.0);
 	bool in_command = false;
 
 	for (vector<boost::shared_ptr<Playlist> >::iterator i = playlists.begin(); i != playlists.end(); ++i) {
 
 		/* Only the top regions at start and end have to be cropped */
-		boost::shared_ptr<Region> region_at_start = (*i)->top_region_at(start.frame);
-		boost::shared_ptr<Region> region_at_end = (*i)->top_region_at(end.frame);
+		boost::shared_ptr<Region> region_at_start = (*i)->top_region_at(start.frames);
+		boost::shared_ptr<Region> region_at_end = (*i)->top_region_at(end.frames);
 
 		vector<boost::shared_ptr<Region> > regions;
 
@@ -3381,15 +3390,17 @@ Editor::crop_region_to (const MusicFrame& start, const MusicFrame& end)
 		/* now adjust lengths */
 		for (vector<boost::shared_ptr<Region> >::iterator i = regions.begin(); i != regions.end(); ++i) {
 
-			pos = (*i)->position();
-			new_start = max (start.frame, pos);
-			if (max_framepos - pos > (*i)->length()) {
-				new_end = pos + (*i)->length() - 1;
+			pos = (*i)->position_am();
+			new_start = max (start, pos);
+			if (max_framepos - pos.frames > (*i)->length()) {
+				new_end = pos + AudioMusic ((*i)->length() - 1, (*i)->length_qn());
 			} else {
-				new_end = max_framepos;
+				new_end = AudioMusic (max_framepos, pos.qnotes + (*i)->length_qn());
 			}
-			new_end = min (end.frame, new_end);
-			new_length = new_end - new_start + 1;
+
+			new_end = min (end, new_end);
+			new_length = new_end - new_start;
+			new_length.frames += 1;
 
 			if(!in_command) {
 				begin_reversible_command (_("trim to selection"));
@@ -3413,15 +3424,15 @@ Editor::region_fill_track ()
 	RegionSelection regions = get_regions_from_selection_and_entered ();
 	RegionSelection foo;
 
-	framepos_t const end = _session->current_end_frame ();
+	AudioMusic const end = _session->audiomusic_at_musicframe (_session->current_end_frame ());
 
-	if (regions.empty () || regions.end_frame () + 1 >= end) {
+	if (regions.empty () || regions.end_frame () + 1 >= end.frames) {
 		return;
 	}
 
 	framepos_t const start_frame = regions.start ();
 	framepos_t const end_frame = regions.end_frame ();
-	framecnt_t const gap = end_frame - start_frame + 1;
+	AudioMusic const gap = _session->audiomusic_at_musicframe (end_frame - start_frame + 1);
 
 	begin_reversible_command (Operations::region_fill);
 
@@ -3437,9 +3448,10 @@ Editor::region_fill_track ()
 		sigc::connection c = rtv->view()->RegionViewAdded.connect (sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
 		framepos_t const position = end_frame + (r->first_frame() - start_frame + 1);
+
 		playlist = (*i)->region()->playlist();
 		playlist->clear_changes ();
-		playlist->duplicate_until (r, position, gap, end);
+		playlist->duplicate_until (r, _session->audiomusic_at_musicframe (position), gap, end);
 		_session->add_command(new StatefulDiffCommand (playlist));
 
 		c.disconnect ();
@@ -3695,7 +3707,7 @@ Editor::trim_region_back ()
 void
 Editor::trim_region (bool front)
 {
-	framepos_t where = get_preferred_edit_position();
+	AudioMusic where = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
 	RegionSelection rs = get_regions_from_selection_and_edit_point ();
 
 	if (rs.empty()) {
@@ -3766,18 +3778,17 @@ Editor::trim_region_to_location (const Location& loc, const char* str)
 		}
 
 		float speed = 1.0;
-		framepos_t start;
-		framepos_t end;
 
 		if (tav->track() != 0) {
 			speed = tav->track()->speed();
 		}
 
-		start = session_frame_to_track_frame (loc.start(), speed);
-		end = session_frame_to_track_frame (loc.end(), speed);
+		AudioMusic const start (session_frame_to_track_frame (loc.start(), speed), _session->tempo_map().quarter_note_at_beat (loc.start_beat()));
+		AudioMusic const end (session_frame_to_track_frame (loc.end(), speed), _session->tempo_map().quarter_note_at_beat (loc.end_beat()));
+		AudioMusic const len = end - start;
 
 		rv->region()->clear_changes ();
-		rv->region()->trim_to (start, (end - start));
+		rv->region()->trim_to (start, len);
 
 		if (!in_command) {
 			begin_reversible_command (str);
@@ -3844,9 +3855,10 @@ Editor::trim_to_region(bool forward)
 		    if (!next_region) {
 			continue;
 		    }
-
-		    region->trim_end((framepos_t) ( (next_region->first_frame() - 1) * speed));
+		    AudioMusic new_end ((framepos_t) ((next_region->first_frame() - 1) * speed), next_region->quarter_note());
+		    region->trim_end (new_end);
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length));
+		    arv->region_changed (PropertyChange (ARDOUR::Properties::length_qn));
 		}
 		else {
 
@@ -3993,9 +4005,10 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		}
 	}
 
-	framepos_t start = selection->time[clicked_selection].start.frame;
-	framepos_t end = selection->time[clicked_selection].end.frame;
-	framepos_t cnt = end - start + 1;
+	AudioMusic start = _session->audiomusic_at_musicframe (selection->time[clicked_selection].start);
+	AudioMusic end = _session->audiomusic_at_musicframe (selection->time[clicked_selection].end);
+	AudioMusic cnt = end - start;
+	cnt.frames += 1;
 	bool in_command = false;
 
 	for (TrackViewList::iterator i = views.begin(); i != views.end(); ++i) {
@@ -4020,9 +4033,9 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 		boost::shared_ptr<Region> r;
 
 		if (enable_processing) {
-			r = rtv->track()->bounce_range (start, (start+cnt), itt, rtv->track()->main_outs(), false);
+			r = rtv->track()->bounce_range (start.frames, (start+cnt).frames, itt, rtv->track()->main_outs(), false);
 		} else {
-			r = rtv->track()->bounce_range (start, (start+cnt), itt, boost::shared_ptr<Processor>(), false);
+			r = rtv->track()->bounce_range (start.frames, (start+cnt).frames, itt, boost::shared_ptr<Processor>(), false);
 		}
 
 		if (!r) {
@@ -4031,7 +4044,7 @@ Editor::bounce_range_selection (bool replace, bool enable_processing)
 
 		if (replace) {
 			list<MusicFrameRange> ranges;
-			ranges.push_back (MusicFrameRange (start, start+cnt, 0));
+			ranges.push_back (MusicFrameRange (start.frames, (start+cnt).frames, 0));
 			playlist->cut (ranges); // discard result
 			playlist->add_region (r, start);
 		}
@@ -4202,7 +4215,7 @@ Editor::cut_copy (CutCopyOp op)
 	if (did_edit) {
 		/* reset repeated paste state */
 		paste_count    = 0;
-		last_paste_pos = 0;
+		last_paste_pos = AudioMusic (0, 0.0);
 		commit_reversible_command ();
 	}
 
@@ -4401,8 +4414,12 @@ Editor::remove_clicked_region ()
 	playlist->clear_changes ();
 	playlist->clear_owned_changes ();
 	playlist->remove_region (clicked_regionview->region());
-	if (Config->get_edit_mode() == Ripple)
-		playlist->ripple (clicked_regionview->region()->position(), -clicked_regionview->region()->length(), boost::shared_ptr<Region>());
+
+	if (Config->get_edit_mode() == Ripple) {
+		playlist->ripple (clicked_regionview->region()->position_am()
+				  , AudioMusic (-clicked_regionview->region()->length(), -clicked_regionview->region()->length_qn())
+				  , boost::shared_ptr<Region>());
+	}
 
 	/* We might have removed regions, which alters other regions' layering_index,
 	   so we need to do a recursive diff here.
@@ -4463,9 +4480,10 @@ Editor::remove_selected_regions ()
 		playlist->clear_owned_changes ();
 		playlist->freeze ();
 		playlist->remove_region (*rl);
-		if (Config->get_edit_mode() == Ripple)
-			playlist->ripple ((*rl)->position(), -(*rl)->length(), boost::shared_ptr<Region>());
 
+		if (Config->get_edit_mode() == Ripple) {
+			playlist->ripple ((*rl)->position_am(), AudioMusic (-(*rl)->length(), -(*rl)->length_qn()), boost::shared_ptr<Region>());
+		}
 	}
 
 	vector<boost::shared_ptr<Playlist> >::iterator pl;
@@ -4506,7 +4524,7 @@ Editor::cut_copy_regions (CutCopyOp op, RegionSelection& rs)
 
 	vector<PlaylistMapping> pmap;
 
-	framepos_t first_position = max_framepos;
+	AudioMusic first_position (max_framepos, DBL_MAX);
 
 	typedef set<boost::shared_ptr<Playlist> > FreezeList;
 	FreezeList freezelist;
@@ -4517,7 +4535,7 @@ Editor::cut_copy_regions (CutCopyOp op, RegionSelection& rs)
 
 	for (RegionSelection::iterator x = rs.begin(); x != rs.end(); ++x) {
 
-		first_position = min ((framepos_t) (*x)->region()->position(), first_position);
+		first_position = min ((*x)->region()->position_am(), first_position);
 
 		if (op == Cut || op == Clear || op == Delete) {
 			boost::shared_ptr<Playlist> pl = (*x)->region()->playlist();
@@ -4599,31 +4617,41 @@ Editor::cut_copy_regions (CutCopyOp op, RegionSelection& rs)
 		boost::shared_ptr<Region> _xx;
 
 		assert (r != 0);
+		AudioMusic new_position = r->position_am() - first_position;
 
 		switch (op) {
 		case Delete:
 			pl->remove_region (r);
-			if (Config->get_edit_mode() == Ripple)
-				pl->ripple (r->position(), -r->length(), boost::shared_ptr<Region>());
+
+			if (Config->get_edit_mode() == Ripple) {
+				pl->ripple (r->position_am(), AudioMusic (-r->length(), -r->length_qn()), boost::shared_ptr<Region>());
+			}
+
 			break;
 
 		case Cut:
 			_xx = RegionFactory::create (r);
-			npl->add_region (_xx, r->position() - first_position);
+			npl->add_region (_xx, new_position);
 			pl->remove_region (r);
-			if (Config->get_edit_mode() == Ripple)
-				pl->ripple (r->position(), -r->length(), boost::shared_ptr<Region>());
+
+			if (Config->get_edit_mode() == Ripple) {
+				pl->ripple (r->position_am(), AudioMusic (-r->length(), -r->length_qn()), boost::shared_ptr<Region>());
+			}
+
 			break;
 
 		case Copy:
 			/* copy region before adding, so we're not putting same object into two different playlists */
-			npl->add_region (RegionFactory::create (r), r->position() - first_position);
+			npl->add_region (RegionFactory::create (r), new_position);
 			break;
 
 		case Clear:
 			pl->remove_region (r);
-			if (Config->get_edit_mode() == Ripple)
-				pl->ripple (r->position(), -r->length(), boost::shared_ptr<Region>());
+
+			if (Config->get_edit_mode() == Ripple) {
+				pl->ripple (r->position_am(), AudioMusic (-r->length(), -r->length_qn()), boost::shared_ptr<Region>());
+			}
+
 			break;
 		}
 
@@ -4697,8 +4725,8 @@ void
 Editor::paste (float times, bool from_context)
 {
         DEBUG_TRACE (DEBUG::CutNPaste, "paste to preferred edit pos\n");
-	MusicFrame where (get_preferred_edit_position (EDIT_IGNORE_NONE, from_context), 0);
-	paste_internal (where.frame, times, 0);
+	MusicFrame where (get_preferred_edit_position (EDIT_IGNORE_NONE, from_context), get_grid_music_divisions (0));
+	paste_internal (_session->audiomusic_at_musicframe (where), times);
 }
 
 void
@@ -4706,26 +4734,28 @@ Editor::mouse_paste ()
 {
 	MusicFrame where = 0;
 	bool ignored;
+
 	if (!mouse_frame (where.frame, ignored)) {
 		return;
 	}
 
 	snap_to (where);
-	paste_internal (where.frame, 1, where.division);
+	paste_internal (_session->audiomusic_at_musicframe (where), 1);
 }
 
 void
-Editor::paste_internal (framepos_t position, float times, const int32_t sub_num)
+Editor::paste_internal (const AudioMusic& p, float times)
 {
-        DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("apparent paste position is %1\n", position));
+        DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("apparent paste position is %1 qn %2\n", p.frames, p.qnotes));
 
 	if (cut_buffer->empty(internal_editing())) {
 		return;
 	}
 
-	if (position == max_framepos) {
-		position = get_preferred_edit_position();
-                DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("preferred edit position is %1\n", position));
+	AudioMusic position (p);
+	if (position.frames == max_framepos) {
+		position = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
+                DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("preferred edit position is %1 qn %2\n", position.frames, position.qnotes));
 	}
 
 	if (position == last_paste_pos) {
@@ -4808,7 +4838,7 @@ Editor::paste_internal (framepos_t position, float times, const int32_t sub_num)
 	       "greedy" paste from one automation type to another. */
 
 	    PasteContext ctx(paste_count, times, ItemCounts(), true);
-	    ts.front()->paste (position, *cut_buffer, ctx, sub_num);
+	    ts.front()->paste (position, *cut_buffer, ctx);
 
 	} else {
 
@@ -4816,7 +4846,7 @@ Editor::paste_internal (framepos_t position, float times, const int32_t sub_num)
 
 		PasteContext ctx(paste_count, times, ItemCounts(), false);
 		for (TrackViewList::iterator i = ts.begin(); i != ts.end(); ++i) {
-			(*i)->paste (position, *cut_buffer, ctx, sub_num);
+			(*i)->paste (position, *cut_buffer, ctx);
 		}
 	}
 
@@ -4841,9 +4871,11 @@ Editor::duplicate_some_regions (RegionSelection& regions, float times)
 	RegionSelection sel = regions; // clear (below) may  clear the argument list if its the current region selection
 	RegionSelection foo;
 
-	framepos_t const start_frame = regions.start ();
-	framepos_t const end_frame = regions.end_frame ();
-	framecnt_t const gap = end_frame - start_frame + 1;
+	AudioMusic const start (regions.start (), regions.start_qn ());
+	AudioMusic const end (regions.end_frame (), regions.end_qn ());
+	AudioMusic gap (0, 0.0);
+
+	gap = _session->audiomusic_at_musicframe (end.frames + 1) - start;
 
 	begin_reversible_command (Operations::duplicate_region);
 
@@ -4858,7 +4890,9 @@ Editor::duplicate_some_regions (RegionSelection& regions, float times)
 		latest_regionviews.clear ();
 		sigc::connection c = rtv->view()->RegionViewAdded.connect (sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
-		framepos_t const position = end_frame + (r->first_frame() - start_frame + 1);
+		AudioMusic position (0, 0.0);
+		position = _session->audiomusic_at_musicframe (end.frames + (r->first_frame() - start.frames + 1));
+
 		playlist = (*i)->region()->playlist();
 		playlist->clear_changes ();
 		playlist->duplicate (r, position, gap, times);
@@ -5310,7 +5344,7 @@ Editor::apply_midi_note_edit_op_to_region (MidiOperator& op, MidiRegionView& mrv
 	vector<Evoral::Sequence<Evoral::Beats>::Notes> v;
 	v.push_back (selected);
 
-	Evoral::Beats pos_beats  = Evoral::Beats (mrv.midi_region()->beat()) - mrv.midi_region()->start_beats();
+	Evoral::Beats pos_beats  = Evoral::Beats (mrv.midi_region()->quarter_note()) - mrv.midi_region()->start_qn();
 
 	return op (mrv.midi_region()->model(), pos_beats, v);
 }
@@ -5380,8 +5414,9 @@ Editor::fork_region ()
 					begin_reversible_command (_("Fork Region(s)"));
 					in_command = true;
 				}
+
 				playlist->clear_changes ();
-				playlist->replace_region (mrv->region(), newregion, mrv->region()->position());
+				playlist->replace_region (mrv->region(), newregion, mrv->region()->position_am());
 				_session->add_command(new StatefulDiffCommand (playlist));
 			} catch (...) {
 				error << string_compose (_("Could not unlink %1"), mrv->region()->name()) << endmsg;
@@ -5588,14 +5623,13 @@ Editor::apply_filter (Filter& filter, string command, ProgressReporter* progress
 				} else {
 
 					std::vector<boost::shared_ptr<Region> >::iterator res = filter.results.begin ();
-
 					/* first region replaces the old one */
-					playlist->replace_region (arv->region(), *res, (*res)->position());
+					playlist->replace_region (arv->region(), *res, (*res)->position_am());
 					++res;
 
 					/* add the rest */
 					while (res != filter.results.end()) {
-						playlist->add_region (*res, (*res)->position());
+						playlist->add_region (*res, (*res)->position_am());
 						++res;
 					}
 
@@ -6861,32 +6895,32 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 	pl->freeze ();
 	pl->remove_region (r);
 
-	framepos_t pos = 0;
+	AudioMusic pos (0, 0.0);
 
-	framepos_t rstart = r->first_frame ();
-	framepos_t rend = r->last_frame ();
+	AudioMusic rstart = r->position_am();
+	AudioMusic rend (r->last_frame (), r->end_qn());
 
 	while (x != positions.end()) {
 
 		/* deal with positons that are out of scope of present region bounds */
-		if (*x <= rstart || *x > rend) {
+		if (*x <= rstart.frames || *x > rend.frames) {
 			++x;
 			continue;
 		}
 
 		/* file start = original start + how far we from the initial position ?  */
 
-		framepos_t file_start = r->start() + pos;
+		AudioMusic file_start = AudioMusic (r->start(), r->start_qn()) + pos;
 
 		/* length = next position - current position */
 
-		framepos_t len = (*x) - pos - rstart;
+		AudioMusic len = _session->audiomusic_at_musicframe (*x) - pos - rstart;
 
 		/* XXX we do we really want to allow even single-sample regions?
 		 * shouldn't we have some kind of lower limit on region size?
 		 */
 
-		if (len <= 0) {
+		if (len.frames <= 0) {
 			break;
 		}
 
@@ -6900,8 +6934,10 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 
 		PropertyList plist;
 
-		plist.add (ARDOUR::Properties::start, file_start);
-		plist.add (ARDOUR::Properties::length, len);
+		plist.add (ARDOUR::Properties::start, file_start.frames);
+		plist.add (ARDOUR::Properties::start_qn, file_start.qnotes);
+		plist.add (ARDOUR::Properties::length, len.frames);
+		plist.add (ARDOUR::Properties::length_qn, len.qnotes);
 		plist.add (ARDOUR::Properties::name, new_name);
 		plist.add (ARDOUR::Properties::layer, 0);
 		// TODO set transients_offset
@@ -6911,7 +6947,6 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 		 * RegionFactory map
 		 */
 		RegionFactory::map_add (nr);
-
 		pl->add_region (nr, rstart + pos);
 
 		if (select_new) {
@@ -6929,8 +6964,9 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 	/* Add the final region */
 	PropertyList plist;
 
-	plist.add (ARDOUR::Properties::start, r->start() + pos);
-	plist.add (ARDOUR::Properties::length, r->last_frame() - (r->position() + pos) + 1);
+	plist.add (ARDOUR::Properties::start, r->start() + pos.frames);
+	plist.add (ARDOUR::Properties::start_qn, r->start_qn() + pos.qnotes);
+	plist.add (ARDOUR::Properties::length, r->last_frame() - (r->position() + pos.frames) + 1);
 	plist.add (ARDOUR::Properties::name, new_name);
 	plist.add (ARDOUR::Properties::layer, 0);
 
@@ -6939,7 +6975,7 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 	   RegionFactory map
 	*/
 	RegionFactory::map_add (nr);
-	pl->add_region (nr, r->position() + pos);
+	pl->add_region (nr, r->position_am() + pos);
 
 	if (select_new) {
 		new_regions.push_front(nr);
@@ -7030,7 +7066,7 @@ Editor::snap_regions_to_grid ()
 
 		MusicFrame start = (*r)->region()->first_frame ();
 		snap_to (start);
-		(*r)->region()->set_position (start.frame, start.division);
+		(*r)->region()->set_position (start);
 		_session->add_command(new StatefulDiffCommand ((*r)->region()));
 	}
 
@@ -7117,19 +7153,19 @@ Editor::close_region_gaps ()
 			pl->freeze();
 		}
 
-		framepos_t position = (*r)->region()->position();
+		AudioMusic position = (*r)->region()->position_am();
 
-		if (idx == 0 || position < last_region->position()){
+		if (idx == 0 || position.frames < last_region->position()){
 			last_region = (*r)->region();
 			idx++;
 			continue;
 		}
 
 		(*r)->region()->clear_changes ();
-		(*r)->region()->trim_front( (position - pull_back_frames));
+		(*r)->region()->trim_front (_session->audiomusic_at_musicframe (position.frames - pull_back_frames));
 
 		last_region->clear_changes ();
-		last_region->trim_end( (position - pull_back_frames + crossfade_len));
+		last_region->trim_end (_session->audiomusic_at_musicframe (position.frames - pull_back_frames + crossfade_len));
 
 		_session->add_command (new StatefulDiffCommand ((*r)->region()));
 		_session->add_command (new StatefulDiffCommand (last_region));

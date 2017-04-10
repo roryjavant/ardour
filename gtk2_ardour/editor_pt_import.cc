@@ -233,16 +233,16 @@ Editor::do_ptimport (std::string ptpath,
 			boost::shared_ptr<Playlist> playlist = midi_track->playlist();
 			framepos_t f = (framepos_t)a->startpos;
 			framecnt_t length = (framecnt_t)a->length;
-			MusicFrame pos (f, 0);
 			boost::shared_ptr<Source> src = _session->create_midi_source_by_stealing_name (midi_track);
 			PropertyList plist;
 			plist.add (ARDOUR::Properties::start, 0);
+			plist.add (ARDOUR::Properties::start_qn, 0.0);
 			plist.add (ARDOUR::Properties::length, length);
 			plist.add (ARDOUR::Properties::name, PBD::basename_nosuffix(src->name()));
 			boost::shared_ptr<Region> region = (RegionFactory::create (src, plist));
 			/* sets beat position */
-			region->set_position (pos.frame, pos.division);
-			midi_track->playlist()->add_region (region, pos.frame, 1.0, false, pos.division);
+			region->set_position (f);
+			midi_track->playlist()->add_region (region, pos);
 
 			boost::shared_ptr<MidiRegion> mr = boost::dynamic_pointer_cast<MidiRegion>(region);
 			boost::shared_ptr<MidiModel> mm = mr->midi_source(0)->model();
@@ -319,7 +319,7 @@ Editor::do_ptimport (std::string ptpath,
 					boost::shared_ptr<Playlist> playlist = existing_track->playlist();
 					boost::shared_ptr<Region> copy (RegionFactory::create (r, true));
 					playlist->clear_changes ();
-					playlist->add_region (copy, a->reg.startpos);
+					playlist->add_region (copy, a->reg.startpos, false);
 					//_session->add_command (new StatefulDiffCommand (playlist));
 					nth++;
 				}

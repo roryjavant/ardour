@@ -205,7 +205,7 @@ AutomationRegionView::add_automation_event (GdkEvent *, framepos_t when, double 
 }
 
 bool
-AutomationRegionView::paste (framepos_t                                      pos,
+AutomationRegionView::paste (const ARDOUR::AudioMusic&                       where,
                              unsigned                                        paste_count,
                              float                                           times,
                              boost::shared_ptr<const ARDOUR::AutomationList> slist)
@@ -217,13 +217,13 @@ AutomationRegionView::paste (framepos_t                                      pos
 		/* do not paste if this control is in write mode and we're rolling */
 		return false;
 	}
-
+	ARDOUR::AudioMusic pos (where);
 	/* add multi-paste offset if applicable */
 	pos += view->editor().get_paste_offset(
 		pos, paste_count, _source_relative_time_converter.to(slist->length()));
 
 	const double model_pos = _source_relative_time_converter.from(
-		pos - _source_relative_time_converter.origin_b());
+		pos.frames - _source_relative_time_converter.origin_b());
 
 	XMLNode& before = my_list->get_state();
 	my_list->paste(*slist, model_pos, times);

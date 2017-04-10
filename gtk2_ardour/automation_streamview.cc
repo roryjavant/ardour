@@ -319,7 +319,7 @@ AutomationStreamView::get_lines () const
 }
 
 bool
-AutomationStreamView::paste (framepos_t                                pos,
+AutomationStreamView::paste (const AudioMusic&                         pos,
                              unsigned                                  paste_count,
                              float                                     times,
                              boost::shared_ptr<ARDOUR::AutomationList> alist)
@@ -335,7 +335,7 @@ AutomationStreamView::paste (framepos_t                                pos,
 	list<RegionView*>::const_iterator prev = region_views.begin ();
 
 	for (list<RegionView*>::const_iterator i = region_views.begin(); i != region_views.end(); ++i) {
-		if ((*i)->region()->position() > pos) {
+		if ((*i)->region()->position_am() > pos) {
 			break;
 		}
 		prev = i;
@@ -344,7 +344,7 @@ AutomationStreamView::paste (framepos_t                                pos,
 	boost::shared_ptr<Region> r = (*prev)->region ();
 
 	/* If *prev doesn't cover pos, it's no good */
-	if (r->position() > pos || ((r->position() + r->length()) < pos)) {
+	if (r->position_am() > pos || ((r->position() + r->length()) < pos.frames)) {
 		return false;
 	}
 

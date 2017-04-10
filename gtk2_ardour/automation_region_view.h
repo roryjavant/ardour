@@ -49,7 +49,7 @@ public:
 
 	void init (bool wfd);
 
-	bool paste (framepos_t                                      pos,
+	bool paste (const ARDOUR::AudioMusic&                       pos,
 	            unsigned                                        paste_count,
 	            float                                           times,
 	            boost::shared_ptr<const ARDOUR::AutomationList> slist);

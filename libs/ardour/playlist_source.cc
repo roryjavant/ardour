@@ -41,7 +41,7 @@ using namespace ARDOUR;
 using namespace PBD;
 
 PlaylistSource::PlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<Playlist> p, DataType type,
-				frameoffset_t begin, framecnt_t len, Source::Flag /*flags*/)
+				const AudioMusic& begin, const AudioMusic& len, Source::Flag /*flags*/)
 	: Source (s, type, name)
 	, _playlist (p)
 	, _original (orig)
@@ -50,8 +50,8 @@ PlaylistSource::PlaylistSource (Session& s, const ID& orig, const std::string& n
 	_flags = Flag (_flags & ~(Writable|CanRename|Removable|RemovableIfEmpty|RemoveAtDestroy|Destructive));
 
 	_playlist = p;
-	_playlist_offset = begin;
-	_playlist_length = len;
+	_playlist_offset = begin.frames;
+	_playlist_length = len.frames;
 
 	_level = _playlist->max_source_level () + 1;
 }

@@ -493,7 +493,7 @@ MidiStreamView::setup_rec_box ()
 				   integer ticks.  The upshot of which being that length gets set back to 0,
 				   meaning no region view is ever seen, meaning no MIDI notes during record (#3820).
 				*/
-				plist.add (ARDOUR::Properties::length_beats, 1);
+				plist.add (ARDOUR::Properties::length_qn, 1);
 				plist.add (ARDOUR::Properties::name, string());
 				plist.add (ARDOUR::Properties::layer, 0);
 
@@ -674,7 +674,7 @@ struct RegionPositionSorter {
 };
 
 bool
-MidiStreamView::paste (ARDOUR::framepos_t pos, const Selection& selection, PasteContext& ctx, const int32_t sub_num)
+MidiStreamView::paste (const ARDOUR::AudioMusic& pos, const Selection& selection, PasteContext& ctx)
 {
 	/* Paste into the first region which starts on or before pos.  Only called when
 	   using an internal editing tool. */
@@ -688,7 +688,7 @@ MidiStreamView::paste (ARDOUR::framepos_t pos, const Selection& selection, Paste
 	list<RegionView*>::const_iterator prev = region_views.begin ();
 
 	for (list<RegionView*>::const_iterator i = region_views.begin(); i != region_views.end(); ++i) {
-		if ((*i)->region()->position() > pos) {
+		if ((*i)->region()->position_am() > pos) {
 			break;
 		}
 		prev = i;
@@ -697,10 +697,10 @@ MidiStreamView::paste (ARDOUR::framepos_t pos, const Selection& selection, Paste
 	boost::shared_ptr<Region> r = (*prev)->region ();
 
 	/* If *prev doesn't cover pos, it's no good */
-	if (r->position() > pos || ((r->position() + r->length()) < pos)) {
+	if (r->position_am() > pos || ((r->position() + r->length()) < pos.frames)) {
 		return false;
 	}
 
 	MidiRegionView* mrv = dynamic_cast<MidiRegionView*> (*prev);
-	return mrv ? mrv->paste(pos, selection, ctx, sub_num) : false;
+	return mrv ? mrv->paste(pos, selection, ctx) : false;
 }

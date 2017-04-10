@@ -276,12 +276,38 @@ RegionSelection::start () const
 	return s;
 }
 
+double
+RegionSelection::start_qn () const
+{
+	double s = DBL_MAX;
+	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
+		s = min (s, (*i)->region()->quarter_note());
+	}
+
+	if (s == DBL_MAX) {
+		return 0.0;
+	}
+
+	return s;
+}
+
 framepos_t
 RegionSelection::end_frame () const
 {
 	framepos_t e = 0;
 	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
 		e = max (e, (*i)->region()->last_frame ());
+	}
+
+	return e;
+}
+
+double
+RegionSelection::end_qn () const
+{
+	double e = 0.0;
+	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
+		e = max (e, (*i)->region()->quarter_note() + (*i)->region()->length_qn());
 	}
 
 	return e;

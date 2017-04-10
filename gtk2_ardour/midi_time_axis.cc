@@ -1646,29 +1646,27 @@ MidiTimeAxisView::automation_child_menu_item (Evoral::Parameter param)
 }
 
 boost::shared_ptr<MidiRegion>
-MidiTimeAxisView::add_region (framepos_t f, framecnt_t length, bool commit)
+MidiTimeAxisView::add_region (const AudioMusic& pos, AudioMusic& length, bool commit)
 {
 	Editor* real_editor = dynamic_cast<Editor*> (&_editor);
-	MusicFrame pos (f, 0);
 
 	if (commit) {
 		real_editor->begin_reversible_command (Operations::create_region);
 	}
 	playlist()->clear_changes ();
 
-	real_editor->snap_to (pos, RoundNearest);
-
 	boost::shared_ptr<Source> src = _session->create_midi_source_by_stealing_name (view()->trackview().track());
 	PropertyList plist;
 
 	plist.add (ARDOUR::Properties::start, 0);
-	plist.add (ARDOUR::Properties::length, length);
+	plist.add (ARDOUR::Properties::start_qn, 0);
+	plist.add (ARDOUR::Properties::length, length.frames);
+	plist.add (ARDOUR::Properties::length_qn, length.qnotes);
+
 	plist.add (ARDOUR::Properties::name, PBD::basename_nosuffix(src->name()));
 
 	boost::shared_ptr<Region> region = (RegionFactory::create (src, plist));
-	/* sets beat position */
-	region->set_position (pos.frame, pos.division);
-	playlist()->add_region (region, pos.frame, 1.0, false, pos.division);
+	playlist()->add_region (region, pos, 1.0);
 	_session->add_command (new StatefulDiffCommand (playlist()));
 
 	if (commit) {
@@ -1743,12 +1741,12 @@ MidiTimeAxisView::contents_height_changed ()
 }
 
 bool
-MidiTimeAxisView::paste (framepos_t pos, const Selection& selection, PasteContext& ctx, const int32_t sub_num)
+MidiTimeAxisView::paste (const AudioMusic& pos, const Selection& selection, PasteContext& ctx)
 {
 	if (!_editor.internal_editing()) {
 		// Non-internal paste, paste regions like any other route
-		return RouteTimeAxisView::paste(pos, selection, ctx, sub_num);
+		return RouteTimeAxisView::paste(pos, selection, ctx);
 	}
 
-	return midi_view()->paste(pos, selection, ctx, sub_num);
+	return midi_view()->paste(pos, selection, ctx);
 }

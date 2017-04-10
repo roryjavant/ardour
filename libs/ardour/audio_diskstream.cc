@@ -1673,7 +1673,7 @@ AudioDiskstream::transport_stopped_wallclock (struct tm& when, time_t twhen, boo
 
 			i_am_the_modifier++;
 
-			_playlist->add_region (region, (*ci)->start + preroll_off, 1, non_layered());
+			_playlist->add_region (region, (*ci)->start + preroll_off, non_layered());
 			_playlist->set_layer (region, DBL_MAX);
 			i_am_the_modifier--;
 

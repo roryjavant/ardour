@@ -2271,7 +2271,7 @@ Editor::cancel_time_selection ()
 }
 
 void
-Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
+Editor::point_trim (GdkEvent* event, const AudioMusic& new_bound)
 {
 	RegionView* rv = clicked_regionview;
 
@@ -2286,7 +2286,7 @@ Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
 			{
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes ();
-					(*i)->region()->trim_front (new_bound.frame, new_bound.division);
+					(*i)->region()->trim_front (new_bound);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2294,7 +2294,7 @@ Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
 		} else {
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_front (new_bound.frame, new_bound.division);
+				rv->region()->trim_front (new_bound);
 				_session->add_command(new StatefulDiffCommand (rv->region()));
 			}
 		}
@@ -2311,7 +2311,7 @@ Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
 			{
 				if (!(*i)->region()->locked()) {
 					(*i)->region()->clear_changes();
-					(*i)->region()->trim_end (new_bound.frame, new_bound.division);
+					(*i)->region()->trim_end (new_bound);
 					_session->add_command(new StatefulDiffCommand ((*i)->region()));
 				}
 			}
@@ -2320,7 +2320,7 @@ Editor::point_trim (GdkEvent* event, const MusicFrame& new_bound)
 
 			if (!rv->region()->locked()) {
 				rv->region()->clear_changes ();
-				rv->region()->trim_end (new_bound.frame, new_bound.division);
+				rv->region()->trim_end (new_bound);
 				_session->add_command (new StatefulDiffCommand (rv->region()));
 			}
 		}
@@ -2374,7 +2374,7 @@ Editor::mouse_rename_region (ArdourCanvas::Item* /*item*/, GdkEvent* /*event*/)
 
 
 void
-Editor::mouse_brush_insert_region (RegionView* rv, framepos_t pos)
+Editor::mouse_brush_insert_region (RegionView* rv, AudioMusic& pos)
 {
 	/* no brushing without a useful snap setting */
 
@@ -2395,7 +2395,7 @@ Editor::mouse_brush_insert_region (RegionView* rv, framepos_t pos)
 
 	/* don't brush a copy over the original */
 
-	if (pos == rv->region()->position()) {
+	if (pos == rv->region()->position_am()) {
 		return;
 	}
 
@@ -2406,11 +2406,10 @@ Editor::mouse_brush_insert_region (RegionView* rv, framepos_t pos)
 	}
 
 	boost::shared_ptr<Playlist> playlist = rtv->playlist();
-	double speed = rtv->track()->speed();
 
 	playlist->clear_changes ();
 	boost::shared_ptr<Region> new_region (RegionFactory::create (rv->region(), true));
-	playlist->add_region (new_region, (framepos_t) (pos * speed));
+	playlist->add_region (new_region, pos);
 	_session->add_command (new StatefulDiffCommand (playlist));
 
 	// playlist is frozen, so we have to update manually XXX this is disgusting
@@ -2521,7 +2520,9 @@ Editor::start_selection_grab (ArdourCanvas::Item* /*item*/, GdkEvent* event)
 	boost::shared_ptr<Playlist> playlist = clicked_axisview->playlist();
 
 	playlist->clear_changes ();
-	clicked_routeview->playlist()->add_region (region, selection->time[clicked_selection].start.frame);
+
+	AudioMusic selection_start = _session->audiomusic_at_musicframe (selection->time[clicked_selection].start);
+	clicked_routeview->playlist()->add_region (region, selection_start);
 	_session->add_command(new StatefulDiffCommand (playlist));
 
 	c.disconnect ();

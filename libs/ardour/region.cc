@@ -65,6 +65,8 @@ namespace ARDOUR {
 		PBD::PropertyDescriptor<framecnt_t> length;
 		PBD::PropertyDescriptor<framepos_t> position;
 		PBD::PropertyDescriptor<double> beat;
+		PBD::PropertyDescriptor<double> start_qn;
+		PBD::PropertyDescriptor<double> length_qn;
 		PBD::PropertyDescriptor<framecnt_t> sync_position;
 		PBD::PropertyDescriptor<layer_t> layer;
 		PBD::PropertyDescriptor<framepos_t> ancestral_start;
@@ -117,6 +119,10 @@ Region::make_property_quarks ()
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for position = %1\n",	Properties::position.property_id));
 	Properties::beat.property_id = g_quark_from_static_string (X_("beat"));
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for beat = %1\n",	Properties::beat.property_id));
+	Properties::start_qn.property_id = g_quark_from_static_string (X_("start-qn"));
+	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for start-qn = %1\n",	Properties::start_qn.property_id));
+	Properties::length_qn.property_id = g_quark_from_static_string (X_("length-qn"));
+	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for length-qn = %1\n",	Properties::length_qn.property_id));
 	Properties::sync_position.property_id = g_quark_from_static_string (X_("sync-position"));
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for sync-position = %1\n",	Properties::sync_position.property_id));
 	Properties::layer.property_id = g_quark_from_static_string (X_("layer"));
@@ -158,6 +164,8 @@ Region::register_properties ()
 	add_property (_length);
 	add_property (_position);
 	add_property (_beat);
+	add_property (_start_qn);
+	add_property (_length_qn);
 	add_property (_sync_position);
 	add_property (_ancestral_start);
 	add_property (_ancestral_length);
@@ -176,7 +184,9 @@ Region::register_properties ()
 	, _length (Properties::length, (l))	\
 	, _position (Properties::position, 0) \
 	, _beat (Properties::beat, 0.0) \
-	, _sync_position (Properties::sync_position, (s)) \
+	, _start_qn (Properties::start_qn, (0.0))	\
+	, _length_qn (Properties::length_qn, (0.0))	\
+	, _sync_position (Properties::sync_position, (s))	\
 	, _quarter_note (0.0) \
 	, _transient_user_start (0) \
 	, _transient_analysis_start (0) \
@@ -206,7 +216,9 @@ Region::register_properties ()
 	, _start(Properties::start, other->_start)		\
 	, _length(Properties::length, other->_length)		\
 	, _position(Properties::position, other->_position)	\
-	, _beat (Properties::beat, other->_beat)                \
+	, _beat (Properties::beat, other->_beat)		\
+	, _start_qn(Properties::start_qn, other->_start_qn)	\
+	, _length_qn(Properties::length_qn, other->_length_qn)	\
 	, _sync_position(Properties::sync_position, other->_sync_position) \
 	, _quarter_note (other->_quarter_note)                                \
 	, _user_transients (other->_user_transients) \
@@ -238,6 +250,8 @@ Region::Region (Session& s, framepos_t start, framecnt_t length, const string& n
 	, REGION_DEFAULT_STATE(start,length)
 	, _last_length (length)
 	, _last_position (0)
+	, _last_length_qn (0.0)
+	, _last_qn (0.0)
 	, _first_edit (EditChangesNothing)
 	, _layer (0)
 {
@@ -253,6 +267,8 @@ Region::Region (const SourceList& srcs)
 	, REGION_DEFAULT_STATE(0,0)
 	, _last_length (0)
 	, _last_position (0)
+	, _last_length_qn (0.0)
+	, _last_qn (0.0)
 	, _first_edit (EditChangesNothing)
 	, _layer (0)
 {
@@ -273,6 +289,8 @@ Region::Region (boost::shared_ptr<const Region> other)
 	, REGION_COPY_STATE (other)
 	, _last_length (other->_last_length)
 	, _last_position(other->_last_position) \
+	, _last_length_qn (other->_last_length_qn)
+	, _last_qn(other->_last_qn) \
 	, _first_edit (EditChangesNothing)
 	, _layer (other->_layer)
 {
@@ -335,6 +353,8 @@ Region::Region (boost::shared_ptr<const Region> other, MusicFrame offset)
 	, REGION_COPY_STATE (other)
 	, _last_length (other->_last_length)
 	, _last_position(other->_last_position) \
+	, _last_length_qn (other->_last_length_qn)
+	, _last_qn(other->_last_qn) \
 	, _first_edit (EditChangesNothing)
 	, _layer (other->_layer)
 {
@@ -353,15 +373,18 @@ Region::Region (boost::shared_ptr<const Region> other, MusicFrame offset)
 	_position = other->_position + offset.frame;
 	_start = other->_start + offset.frame;
 
+	const double offset_qn = _session.tempo_map().exact_qn_at_frame (other->_position + offset.frame, offset.division)
+		- other->_quarter_note;
+
+
 	/* prevent offset of 0 from altering musical position */
 	if (offset.frame != 0) {
-		const double offset_qn = _session.tempo_map().exact_qn_at_frame (other->_position + offset.frame, offset.division)
-			- other->_quarter_note;
-
 		_quarter_note = other->_quarter_note + offset_qn;
 		_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
+		_start_qn = other->_start_qn + offset_qn;
 	} else {
 		_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
+		_start_qn = other->_start_qn;
 	}
 
 	/* if the other region had a distinct sync point
@@ -391,6 +414,8 @@ Region::Region (boost::shared_ptr<const Region> other, const SourceList& srcs)
 	, REGION_COPY_STATE (other)
 	, _last_length (other->_last_length)
 	, _last_position (other->_last_position)
+	, _last_length_qn (other->_last_length_qn)
+	, _last_qn (other->_last_qn)
 	, _first_edit (EditChangesID)
 	, _layer (other->_layer)
 {
@@ -458,8 +483,9 @@ Region::set_length (framecnt_t len, const int32_t sub_num)
 			return;
 		}
 
-
-		set_length_internal (len, sub_num);
+		AudioMusic len_am (_position + len, _session.tempo_map().exact_qn_at_frame (_position + len, sub_num));
+		len_am -= AudioMusic (_position, _quarter_note);
+		set_length_internal (len_am);
 		_whole_file = false;
 		first_edit ();
 		maybe_uncopy ();
@@ -474,10 +500,49 @@ Region::set_length (framecnt_t len, const int32_t sub_num)
 }
 
 void
-Region::set_length_internal (framecnt_t len, const int32_t sub_num)
+Region::set_length (AudioMusic& len)
+{
+	if (locked()) {
+		return;
+	}
+
+	if (_length != len.frames && len.frames != 0) {
+
+		/* check that the current _position wouldn't make the new
+		   length impossible.
+		*/
+
+		if (max_framepos - len.frames < _position) {
+			return;
+		}
+
+		if (!verify_length (len.frames)) {
+			return;
+		}
+
+		set_length_internal (len);
+		_whole_file = false;
+		first_edit ();
+		maybe_uncopy ();
+		maybe_invalidate_transients ();
+
+		if (!property_changes_suspended()) {
+			recompute_at_end ();
+		}
+
+		send_change (Properties::length);
+		send_change (Properties::length_qn);
+	}
+}
+void
+Region::set_length_internal (const AudioMusic& len)
 {
 	_last_length = _length;
-	_length = len;
+	_last_length_qn = _length_qn;
+
+	_length = len.frames;
+	_length_qn = len.qnotes;
+
 }
 
 void
@@ -570,33 +635,48 @@ Region::update_after_tempo_map_change (bool send)
 	if (!pl) {
 		return;
 	}
+	PropertyChange what_changed;
 
 	if (_position_lock_style == AudioTime) {
-		/* don't signal as the actual position has not chnged */
 		recompute_position_from_lock_style (0);
+		/* _length doesn't change for audio regions. update length_qn to match. */
+		_length_qn = _session.tempo_map().quarter_note_at_frame (_position + _length) - _quarter_note;
+		_start_qn =  _quarter_note - _session.tempo_map().quarter_note_at_frame (_position - _start);
+
+		/* don't signal position as it has not chnged */
+		what_changed.add (Properties::length_qn);
+		what_changed.add (Properties::start_qn);
+
+		if (send) {
+			send_change (what_changed);
+		}
+
 		return;
 	}
 
 	/* prevent movement before 0 */
 	const framepos_t pos = max ((framepos_t) 0, _session.tempo_map().frame_at_beat (_beat));
-	/* we have _beat. update frame position non-musically */
-	set_position_internal (pos, false, 0);
+	set_position_internal (AudioMusic (pos, _quarter_note));
 
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
 	*/
 
+	what_changed.add (Properties::position);
+
 	if (send) {
-		send_change (Properties::position);
+		send_change (what_changed);
 	}
 }
 
 void
-Region::set_position (framepos_t pos, int32_t sub_num)
+Region::set_position (const MusicFrame& mf)
 {
 	if (!can_move()) {
 		return;
 	}
+
+	AudioMusic const pos = _session.audiomusic_at_musicframe (mf);
 
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
@@ -605,54 +685,15 @@ Region::set_position (framepos_t pos, int32_t sub_num)
 
 	p_and_l.add (Properties::position);
 
-	if (position_lock_style() == AudioTime) {
-		set_position_internal (pos, true, sub_num);
-	} else {
-		if (!_session.loading()) {
-			_beat = _session.tempo_map().exact_beat_at_frame (pos, sub_num);
-			_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
-		}
-
-		set_position_internal (pos, false, sub_num);
-	}
+	set_position_internal (pos);
 
 	if (position_lock_style() == MusicTime) {
 		p_and_l.add (Properties::length);
+	} else {
+		p_and_l.add (Properties::length_qn);
 	}
 
 	send_change (p_and_l);
-
-}
-
-void
-Region::set_position_internal (framepos_t pos, bool allow_bbt_recompute, const int32_t sub_num)
-{
-	/* We emit a change of Properties::position even if the position hasn't changed
-	   (see Region::set_position), so we must always set this up so that
-	   e.g. Playlist::notify_region_moved doesn't use an out-of-date last_position.
-	*/
-	_last_position = _position;
-
-	if (_position != pos) {
-		_position = pos;
-
-		if (allow_bbt_recompute) {
-			recompute_position_from_lock_style (sub_num);
-		} else {
-			/* MusicTime dictates that we glue to ardour beats. the pulse may have changed.*/
-			_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
-		}
-
-		/* check that the new _position wouldn't make the current
-		   length impossible - if so, change the length.
-
-		   XXX is this the right thing to do?
-		*/
-		if (max_framepos - _length < _position) {
-			_last_length = _length;
-			_length = max_framepos - _position;
-		}
-	}
 }
 
 void
@@ -661,6 +702,8 @@ Region::set_position_music (double qn)
 	if (!can_move()) {
 		return;
 	}
+
+	AudioMusic const pos = _session.audiomusic_at_qn (qn);
 
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
@@ -674,37 +717,91 @@ Region::set_position_music (double qn)
 	}
 
 	/* will set frame accordingly */
-	set_position_music_internal (qn);
+	set_position_internal (pos);
 
 	if (position_lock_style() == MusicTime) {
 		p_and_l.add (Properties::length);
+	} else {
+		p_and_l.add (Properties::length_qn);
 	}
 
 	send_change (p_and_l);
 }
 
 void
-Region::set_position_music_internal (double qn)
+Region::set_position (const AudioMusic& pos)
+{
+	if (!can_move()) {
+		return;
+	}
+
+	/* do this even if the position is the same. this helps out
+	   a GUI that has moved its representation already.
+	*/
+	PropertyChange p_and_l;
+
+	p_and_l.add (Properties::position);
+
+	set_position_internal (pos);
+
+	if (position_lock_style() == MusicTime) {
+		p_and_l.add (Properties::length);
+	} else {
+		p_and_l.add (Properties::length_qn);
+	}
+
+	send_change (p_and_l);
+}
+void
+Region::update_last_length ()
+{
+	_last_length = _length;
+	_last_length_qn = _length_qn;
+}
+void
+Region::update_last_position ()
+{
+	_last_position = _position;
+	_last_qn = _quarter_note;
+}
+void
+Region::set_position_internal (const AudioMusic& pos)
 {
 	/* We emit a change of Properties::position even if the position hasn't changed
 	   (see Region::set_position), so we must always set this up so that
 	   e.g. Playlist::notify_region_moved doesn't use an out-of-date last_position.
 	*/
-	_last_position = _position;
 
-	if (_quarter_note != qn) {
-		_position = _session.tempo_map().frame_at_quarter_note (qn);
-		_quarter_note = qn;
+	update_last_position ();
 
-		/* check that the new _position wouldn't make the current
-		   length impossible - if so, change the length.
+	_position = pos.frames;
+	_quarter_note = pos.qnotes;
+	_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
 
-		   XXX is this the right thing to do?
-		*/
-		if (max_framepos - _length < _position) {
-			_last_length = _length;
-			_length = max_framepos - _position;
-		}
+	/* in construction from src */
+	if (_length_qn == 0.0) {
+		update_length_beats ();
+	}
+
+	/* _length doesn't change for audio regions. update length_qn to match. */
+	_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
+	_start_qn =  _session.tempo_map().quarter_notes_between_frames (_position - _start, _position);
+
+	/* check that the new _position wouldn't make the current
+	   length impossible - if so, change the length.
+
+	   XXX is this the right thing to do?
+	*/
+	if (max_framepos - _length < _position) {
+		update_last_length ();
+		AudioMusic const new_len = _session.audiomusic_at_musicframe (max_framepos) - position_am();
+		set_length_internal (new_len);
+	}
+
+	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
+		std::cout << "region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _position - _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << std::endl;
+	} else {
+		std::cout << "region set position internal sanity check ok for " << name() << std::endl;
 	}
 }
 
@@ -731,12 +828,14 @@ Region::set_initial_position (MusicFrame pos)
 
 		if (max_framepos - _length < _position) {
 			_last_length = _length;
+			_last_length_qn = _length_qn;
 			_length = max_framepos - _position;
 		}
 
 		recompute_position_from_lock_style (pos.division);
 		/* ensure that this move doesn't cause a range move */
 		_last_position = _position;
+		_last_qn = _quarter_note;
 	}
 
 
@@ -780,7 +879,7 @@ Region::nudge_position (frameoffset_t n)
 		}
 	}
 	/* assumes non-musical nudge */
-	set_position_internal (new_position, true, 0);
+	set_position_internal (_session.audiomusic_at_musicframe (new_position));
 
 	send_change (Properties::position);
 }
@@ -811,110 +910,161 @@ Region::set_start (framepos_t pos)
 			return;
 		}
 
+		set_start_internal (_session.audiomusic_at_musicframe (_position - pos) - position_am());
+		_whole_file = false;
+		first_edit ();
+		maybe_invalidate_transients ();
+
+		PropertyChange what;
+		what.add (Properties::start);
+		what.add (Properties::start_qn);
+
+		send_change (what);
+	}
+}
+void
+Region::set_start (AudioMusic& pos)
+{
+	if (locked() || position_locked() || video_locked()) {
+		return;
+	}
+	/* This just sets the start, nothing else. It effectively shifts
+	   the contents of the Region within the overall extent of the Source,
+	   without changing the Region's position or length
+	*/
+
+	if (_start != pos.frames) {
+
+		if (!verify_start (pos.frames)) {
+			return;
+		}
+
 		set_start_internal (pos);
 		_whole_file = false;
 		first_edit ();
 		maybe_invalidate_transients ();
 
-		send_change (Properties::start);
+		PropertyChange what_changed;
+		what_changed.add (Properties::start);
+		what_changed.add (Properties::start_qn);
+
+		send_change (what_changed);
 	}
 }
 
 void
-Region::move_start (frameoffset_t distance, const int32_t sub_num)
+Region::move_start (const AudioMusic& distance)
 {
 	if (locked() || position_locked() || video_locked()) {
 		return;
 	}
 
-	framepos_t new_start;
+	AudioMusic new_start (0, 0.0);
+	if (distance.frames > 0) {
 
-	if (distance > 0) {
-
-		if (_start > max_framepos - distance) {
-			new_start = max_framepos; // makes no sense
+		if (_start > max_framepos - distance.frames) {
+			new_start.frames = max_framepos; // makes no sense
 		} else {
-			new_start = _start + distance;
+			new_start = AudioMusic (_start, _start_qn) + distance;
 		}
 
-		if (!verify_start (new_start)) {
+		if (!verify_start (new_start.frames)) {
 			return;
 		}
 
-	} else if (distance < 0) {
+	} else if (distance.frames < 0) {
 
-		if (_start < -distance) {
-			new_start = 0;
+		if (_start < -distance.frames) {
+			new_start = AudioMusic (0, 0.0);
 		} else {
-			new_start = _start + distance;
+			new_start = AudioMusic (_start, _start_qn) + distance;
 		}
 
 	} else {
 		return;
 	}
 
-	if (new_start == _start) {
+	if (new_start.frames == _start) {
 		return;
 	}
 
-	set_start_internal (new_start, sub_num);
+	set_start_internal (new_start);
 
 	_whole_file = false;
 	first_edit ();
 
-	send_change (Properties::start);
+	PropertyChange what_changed;
+	what_changed.add (Properties::start);
+	what_changed.add (Properties::start_qn);
+
+	send_change (what_changed);
 }
 
 void
-Region::trim_front (framepos_t new_position, const int32_t sub_num)
+Region::set_start_beats_from_start_frames (const int32_t sub_num)
 {
-	modify_front (new_position, false, sub_num);
+	if (position_lock_style() == AudioTime) {
+		_start_qn = quarter_note() - _session.tempo_map().exact_qn_at_frame (_position - _start, sub_num);
+	}
 }
 
 void
-Region::cut_front (framepos_t new_position, const int32_t sub_num)
+Region::trim_front (const AudioMusic& new_position)
 {
-	modify_front (new_position, true, sub_num);
+	modify_front (new_position, false);
 }
 
 void
-Region::cut_end (framepos_t new_endpoint, const int32_t sub_num)
+Region::trim_front (framepos_t new_position)
 {
-	modify_end (new_endpoint, true, sub_num);
+	modify_front (_session.audiomusic_at_musicframe (new_position), false);
 }
 
 void
-Region::modify_front (framepos_t new_position, bool reset_fade, const int32_t sub_num)
+Region::cut_front (const AudioMusic& new_position)
+{
+	modify_front (new_position, true);
+}
+
+void
+Region::cut_end (const AudioMusic& new_endpoint)
+{
+	modify_end (new_endpoint, true);
+}
+
+void
+Region::modify_front (const AudioMusic& new_pos, bool reset_fade)
 {
 	if (locked()) {
 		return;
 	}
 
-	framepos_t end = last_frame();
-	framepos_t source_zero;
+	AudioMusic end (last_frame(), last_qn());
+	AudioMusic source_zero (0, 0.0);
+	AudioMusic new_position (new_pos);
 
 	if (_position > _start) {
-		source_zero = _position - _start;
+		source_zero = position_am() - AudioMusic (_start, _start_qn);
 	} else {
-		source_zero = 0; // its actually negative, but this will work for us
+		source_zero = AudioMusic (0, 0.0); // its actually negative, but this will work for us
 	}
 
 	if (new_position < end) { /* can't trim it zero or negative length */
 
-		framecnt_t newlen = 0;
+		AudioMusic newlen (0, 0.0);
 
 		if (!can_trim_start_before_source_start ()) {
 			/* can't trim it back past where source position zero is located */
 			new_position = max (new_position, source_zero);
 		}
 
-		if (new_position > _position) {
-			newlen = _length - (new_position - _position);
+		if (new_position.frames > _position) {
+			newlen = AudioMusic (_length, _length_qn) - (new_position - position_am());
 		} else {
-			newlen = _length + (_position - new_position);
+			newlen = AudioMusic (_length, _length_qn) + (position_am() - new_position);
 		}
 
-		trim_to_internal (new_position, newlen, sub_num);
+		trim_to_internal (new_position, newlen);
 
 		if (reset_fade) {
 			_right_of_split = true;
@@ -929,14 +1079,14 @@ Region::modify_front (framepos_t new_position, bool reset_fade, const int32_t su
 }
 
 void
-Region::modify_end (framepos_t new_endpoint, bool reset_fade, const int32_t sub_num)
+Region::modify_end (const AudioMusic& new_endpoint, bool reset_fade)
 {
 	if (locked()) {
 		return;
 	}
 
-	if (new_endpoint > _position) {
-		trim_to_internal (_position, new_endpoint - _position, sub_num);
+	if (new_endpoint > position_am()) {
+		trim_to_internal (position_am(), new_endpoint - position_am());
 		if (reset_fade) {
 			_left_of_split = true;
 		}
@@ -951,19 +1101,19 @@ Region::modify_end (framepos_t new_endpoint, bool reset_fade, const int32_t sub_
  */
 
 void
-Region::trim_end (framepos_t new_endpoint, const int32_t sub_num)
+Region::trim_end (const AudioMusic& new_endpoint)
 {
-	modify_end (new_endpoint, false, sub_num);
+	modify_end (new_endpoint, false);
 }
 
 void
-Region::trim_to (framepos_t position, framecnt_t length, const int32_t sub_num)
+Region::trim_to (const AudioMusic& position, const AudioMusic& length)
 {
 	if (locked()) {
 		return;
 	}
 
-	trim_to_internal (position, length, sub_num);
+	trim_to_internal (position, length);
 
 	if (!property_changes_suspended()) {
 		recompute_at_start ();
@@ -972,45 +1122,47 @@ Region::trim_to (framepos_t position, framecnt_t length, const int32_t sub_num)
 }
 
 void
-Region::trim_to_internal (framepos_t position, framecnt_t length, const int32_t sub_num)
+Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 {
-	framepos_t new_start;
-
 	if (locked()) {
 		return;
 	}
 
-	frameoffset_t const start_shift = position - _position;
+	AudioMusic const start_shift = position - AudioMusic (_position, _quarter_note);
+	AudioMusic new_start (0, 0.0);
 
-	if (start_shift > 0) {
+	if (start_shift.frames > 0) {
 
-		if (_start > max_framepos - start_shift) {
-			new_start = max_framepos;
+		if (_start > max_framepos - start_shift.frames) {
+			new_start = AudioMusic (max_framepos, (AudioMusic (_start, _start_qn) + start_shift).qnotes);
 		} else {
-			new_start = _start + start_shift;
+			new_start = AudioMusic (_start, _start_qn) + start_shift;
 		}
 
-	} else if (start_shift < 0) {
+	} else if (start_shift.frames < 0) {
 
-		if (_start < -start_shift && !can_trim_start_before_source_start ()) {
-			new_start = 0;
+		if (_start < -(start_shift.frames) && !can_trim_start_before_source_start ()) {
+			new_start = AudioMusic (0, 0.0);
 		} else {
-			new_start = _start + start_shift;
+			new_start = AudioMusic (_start, _start_qn) + start_shift;
 		}
 
 	} else {
-		new_start = _start;
+		new_start = AudioMusic (_start, _start_qn);
 	}
 
-	if (!verify_start_and_length (new_start, length)) {
+	AudioMusic new_length (length);
+	if (!verify_start_and_length (new_start.frames, new_length.frames)) {
 		return;
 	}
 
+
 	PropertyChange what_changed;
 
-	if (_start != new_start) {
-		set_start_internal (new_start, sub_num);
+	if (_start != new_start.frames) {
+		set_start_internal (new_start);
 		what_changed.add (Properties::start);
+		what_changed.add (Properties::start_qn);
 	}
 
 
@@ -1022,20 +1174,23 @@ Region::trim_to_internal (framepos_t position, framecnt_t length, const int32_t 
 	 *    straddles a tempo/meter change.
 	 */
 
-	if (_position != position) {
+	if (_position != position.frames) {
 		if (!property_changes_suspended()) {
 			_last_position = _position;
+			_last_qn = _quarter_note;
 		}
-		set_position_internal (position, true, sub_num);
+		set_position_internal (position);
 		what_changed.add (Properties::position);
 	}
 
-	if (_length != length) {
+	if (_length != length.frames) {
 		if (!property_changes_suspended()) {
 			_last_length = _length;
+			_last_length_qn = _length_qn;
 		}
-		set_length_internal (length, sub_num);
+		set_length_internal (length);
 		what_changed.add (Properties::length);
+		what_changed.add (Properties::length_qn);
 	}
 
 	_whole_file = false;
@@ -1355,6 +1510,8 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 {
 	XMLProperty const * prop;
 	Timecode::BBT_Time bbt_time;
+	double start_beats;
+	double length_beats;
 
 	Stateful::save_extra_xml (node);
 
@@ -1377,7 +1534,20 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 			_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
 		}
 	}
+	if ((prop = node.property ("start-beats")) != 0) {
+		if (sscanf (prop->value().c_str(), "%lf", &start_beats) != 1) {
 
+		} else {
+			_start_qn = start_beats;
+		}
+	}
+	if ((prop = node.property ("length-beats")) != 0) {
+		if (sscanf (prop->value().c_str(), "%lf", &length_beats) != 1) {
+
+		} else {
+			_length_qn = length_beats;
+		}
+	}
 	/* fix problems with old sessions corrupted by impossible
 	   values for _stretch or _shift
 	*/
@@ -1414,6 +1584,8 @@ Region::suspend_property_changes ()
 	Stateful::suspend_property_changes ();
 	_last_length = _length;
 	_last_position = _position;
+	_last_length_qn = _length_qn;
+	_last_qn = _quarter_note;
 }
 
 void
@@ -1911,12 +2083,33 @@ void
 Region::post_set (const PropertyChange& pc)
 {
 	_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
+	if (pc.contains (Properties::length) && !pc.contains (Properties::length_qn)) {
+		/* we're called by Stateful::set_values() which sends a change
+		   only if the value is different from _current.
+		   session load means we can clobber length_qn here in error (not all properties differ from current),
+		   so disallow (this has been set from XML state anyway).
+		*/
+		if (!_session.loading()) {
+			update_length_beats ();
+		}
+	}
+
+	if (pc.contains (Properties::start) && !pc.contains (Properties::start_qn)) {
+		set_start_beats_from_start_frames ();
+	}
 }
 
 void
-Region::set_start_internal (framecnt_t s, const int32_t sub_num)
+Region::set_start_internal (const AudioMusic& s)
 {
-	_start = s;
+	_start = s.frames;
+	_start_qn = s.qnotes;
+}
+
+void
+Region::update_length_beats ()
+{
+	_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
 }
 
 framepos_t

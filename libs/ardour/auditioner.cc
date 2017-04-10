@@ -399,7 +399,7 @@ Auditioner::audition_region (boost::shared_ptr<Region> region)
 		the_region->set_position (0);
 
 		_diskstream->playlist()->drop_regions ();
-		_diskstream->playlist()->add_region (the_region, 0, 1);
+		_diskstream->playlist()->add_region (the_region, (framepos_t) 0, 1);
 
 		if (_diskstream->n_channels().n_audio() < the_region->n_channels()) {
 			audio_diskstream()->add_channel (the_region->n_channels() - _diskstream->n_channels().n_audio());

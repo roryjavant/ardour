@@ -54,7 +54,7 @@ protected:
 	friend class SourceFactory;
 
 	MidiPlaylistSource (Session&, const PBD::ID& orig, const std::string& name, boost::shared_ptr<MidiPlaylist>, uint32_t chn,
-	                    frameoffset_t begin, framecnt_t len, Source::Flag flags);
+	                    const AudioMusic& begin, const AudioMusic& len, Source::Flag flags);
 	MidiPlaylistSource (Session&, const XMLNode&);
 
 

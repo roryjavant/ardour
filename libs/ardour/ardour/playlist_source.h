@@ -46,7 +46,7 @@ protected:
 	framecnt_t                  _playlist_length;
 
 	PlaylistSource (Session&, const PBD::ID&, const std::string& name, boost::shared_ptr<Playlist>, DataType,
-	                frameoffset_t begin, framecnt_t len, Source::Flag flags);
+	                const AudioMusic& begin, const AudioMusic& len, Source::Flag flags);
 	PlaylistSource (Session&, const XMLNode&);
 
 	void add_state (XMLNode&);

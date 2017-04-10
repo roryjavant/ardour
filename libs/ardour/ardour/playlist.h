@@ -86,7 +86,7 @@ public:
 	Playlist (Session&, const XMLNode&, DataType type, bool hidden = false);
 	Playlist (Session&, std::string name, DataType type, bool hidden = false);
 	Playlist (boost::shared_ptr<const Playlist>, std::string name, bool hidden = false);
-	Playlist (boost::shared_ptr<const Playlist>, framepos_t start, framecnt_t cnt, std::string name, bool hidden = false);
+	Playlist (boost::shared_ptr<const Playlist>, const ARDOUR::AudioMusic& start, const AudioMusic& cnt, std::string name, bool hidden = false);
 
 	virtual ~Playlist ();
 
@@ -126,8 +126,8 @@ public:
 
 	uint32_t n_regions() const;
 	bool all_regions_empty() const;
-	std::pair<framepos_t, framepos_t> get_extent () const;
-	std::pair<framepos_t, framepos_t> get_extent_with_endspace() const;
+	std::pair<AudioMusic, AudioMusic> get_extent () const;
+	std::pair<AudioMusic, AudioMusic> get_extent_with_endspace() const;
 	layer_t top_layer() const;
 
 	EditMode get_edit_mode() const { return _edit_mode; }
@@ -135,19 +135,20 @@ public:
 
 	/* Editing operations */
 
-	void add_region (boost::shared_ptr<Region>, framepos_t position, float times = 1, bool auto_partition = false, int32_t sub_num = 0, double quarter_note = 0.0, bool for_music = false);
+	void add_region (boost::shared_ptr<Region>, const AudioMusic& position, float times = 1, bool auto_partition = false);
+	void add_region (boost::shared_ptr<Region>, framepos_t position, bool auto_partition = false);
 	void remove_region (boost::shared_ptr<Region>);
 	void get_equivalent_regions (boost::shared_ptr<Region>, std::vector<boost::shared_ptr<Region> >&);
 	void get_region_list_equivalent_regions (boost::shared_ptr<Region>, std::vector<boost::shared_ptr<Region> >&);
 	void get_source_equivalent_regions (boost::shared_ptr<Region>, std::vector<boost::shared_ptr<Region> >&);
-	void replace_region (boost::shared_ptr<Region> old, boost::shared_ptr<Region> newr, framepos_t pos);
+	void replace_region (boost::shared_ptr<Region> old, boost::shared_ptr<Region> newr, const AudioMusic& pos);
 	void split_region (boost::shared_ptr<Region>, const MusicFrame& position);
 	void split (const MusicFrame& at);
 	void shift (framepos_t at, frameoffset_t distance, bool move_intersected, bool ignore_music_glue);
-	void partition (framepos_t start, framepos_t end, bool cut = false);
-	void duplicate (boost::shared_ptr<Region>, framepos_t position, float times);
-	void duplicate (boost::shared_ptr<Region>, framepos_t position, framecnt_t gap, float times);
-	void duplicate_until (boost::shared_ptr<Region>, framepos_t position, framecnt_t gap, framepos_t end);
+	void partition (const AudioMusic& start, const AudioMusic& end, bool cut = false);
+	void duplicate (boost::shared_ptr<Region>, const AudioMusic&, float times);
+	void duplicate (boost::shared_ptr<Region>, const AudioMusic&, const AudioMusic& gap, float times);
+	void duplicate_until (boost::shared_ptr<Region>, const AudioMusic&, const AudioMusic& gap, const AudioMusic& end);
 	void duplicate_range (MusicFrameRange&, float times);
 	void duplicate_ranges (std::list<MusicFrameRange>&, float times);
 	void nudge_after (framepos_t start, framecnt_t distance, bool forwards);
@@ -156,8 +157,8 @@ public:
 	void fade_range (std::list<MusicFrameRange>&);
 
 	void shuffle (boost::shared_ptr<Region>, int dir);
-	void ripple (framepos_t at, framecnt_t distance, RegionList *exclude);
-	void ripple (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude) {
+	void ripple (const AudioMusic& at, AudioMusic distance, RegionList *exclude);
+	void ripple (const AudioMusic& at, AudioMusic distance, boost::shared_ptr<Region> exclude) {
 		 RegionList el;
 		 if (exclude)
 			 el.push_back (exclude);
@@ -168,7 +169,7 @@ public:
 
 	boost::shared_ptr<Playlist> cut  (std::list<MusicFrameRange>&, bool result_is_hidden = true);
 	boost::shared_ptr<Playlist> copy (std::list<MusicFrameRange>&, bool result_is_hidden = true);
-	int                         paste (boost::shared_ptr<Playlist>, framepos_t position, float times, const int32_t sub_num);
+	int                         paste (boost::shared_ptr<Playlist>, const AudioMusic& position, float times);
 
 	const RegionListProperty& region_list_property () const { return regions; }
 	boost::shared_ptr<RegionList> region_list();
@@ -290,7 +291,7 @@ public:
 	mutable gint    ignore_state_changes;
 	std::set<boost::shared_ptr<Region> > pending_adds;
 	std::set<boost::shared_ptr<Region> > pending_removes;
-	RegionList       pending_bounds;
+	std::list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> > pending_bounds;
 	bool             pending_contents_change;
 	bool             pending_layering;
 
@@ -351,20 +352,21 @@ public:
 	virtual bool region_changed (const PBD::PropertyChange&, boost::shared_ptr<Region>);
 
 	void region_bounds_changed (const PBD::PropertyChange&, boost::shared_ptr<Region>);
+	void regions_bounds_changed (std::list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >& regions);
 	void region_deleted (boost::shared_ptr<Region>);
 
 	void sort_regions ();
 
-	void possibly_splice (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude = boost::shared_ptr<Region>());
-	void possibly_splice_unlocked(framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude = boost::shared_ptr<Region>());
+	void possibly_splice (const AudioMusic& at, const AudioMusic& distance, boost::shared_ptr<Region> exclude = boost::shared_ptr<Region>());
+	void possibly_splice_unlocked(const AudioMusic& at, const AudioMusic& distance, boost::shared_ptr<Region> exclude = boost::shared_ptr<Region>());
 
-	void core_splice (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude);
-	void splice_locked (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude);
-	void splice_unlocked (framepos_t at, framecnt_t distance, boost::shared_ptr<Region> exclude);
+	void core_splice (const AudioMusic& at, const AudioMusic& distance, boost::shared_ptr<Region> exclude);
+	void splice_locked (const AudioMusic& at, const AudioMusic& distance, boost::shared_ptr<Region> exclude);
+	void splice_unlocked (const AudioMusic& at, const AudioMusic& distance, boost::shared_ptr<Region> exclude);
 
-	void core_ripple (framepos_t at, framecnt_t distance, RegionList *exclude);
-	void ripple_locked (framepos_t at, framecnt_t distance, RegionList *exclude);
-	void ripple_unlocked (framepos_t at, framecnt_t distance, RegionList *exclude);
+	void core_ripple (const AudioMusic& at, AudioMusic distance, RegionList *exclude);
+	void ripple_locked (const AudioMusic& at, AudioMusic distance, RegionList *exclude);
+	void ripple_unlocked (const AudioMusic& at, AudioMusic distance, RegionList *exclude);
 
 
 	virtual void remove_dependents (boost::shared_ptr<Region> /*region*/) {}
@@ -372,13 +374,13 @@ public:
 
 	virtual XMLNode& state (bool);
 
-	bool add_region_internal (boost::shared_ptr<Region>, framepos_t position, int32_t sub_num = 0, double quarter_note = 0.0, bool for_music = false);
+	bool add_region_internal (boost::shared_ptr<Region>, const AudioMusic& position);
 
 	int remove_region_internal (boost::shared_ptr<Region>);
 	void copy_regions (RegionList&) const;
-	void partition_internal (framepos_t start, framepos_t end, bool cutting, RegionList& thawlist);
+	virtual void partition_internal (const AudioMusic& start, const AudioMusic& end, bool cutting, RegionList& thawlist);
 
-	std::pair<framepos_t, framepos_t> _get_extent() const;
+	std::pair<AudioMusic, AudioMusic> _get_extent() const;
 
 	boost::shared_ptr<Playlist> cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&, bool),
 					      std::list<MusicFrameRange>& ranges, bool result_is_hidden);
@@ -403,6 +405,7 @@ public:
 	*/
 	virtual void pre_uncombine (std::vector<boost::shared_ptr<Region> >&, boost::shared_ptr<Region>) {}
 
+	void set_end_space (AudioMusic es) { _end_space = es; }
   private:
 	friend class RegionReadLock;
 	friend class RegionWriteLock;
@@ -413,7 +416,7 @@ public:
 	void coalesce_and_check_crossfades (std::list<Evoral::Range<framepos_t> >);
 	boost::shared_ptr<RegionList> find_regions_at (framepos_t);
 
-	framepos_t _end_space;  //this is used when we are pasting a range with extra space at the end
+	AudioMusic _end_space;  //this is used when we are pasting a range with extra space at the end
 };
 
 } /* namespace ARDOUR */

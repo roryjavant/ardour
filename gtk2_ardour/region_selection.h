@@ -53,10 +53,12 @@ class RegionSelection : public std::list<RegionView*>
 	void clear_all();
 
 	framepos_t start () const;
+	double     start_qn () const;
 
 	/* "end" collides with list<>::end */
 
 	framepos_t end_frame () const;
+	double     end_qn () const;
 
 	const std::list<RegionView *>& by_layer() const { return _bylayer; }
 	void  by_position (std::list<RegionView*>&) const;

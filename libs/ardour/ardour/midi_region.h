@@ -32,13 +32,6 @@
 
 class XMLNode;
 
-namespace ARDOUR {
-	namespace Properties {
-		LIBARDOUR_API extern PBD::PropertyDescriptor<double> start_beats;
-		LIBARDOUR_API extern PBD::PropertyDescriptor<double> length_beats;
-	}
-}
-
 namespace Evoral {
 template<typename Time> class EventSink;
 }
@@ -59,7 +52,6 @@ template<typename T> class MidiRingBuffer;
 class LIBARDOUR_API MidiRegion : public Region
 {
   public:
-	static void make_property_quarks ();
 
 	~MidiRegion();
 
@@ -109,8 +101,6 @@ class LIBARDOUR_API MidiRegion : public Region
 	boost::shared_ptr<const MidiModel> model() const;
 
 	void fix_negative_start ();
-	double start_beats () const {return _start_beats; }
-	double length_beats () const {return _length_beats; }
 
 	void clobber_sources (boost::shared_ptr<MidiSource> source);
 
@@ -122,8 +112,6 @@ class LIBARDOUR_API MidiRegion : public Region
 
   private:
 	friend class RegionFactory;
-	PBD::Property<double> _start_beats;
-	PBD::Property<double> _length_beats;
 
 	MidiRegion (const SourceList&);
 	MidiRegion (boost::shared_ptr<const MidiRegion>);
@@ -139,24 +127,18 @@ class LIBARDOUR_API MidiRegion : public Region
 	                     MidiStateTracker* tracker = 0,
 	                     MidiChannelFilter* filter = 0) const;
 
-	void register_properties ();
 	void post_set (const PBD::PropertyChange&);
 
 	void recompute_at_start ();
 	void recompute_at_end ();
 
-	void set_position_internal (framepos_t pos, bool allow_bbt_recompute, const int32_t sub_num);
-	void set_position_music_internal (double qn);
-	void set_length_internal (framecnt_t len, const int32_t sub_num);
-	void set_start_internal (framecnt_t, const int32_t sub_num);
-	void trim_to_internal (framepos_t position, framecnt_t length, const int32_t sub_num);
-	void update_length_beats (const int32_t sub_num);
+	void set_position_internal (const AudioMusic& pos);
+	void trim_to_internal (const AudioMusic& position, const AudioMusic& length);
 
 	void model_changed ();
 	void model_shifted (double qn_distance);
 	void model_automation_state_changed (Evoral::Parameter const &);
 
-	void set_start_beats_from_start_frames ();
 	void update_after_tempo_map_change (bool send_change = true);
 
 	std::set<Evoral::Parameter> _filtered_parameters; ///< parameters that we ask our source not to return when reading

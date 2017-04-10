@@ -63,13 +63,13 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, stri
 {
 }
 
-AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, framepos_t start, framecnt_t cnt, string name, bool hidden)
+AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, const AudioMusic& start, const AudioMusic& cnt, string name, bool hidden)
 	: Playlist (other, start, cnt, name, hidden)
 {
 	RegionReadLock rlock2 (const_cast<AudioPlaylist*> (other.get()));
 	in_set_state++;
-
-	framepos_t const end = start + cnt - 1;
+	/* fades don't care about music */
+	AudioMusic const end = AudioMusic (start.frames + cnt.frames - 1, start.qnotes + cnt.qnotes);
 
 	/* Audio regions that have been created by the Playlist constructor
 	   will currently have the same fade in/out as the regions that they
@@ -85,14 +85,14 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, fram
 		framecnt_t fade_in = 64;
 		framecnt_t fade_out = 64;
 
-		switch (region->coverage (start, end)) {
+		switch (region->coverage (start.frames, end.frames)) {
 		case Evoral::OverlapNone:
 			continue;
 
 		case Evoral::OverlapInternal:
 		{
-			framecnt_t const offset = start - region->position ();
-			framecnt_t const trim = region->last_frame() - end;
+			framecnt_t const offset = start.frames - region->position ();
+			framecnt_t const trim = region->last_frame() - end.frames;
 			if (region->fade_in()->back()->when > offset) {
 				fade_in = region->fade_in()->back()->when - offset;
 			}
@@ -103,19 +103,19 @@ AudioPlaylist::AudioPlaylist (boost::shared_ptr<const AudioPlaylist> other, fram
 		}
 
 		case Evoral::OverlapStart: {
-			if (end > region->position() + region->fade_in()->back()->when)
+			if (end.frames > region->position() + region->fade_in()->back()->when)
 				fade_in = region->fade_in()->back()->when;  //end is after fade-in, preserve the fade-in
-			if (end > region->last_frame() - region->fade_out()->back()->when)
-				fade_out = region->fade_out()->back()->when - ( region->last_frame() - end );  //end is inside the fadeout, preserve the fades endpoint
+			if (end.frames > region->last_frame() - region->fade_out()->back()->when)
+				fade_out = region->fade_out()->back()->when - ( region->last_frame() - end.frames);  //end is inside the fadeout, preserve the fades endpoint
 			break;
 		}
 
 		case Evoral::OverlapEnd: {
-			if (start < region->last_frame() - region->fade_out()->back()->when)  //start is before fade-out, preserve the fadeout
+			if (start.frames < region->last_frame() - region->fade_out()->back()->when)  //start is before fade-out, preserve the fadeout
 				fade_out = region->fade_out()->back()->when;
 
-			if (start < region->position() + region->fade_in()->back()->when)
-				fade_in = region->fade_in()->back()->when - (start - region->position());  //end is inside the fade-in, preserve the fade-in endpoint
+			if (start.frames < region->position() + region->fade_in()->back()->when)
+				fade_in = region->fade_in()->back()->when - (start.frames - region->position());  //end is inside the fade-in, preserve the fade-in endpoint
 			break;
 		}
 

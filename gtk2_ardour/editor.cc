@@ -348,7 +348,7 @@ Editor::Editor ()
 	, cut_buffer_start (0)
 	, cut_buffer_length (0)
 	, button_bindings (0)
-	, last_paste_pos (0)
+	, last_paste_pos (0, 0.0)
 	, paste_count (0)
 	, sfbrowser (0)
 	, current_interthread_info (0)
@@ -4054,21 +4054,21 @@ Editor::playlist_selector () const
 	return *_playlist_selector;
 }
 
-framecnt_t
-Editor::get_paste_offset (framepos_t pos, unsigned paste_count, framecnt_t duration)
+AudioMusic
+Editor::get_paste_offset (const AudioMusic& pos, unsigned paste_count, framecnt_t duration)
 {
 	if (paste_count == 0) {
 		/* don't bother calculating an offset that will be zero anyway */
-		return 0;
+		return AudioMusic (0, 0.0);
 	}
 
 	/* calculate basic unsnapped multi-paste offset */
-	framecnt_t offset = paste_count * duration;
+	framecnt_t const offset_nosnap = paste_count * duration;
 
 	/* snap offset so pos + offset is aligned to the grid */
-	MusicFrame offset_pos (pos + offset, 0);
-	snap_to(offset_pos, RoundUpMaybe);
-	offset = offset_pos.frame - pos;
+	MusicFrame offset_snap = pos.frames + offset_nosnap;
+	snap_to (offset_snap, RoundUpMaybe);
+	AudioMusic offset = _session->audiomusic_at_musicframe (offset_snap) - pos;
 
 	return offset;
 }

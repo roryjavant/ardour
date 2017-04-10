@@ -54,7 +54,7 @@ on other ways to approach this issue.
 ********************************************************************************/
 
 MidiPlaylistSource::MidiPlaylistSource (Session& s, const ID& orig, const std::string& name, boost::shared_ptr<MidiPlaylist> p,
-					uint32_t /*chn*/, frameoffset_t begin, framecnt_t len, Source::Flag flags)
+					uint32_t /*chn*/, const AudioMusic& begin, const AudioMusic& len, Source::Flag flags)
 	: Source (s, DataType::MIDI, name)
 	, MidiSource (s, name, flags)
 	, PlaylistSource (s, orig, name, p, DataType::MIDI, begin, len, flags)
@@ -117,8 +117,8 @@ MidiPlaylistSource::set_state (const XMLNode& node, int version, bool with_desce
 framecnt_t
 MidiPlaylistSource::length (framepos_t)  const
 {
-	pair<framepos_t,framepos_t> extent = _playlist->get_extent();
-	return extent.second - extent.first;
+	pair<AudioMusic, AudioMusic> extent = _playlist->get_extent();
+	return extent.second.frames - extent.first.frames;
 }
 
 framecnt_t

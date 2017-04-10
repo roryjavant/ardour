@@ -65,7 +65,7 @@ class AutomationStreamView : public StreamView
 
 	std::list<boost::shared_ptr<AutomationLine> > get_lines () const;
 
-	bool paste (framepos_t                                pos,
+	bool paste (const ARDOUR::AudioMusic&                 pos,
 	            unsigned                                  paste_count,
 	            float                                     times,
 	            boost::shared_ptr<ARDOUR::AutomationList> list);

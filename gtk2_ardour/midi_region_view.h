@@ -122,8 +122,8 @@ public:
 	void resolve_note(uint8_t note_num, Evoral::Beats end_time);
 
 	void cut_copy_clear (Editing::CutCopyOp);
-	bool paste (framepos_t pos, const ::Selection& selection, PasteContext& ctx, const int32_t sub_num);
-	void paste_internal (framepos_t pos, unsigned paste_count, float times, const MidiCutBuffer&);
+	bool paste (const ARDOUR::AudioMusic& pos, const ::Selection& selection, PasteContext& ctx);
+	void paste_internal (const ARDOUR::AudioMusic& pos, unsigned paste_count, float times, const MidiCutBuffer&);
 
 	void add_canvas_patch_change (ARDOUR::MidiModel::PatchChangePtr patch, const std::string& displaytext, bool);
 	void remove_canvas_patch_change (PatchChange* pc);

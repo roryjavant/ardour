@@ -98,7 +98,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 	/* editing operations */
 
 	void cut_copy_clear (Selection&, Editing::CutCopyOp);
-	bool paste (ARDOUR::framepos_t, const Selection&, PasteContext&, const int32_t sub_num);
+	bool paste (const ARDOUR::AudioMusic&, const Selection&, PasteContext&);
 
 	int  set_state (const XMLNode&, int version);
 
@@ -178,7 +178,7 @@ class AutomationTimeAxisView : public TimeAxisView {
 	void build_display_menu ();
 
 	void cut_copy_clear_one (AutomationLine&, Selection&, Editing::CutCopyOp);
-	bool paste_one (ARDOUR::framepos_t, unsigned, float times, const Selection&, ItemCounts& counts, bool greedy=false);
+	bool paste_one (const ARDOUR::AudioMusic&, unsigned, float times, const Selection&, ItemCounts& counts, bool greedy=false);
 	void route_going_away ();
 
 	void set_automation_state (ARDOUR::AutoState);

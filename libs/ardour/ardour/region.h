@@ -58,6 +58,8 @@ namespace Properties {
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framecnt_t>        length;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framepos_t>        position;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            beat;
+	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            start_qn;
+	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            length_qn;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framecnt_t>        sync_position;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<layer_t>           layer;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framepos_t>        ancestral_start;
@@ -112,13 +114,20 @@ class LIBARDOUR_API Region
 	framecnt_t length ()    const { return _length; }
 	layer_t    layer ()     const { return _layer; }
 
+	double     start_qn ()  const { return _start_qn; }
+	double     length_qn () const { return _length_qn; }
+
 	framecnt_t source_length(uint32_t n) const;
 	uint32_t   max_source_level () const;
+
+	AudioMusic position_am ()  const { return AudioMusic (_position, _quarter_note); }
 
 	/* these two are valid ONLY during a StateChanged signal handler */
 
 	framepos_t last_position () const { return _last_position; }
 	framecnt_t last_length ()   const { return _last_length; }
+	double     last_qn () const { return _last_qn; }
+	double     last_length_qn ()   const { return _last_length_qn; }
 
 	framepos_t ancestral_start ()  const { return _ancestral_start; }
 	framecnt_t ancestral_length () const { return _ancestral_length; }
@@ -137,6 +146,7 @@ class LIBARDOUR_API Region
 
 	framepos_t first_frame () const { return _position; }
 	framepos_t last_frame ()  const { return _position + _length - 1; }
+	double     end_qn ()  const { return _quarter_note + _length_qn; }
 
 	/** Return the earliest possible value of _position given the
 	 *  value of _start within the region's sources
@@ -181,7 +191,6 @@ class LIBARDOUR_API Region
 	/* quarter-note at the region position */
 	double quarter_note () const { return _quarter_note; }
 	void set_quarter_note (double qn) { _quarter_note = qn; }
-
 	void suspend_property_changes ();
 
 	bool covers (framepos_t frame) const {
@@ -213,9 +222,12 @@ class LIBARDOUR_API Region
 	/* EDITING OPERATIONS */
 
 	void set_length (framecnt_t, const int32_t sub_num);
+	void set_length (AudioMusic&);
 	void set_start (framepos_t);
-	void set_position (framepos_t, int32_t sub_num = 0);
+	void set_start (AudioMusic&);
+	void set_position (const MusicFrame& mf);
 	void set_position_music (double qn);
+	void set_position (const AudioMusic& pos);
 	void set_initial_position (MusicFrame);
 	void special_set_position (framepos_t);
 	virtual void update_after_tempo_map_change (bool send_change = true);
@@ -224,15 +236,16 @@ class LIBARDOUR_API Region
 	bool at_natural_position () const;
 	void move_to_natural_position ();
 
-	void move_start (frameoffset_t distance, const int32_t sub_num = 0);
-	void trim_front (framepos_t new_position, const int32_t sub_num = 0);
-	void trim_end (framepos_t new_position, const int32_t sub_num = 0);
-	void trim_to (framepos_t position, framecnt_t length, const int32_t sub_num = 0);
+	void move_start (const AudioMusic& distance);
+	void trim_front (const AudioMusic& new_position);
+	void trim_front (framepos_t new_position);
+	void trim_end (const AudioMusic& new_position);
+	void trim_to (const AudioMusic& position, const AudioMusic& length);
 
 	virtual void fade_range (framepos_t, framepos_t) {}
 
-	void cut_front (framepos_t new_position, const int32_t sub_num = 0);
-	void cut_end (framepos_t new_position, const int32_t sub_num = 0);
+	void cut_front (const AudioMusic& new_position);
+	void cut_end (const AudioMusic& new_endpoint);
 
 	void set_layer (layer_t l); /* ONLY Playlist can call this */
 	void raise ();
@@ -371,12 +384,15 @@ class LIBARDOUR_API Region
 	void send_change (const PBD::PropertyChange&);
 	virtual int _set_state (const XMLNode&, int version, PBD::PropertyChange& what_changed, bool send_signal);
 	void post_set (const PBD::PropertyChange&);
-	virtual void set_position_internal (framepos_t pos, bool allow_bbt_recompute, const int32_t sub_num);
-	virtual void set_position_music_internal (double qn);
-	virtual void set_length_internal (framecnt_t, const int32_t sub_num);
-	virtual void set_start_internal (framecnt_t, const int32_t sub_num = 0);
+	virtual void set_position_internal (const AudioMusic& pos);
+	virtual void set_length_internal (const AudioMusic& new_length);
+	virtual void set_start_internal (const AudioMusic& new_start);
+	void set_start_beats_from_start_frames (const int32_t sub_num = 0);
 	bool verify_start_and_length (framepos_t, framecnt_t&);
 	void first_edit ();
+	void update_length_beats ();
+	void update_last_position ();
+	void update_last_length ();
 
 	DataType _type;
 
@@ -388,6 +404,8 @@ class LIBARDOUR_API Region
 	PBD::Property<framecnt_t>  _length;
 	PBD::Property<framepos_t>  _position;
 	PBD::Property<double>      _beat;
+	PBD::Property<double>      _start_qn;
+	PBD::Property<double>      _length_qn;
 	/** Sync position relative to the start of our file */
 	PBD::Property<framepos_t>  _sync_position;
 
@@ -415,9 +433,9 @@ class LIBARDOUR_API Region
   private:
 	void mid_thaw (const PBD::PropertyChange&);
 
-	virtual void trim_to_internal (framepos_t position, framecnt_t length, const int32_t sub_num);
-	void modify_front (framepos_t new_position, bool reset_fade, const int32_t sub_num);
-	void modify_end (framepos_t new_position, bool reset_fade, const int32_t sub_num);
+	virtual void trim_to_internal (const AudioMusic& position, const AudioMusic& length);
+	void modify_front (const AudioMusic& new_position, bool reset_fade);
+	void modify_end (const AudioMusic& new_position, bool reset_fade);
 
 	void maybe_uncopy ();
 
@@ -447,6 +465,8 @@ class LIBARDOUR_API Region
 
 	framecnt_t              _last_length;
 	framepos_t              _last_position;
+	double                  _last_length_qn;
+	double                  _last_qn;
 	mutable RegionEditState _first_edit;
 	layer_t                 _layer;
 

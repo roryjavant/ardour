@@ -1272,7 +1272,8 @@ Editor::drop_regions (const Glib::RefPtr<Gdk::DragContext>& /*context*/,
 	event.button.y = y;
 	/* assume we're dragging with button 1 */
 	event.motion.state = Gdk::BUTTON1_MASK;
-	framepos_t const pos = window_event_sample (&event, &px, &py);
+	MusicFrame pos = window_event_sample (&event, &px, &py);
+	snap_to (pos);
 
 	boost::shared_ptr<Region> region = _regions->get_dragged_region ();
 	if (!region) { return; }

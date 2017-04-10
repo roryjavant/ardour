@@ -364,12 +364,12 @@ public:
 
 protected:
 
-	double compute_x_delta (GdkEvent const *, ARDOUR::MusicFrame *);
+	double compute_x_delta (GdkEvent const *, ARDOUR::AudioMusic *);
 	virtual bool y_movement_allowed (int, double, int skip_invisible = 0) const;
 
 	bool _brushing;
 	bool _ignore_video_lock;
-	ARDOUR::MusicFrame _last_position; ///< last position of the thing being dragged
+	ARDOUR::AudioMusic _last_position; ///< last position of the thing being dragged
 	double _total_x_delta;
 	int _last_pointer_time_axis_view;
 	double _last_pointer_layer;
@@ -411,14 +411,14 @@ private:
 	void finished_no_copy (
 		bool const,
 		bool const,
-		ARDOUR::MusicFrame,
+		const ARDOUR::AudioMusic&,
 		int32_t const ev_state
 		);
 
 	void finished_copy (
 		bool const,
 		bool const,
-		ARDOUR::MusicFrame,
+		const ARDOUR::AudioMusic&,
 		int32_t const ev_state
 		);
 
@@ -426,10 +426,8 @@ private:
 		boost::shared_ptr<ARDOUR::Region>,
 		RouteTimeAxisView*,
 		ARDOUR::layer_t,
-		ARDOUR::MusicFrame,
-		double quarter_note,
-		PlaylistSet&,
-		bool for_music = false
+		ARDOUR::AudioMusic,
+		PlaylistSet&
 		);
 
 	void remove_region_from_playlist (
@@ -450,7 +448,7 @@ private:
 class RegionInsertDrag : public RegionMotionDrag
 {
 public:
-	RegionInsertDrag (Editor *, boost::shared_ptr<ARDOUR::Region>, RouteTimeAxisView*, ARDOUR::framepos_t);
+	RegionInsertDrag (Editor *, boost::shared_ptr<ARDOUR::Region>, RouteTimeAxisView*, const ARDOUR::MusicFrame&);
 
 	void finished (GdkEvent *, bool);
 	void aborted (bool);
@@ -488,13 +486,14 @@ protected:
 private:
 	TimeAxisView *prev_tav;		// where regions were most recently dragged from
 	TimeAxisView *orig_tav;		// where drag started
-	ARDOUR::framecnt_t prev_amount;
-	ARDOUR::framepos_t prev_position;
-	ARDOUR::framecnt_t selection_length;
+	ARDOUR::AudioMusic _prev_amount;
+	ARDOUR::MusicFrame _prev_position;
+	ARDOUR::framecnt_t _selection_length;
+	double _selection_length_qn;
 	bool allow_moves_across_tracks; // only if all selected regions are on one track
 	ARDOUR::RegionList *exclude;
 	void add_all_after_to_views (TimeAxisView *tav, ARDOUR::framepos_t where, const RegionSelection &exclude, bool drag_in_progress);
-	void remove_unselected_from_views (ARDOUR::framecnt_t amount, bool move_regions);
+	void remove_unselected_from_views (const ARDOUR::AudioMusic& amount, bool move_regions);
 
 };
 
