@@ -117,6 +117,9 @@ class LIBARDOUR_API Region
 	double     start_qn ()  const { return _start_qn; }
 	double     length_qn () const { return _length_qn; }
 
+	AudioMusic start_am ()  const { return AudioMusic (_start, _start_qn); }
+	AudioMusic length_am () const { return AudioMusic (_length, _length_qn); }
+
 	framecnt_t source_length(uint32_t n) const;
 	uint32_t   max_source_level () const;
 
@@ -145,8 +148,9 @@ class LIBARDOUR_API Region
 	/* first_frame() is an alias; last_frame() just hides some math */
 
 	framepos_t first_frame () const { return _position; }
-	framepos_t last_frame ()  const { return _position + _length - 1; }
+	framepos_t last_frame ()  const { return _position + _length; }
 	double     end_qn ()  const { return _quarter_note + _length_qn; }
+	AudioMusic end_am () const { return position_am() + length_am(); }
 
 	/** Return the earliest possible value of _position given the
 	 *  value of _start within the region's sources
@@ -367,7 +371,7 @@ class LIBARDOUR_API Region
 	Region (boost::shared_ptr<const Region>);
 
 	/** Construct a region from another region, at an offset within that region */
-	Region (boost::shared_ptr<const Region>, ARDOUR::MusicFrame start_offset);
+	Region (boost::shared_ptr<const Region>, ARDOUR::AudioMusic start_offset);
 
 	/** Construct a region as a copy of another region, but with different sources */
 	Region (boost::shared_ptr<const Region>, const SourceList&);

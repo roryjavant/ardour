@@ -29,17 +29,17 @@
 using namespace ARDOUR;
 using namespace PBD;
 
-MusicFrameRange&
+AudioMusicRange&
 TimeSelection::operator[] (uint32_t which)
 {
-	for (std::list<MusicFrameRange>::iterator i = begin(); i != end(); ++i) {
+	for (std::list<AudioMusicRange>::iterator i = begin(); i != end(); ++i) {
 		if ((*i).id == which) {
 			return *i;
 		}
 	}
 	fatal << string_compose (_("programming error: request for non-existent audio range (%1)!"), which) << endmsg;
 	abort(); /*NOTREACHED*/
-	return *(new MusicFrameRange(0,0,0)); /* keep the compiler happy; never called */
+	return *(new AudioMusicRange(AudioMusic(0, 0.0), AudioMusic(0, 0.0), 0)); /* keep the compiler happy; never called */
 }
 
 bool
@@ -48,14 +48,14 @@ TimeSelection::consolidate ()
 	bool changed = false;
 
   restart:
-	for (std::list<MusicFrameRange>::iterator a = begin(); a != end(); ++a) {
-		for (std::list<MusicFrameRange>::iterator b = begin(); b != end(); ++b) {
+	for (std::list<AudioMusicRange>::iterator a = begin(); a != end(); ++a) {
+		for (std::list<AudioMusicRange>::iterator b = begin(); b != end(); ++b) {
 
 			if (&(*a) == &(*b)) {
 				continue;
 			}
 
-			if (a->coverage (b->start.frame, b->end.frame) != Evoral::OverlapNone) {
+			if (a->coverage (b->start.frames, b->end.frames) != Evoral::OverlapNone) {
 				a->start = (a->start < b->start) ? a->start : b->start;//std::min (a->start, b->start);
 				a->end = (b->end < a->end) ? a->end : b->end; //std::max (a->end, b->end);
 				erase (b);
@@ -68,34 +68,34 @@ TimeSelection::consolidate ()
 	return changed;
 }
 
-MusicFrame
+AudioMusic
 TimeSelection::start ()
 {
 	if (empty()) {
-		return 0;
+		return AudioMusic (0, 0.0);
 	}
 
-	MusicFrame first = max_framepos;
+	AudioMusic first (max_framepos, 0.0);
 
-	for (std::list<MusicFrameRange>::iterator i = begin(); i != end(); ++i) {
-		if ((*i).start.frame < first.frame) {
+	for (std::list<AudioMusicRange>::iterator i = begin(); i != end(); ++i) {
+		if ((*i).start.frames < first.frames) {
 			first = (*i).start;
 		}
 	}
 	return first;
 }
 
-MusicFrame
+AudioMusic
 TimeSelection::end_frame ()
 {
 	if (empty()) {
-		return 0;
+		return AudioMusic (0, 0.0);
 	}
 
-	MusicFrame last = 0;
+	AudioMusic last (0, 0.0);
 
-	for (std::list<MusicFrameRange>::iterator i = begin(); i != end(); ++i) {
-		if ((*i).end.frame >= last.frame) {
+	for (std::list<AudioMusicRange>::iterator i = begin(); i != end(); ++i) {
+		if ((*i).end.frames >= last.frames) {
 			last = (*i).end;
 		}
 	}
@@ -109,5 +109,5 @@ TimeSelection::length()
 		return 0;
 	}
 
-	return end_frame().frame - start().frame + 1;
+	return end_frame().frames - start().frames + 1;
 }

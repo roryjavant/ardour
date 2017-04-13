@@ -27,13 +27,13 @@ namespace ARDOUR {
 	class RouteGroup;
 }
 
-class TimeSelection : public std::list<ARDOUR::MusicFrameRange>
+class TimeSelection : public std::list<ARDOUR::AudioMusicRange>
 {
 public:
-	ARDOUR::MusicFrameRange& operator[](uint32_t);
+	ARDOUR::AudioMusicRange& operator[](uint32_t);
 
-        ARDOUR::MusicFrame start();
-        ARDOUR::MusicFrame end_frame();
+        ARDOUR::AudioMusic start();
+        ARDOUR::AudioMusic end_frame();
         ARDOUR::framepos_t length();
 
 	bool consolidate ();

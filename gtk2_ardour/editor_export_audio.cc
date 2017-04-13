@@ -363,7 +363,7 @@ Editor::write_audio_selection (TimeSelection& ts)
 }
 
 bool
-Editor::write_audio_range (AudioPlaylist& playlist, const ChanCount& count, list<MusicFrameRange>& range)
+Editor::write_audio_range (AudioPlaylist& playlist, const ChanCount& count, list<AudioMusicRange>& range)
 {
 	boost::shared_ptr<AudioFileSource> fs;
 	const framepos_t chunk_size = 4096;
@@ -420,10 +420,10 @@ Editor::write_audio_range (AudioPlaylist& playlist, const ChanCount& count, list
 	}
 
 
-	for (list<MusicFrameRange>::iterator i = range.begin(); i != range.end();) {
+	for (list<AudioMusicRange>::iterator i = range.begin(); i != range.end();) {
 
-		nframes = (*i).length();
-		pos = (*i).start.frame;
+		nframes = (*i).length().frames;
+		pos = (*i).start.frames;
 
 		while (nframes) {
 			framepos_t this_time;
@@ -447,14 +447,14 @@ Editor::write_audio_range (AudioPlaylist& playlist, const ChanCount& count, list
 			pos += this_time;
 		}
 
-		list<MusicFrameRange>::iterator tmp = i;
+		list<AudioMusicRange>::iterator tmp = i;
 		++tmp;
 
 		if (tmp != range.end()) {
 
 			/* fill gaps with silence */
 
-			nframes = (*tmp).start.frame - (*i).end.frame;
+			nframes = (*tmp).start.frames - (*i).end.frames;
 
 			while (nframes) {
 

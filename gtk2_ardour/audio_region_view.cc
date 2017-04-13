@@ -1347,12 +1347,12 @@ AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev, b
 	/* don't create points that can't be seen */
 
 	update_envelope_visibility ();
-	framepos_t rpos = region ()->position ();
-	MusicFrame snap_pos (trackview.editor().pixel_to_sample (mx) + rpos, 0);
+	AudioMusic rpos = region ()->position_am ();
+	AudioMusic snap_pos (trackview.editor().pixel_to_sample (mx) + rpos.frames, 0.0);
 	trackview.editor ().snap_to_with_modifier (snap_pos, ev);
-	framepos_t fx = snap_pos.frame - rpos;
+	AudioMusic fx = snap_pos - rpos;
 
-	if (fx > _region->length()) {
+	if (fx > _region->length_am()) {
 		return;
 	}
 
@@ -1378,7 +1378,7 @@ AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev, b
 		region_memento = new MementoCommand<AudioRegion>(*(audio_region().get()), &region_before, &region_after);
 	}
 
-	if (audio_region()->envelope()->editor_add (fx, y, with_guard_points)) {
+	if (audio_region()->envelope()->editor_add (fx.frames, y, with_guard_points)) {
 		XMLNode &after = audio_region()->envelope()->get_state();
 		std::list<Selectable*> results;
 
@@ -1390,7 +1390,7 @@ AudioRegionView::add_gain_point_event (ArdourCanvas::Item *item, GdkEvent *ev, b
 
 		trackview.session()->add_command (new MementoCommand<AutomationList>(*audio_region()->envelope().get(), &before, &after));
 
-		gain_line->get_selectables (fx + region ()->position (), fx + region ()->position (), 0.0, 1.0, results);
+		gain_line->get_selectables (fx.frames + region ()->position (), fx.frames + region ()->position (), 0.0, 1.0, results);
 		trackview.editor ().get_selection ().set (results);
 
 		trackview.editor ().commit_reversible_command ();

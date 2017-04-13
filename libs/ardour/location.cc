@@ -54,9 +54,9 @@ PBD::Signal1<void,Location*> Location::changed;
 Location::Location (Session& s)
 	: SessionHandleRef (s)
 	, _start (0)
-	, _start_beat (0.0)
+	, _start_qn (0.0)
 	, _end (0)
-	, _end_beat (0.0)
+	, _end_qn (0.0)
 	, _flags (Flags (0))
 	, _locked (false)
 	, _position_lock_style (AudioTime)
@@ -66,31 +66,47 @@ Location::Location (Session& s)
 }
 
 /** Construct a new Location, giving it the position lock style determined by glue-new-markers-to-bars-and-beats */
-Location::Location (Session& s, MusicFrame sample_start, MusicFrame sample_end, const std::string &name, Flags bits)
+Location::Location (Session& s, const AudioMusic& start, const AudioMusic& end, const std::string &name, Flags bits)
 	: SessionHandleRef (s)
 	, _name (name)
-	, _start (sample_start.frame)
-	, _end (sample_end.frame)
+	, _start (start.frames)
+	, _start_qn (start.qnotes)
+	, _end (end.frames)
+	, _end_qn (end.qnotes)
 	, _flags (bits)
 	, _locked (false)
 	, _position_lock_style (s.config.get_glue_new_markers_to_bars_and_beats() ? MusicTime : AudioTime)
 
 {
-	recompute_start_beat_from_frames (sample_start.division);
-	recompute_end_beat_from_frames (sample_end.division);
-
 	assert (_start >= 0);
 	assert (_end >= 0);
 }
 
+/** Construct a new Location, giving it the position lock style determined by glue-new-markers-to-bars-and-beats */
+Location::Location (Session& s, framepos_t sample_start, framepos_t sample_end, const std::string &name, Flags bits)
+	: SessionHandleRef (s)
+	, _name (name)
+	, _start (sample_start)
+	, _end (sample_end)
+	, _flags (bits)
+	, _locked (false)
+	, _position_lock_style (s.config.get_glue_new_markers_to_bars_and_beats() ? MusicTime : AudioTime)
+
+{
+	recompute_start_qnote_from_frames ();
+	recompute_end_qnote_from_frames ();
+
+	assert (_start >= 0);
+	assert (_end >= 0);
+}
 Location::Location (const Location& other)
 	: SessionHandleRef (other._session)
 	, StatefulDestructible()
 	, _name (other._name)
 	, _start (other._start)
-	, _start_beat (other._start_beat)
+	, _start_qn (other._start_qn)
 	, _end (other._end)
-	, _end_beat (other._end_beat)
+	, _end_qn (other._end_qn)
 	, _flags (other._flags)
 	, _position_lock_style (other._position_lock_style)
 
@@ -128,8 +144,8 @@ Location::operator== (const Location& other)
 	if (_name != other._name ||
 	    _start != other._start ||
 	    _end != other._end ||
-	    _start_beat != other._start_beat ||
-	    _end_beat != other._end_beat ||
+	    _start_qn != other._start_qn ||
+	    _end_qn != other._end_qn ||
 	    _flags != other._flags ||
 	    _position_lock_style != other._position_lock_style) {
 		return false;
@@ -146,9 +162,9 @@ Location::operator= (const Location& other)
 
 	_name = other._name;
 	_start = other._start;
-	_start_beat = other._start_beat;
+	_start_qn = other._start_qn;
 	_end = other._end;
-	_end_beat = other._end_beat;
+	_end_qn = other._end_qn;
 	_flags = other._flags;
 	_position_lock_style = other._position_lock_style;
 
@@ -181,12 +197,12 @@ Location::set_name (const std::string& str)
 /** Set start position.
  *  @param s New start.
  *  @param force true to force setting, even if the given new start is after the current end.
- *  @param allow_beat_recompute True to recompute BEAT start time from the new given start time.
+ *  @param allow_qnote_recompute True to recompute BEAT start time from the new given start time.
  */
 int
-Location::set_start (const MusicFrame& s, bool force, bool allow_beat_recompute)
+Location::set_start (const AudioMusic& s, bool force, bool allow_qnote_recompute)
 {
-	if (s.frame < 0) {
+	if (s.frames < 0) {
 		return -1;
 	}
 
@@ -195,17 +211,19 @@ Location::set_start (const MusicFrame& s, bool force, bool allow_beat_recompute)
 	}
 
 	if (!force) {
-		if (((is_auto_punch() || is_auto_loop()) && s.frame >= _end) || (!is_mark() && s.frame > _end)) {
+		if (((is_auto_punch() || is_auto_loop()) && s.frames >= _end) || (!is_mark() && s.frames > _end)) {
 			return -1;
 		}
 	}
 
 	if (is_mark()) {
-		if (_start != s.frame) {
-			_start = s.frame;
-			_end = s.frame;
-			if (allow_beat_recompute) {
-				recompute_start_beat_from_frames (s.division);
+		if (_start != s.frames) {
+			_start = s.frames;
+			_end = s.frames;
+			_start_qn = s.qnotes;
+			_end_qn = s.qnotes;
+			if (allow_qnote_recompute) {
+				recompute_start_qnote_from_frames ();
 			}
 
 			start_changed (this); /* EMIT SIGNAL */
@@ -228,25 +246,26 @@ Location::set_start (const MusicFrame& s, bool force, bool allow_beat_recompute)
 		return 0;
 	} else if (!force) {
 		/* range locations must exceed a minimum duration */
-		if (_end - s.frame < Config->get_range_location_minimum()) {
+		if (_end - s.frames < Config->get_range_location_minimum()) {
 			return -1;
 		}
 	}
 
-	if (s.frame != _start) {
+	if (s.frames != _start) {
 
 		framepos_t const old = _start;
 
-		_start = s.frame;
-		if (allow_beat_recompute) {
-			recompute_start_beat_from_frames (s.division);
+		_start = s.frames;
+		_start_qn = s.qnotes;
+		if (allow_qnote_recompute) {
+			recompute_start_qnote_from_frames ();
 		}
 		start_changed (this); /* EMIT SIGNAL */
 		StartChanged (); /* EMIT SIGNAL */
 
 		if (is_session_range ()) {
 			Session::StartTimeChanged (old); /* EMIT SIGNAL */
-			AudioFileSource::set_header_position_offset (s.frame);
+			AudioFileSource::set_header_position_offset (s.frames);
 		}
 	}
 
@@ -258,12 +277,12 @@ Location::set_start (const MusicFrame& s, bool force, bool allow_beat_recompute)
 /** Set end position.
  *  @param s New end.
  *  @param force true to force setting, even if the given new end is before the current start.
- *  @param allow_beat_recompute True to recompute BEAT end time from the new given end time.
+ *  @param allow_qnote_recompute True to recompute BEAT end time from the new given end time.
  */
 int
-Location::set_end (const MusicFrame& e, bool force, bool allow_beat_recompute)
+Location::set_end (const AudioMusic& e, bool force, bool allow_qnote_recompute)
 {
-	if (e < 0) {
+	if (e.frames < 0) {
 		return -1;
 	}
 
@@ -272,17 +291,19 @@ Location::set_end (const MusicFrame& e, bool force, bool allow_beat_recompute)
 	}
 
 	if (!force) {
-		if (((is_auto_punch() || is_auto_loop()) && e.frame <= _start) || e.frame < _start) {
+		if (((is_auto_punch() || is_auto_loop()) && e.frames <= _start) || e.frames < _start) {
 			return -1;
 		}
 	}
 
 	if (is_mark()) {
-		if (_start != e.frame) {
-			_start = e.frame;
-			_end = e.frame;
-			if (allow_beat_recompute) {
-				recompute_end_beat_from_frames (e.division);
+		if (_start != e.frames) {
+			_start = e.frames;
+			_end = e.frames;
+			_start_qn = e.qnotes;
+			_end_qn = e.qnotes;
+			if (allow_qnote_recompute) {
+				recompute_end_qnote_from_frames ();
 			}
 			//start_changed (this); /* EMIT SIGNAL */
 			//StartChanged (); /* EMIT SIGNAL */
@@ -296,18 +317,19 @@ Location::set_end (const MusicFrame& e, bool force, bool allow_beat_recompute)
 		return 0;
 	} else if (!force) {
 		/* range locations must exceed a minimum duration */
-		if (e.frame - _start < Config->get_range_location_minimum()) {
+		if (e.frames - _start < Config->get_range_location_minimum()) {
 			return -1;
 		}
 	}
 
-	if (e != _end) {
+	if (e.frames != _end) {
 
 		framepos_t const old = _end;
 
-		_end = e.frame;
-		if (allow_beat_recompute) {
-			recompute_end_beat_from_frames (e.division);
+		_end = e.frames;
+		_end = e.qnotes;
+		if (allow_qnote_recompute) {
+			recompute_end_qnote_from_frames ();
 		}
 
 		end_changed(this); /* EMIT SIGNAL */
@@ -324,14 +346,14 @@ Location::set_end (const MusicFrame& e, bool force, bool allow_beat_recompute)
 }
 
 int
-Location::set (const MusicFrame& s, const MusicFrame& e, bool allow_beat_recompute)
+Location::set (const AudioMusic& s, const AudioMusic& e, bool allow_qnote_recompute)
 {
-	if (s < 0 || e < 0) {
+	if (s.frames < 0 || e.frames < 0) {
 		return -1;
 	}
 
 	/* check validity */
-	if (((is_auto_punch() || is_auto_loop()) && s.frame >= e.frame) || (!is_mark() && s.frame > e.frame)) {
+	if (((is_auto_punch() || is_auto_loop()) && s.frames >= e.frames) || (!is_mark() && s.frames > e.frames)) {
 		return -1;
 	}
 
@@ -340,13 +362,14 @@ Location::set (const MusicFrame& s, const MusicFrame& e, bool allow_beat_recompu
 
 	if (is_mark()) {
 
-		if (_start != s.frame) {
-			_start = s.frame;
-			_end = s.frame;
-
-			if (allow_beat_recompute) {
-				recompute_start_beat_from_frames (s.division);
-				recompute_end_beat_from_frames (e.division);
+		if (_start != s.frames) {
+			_start = s.frames;
+			_end = s.frames;
+			_start_qn = s.qnotes;
+			_end_qn = s.qnotes;
+			if (allow_qnote_recompute) {
+				recompute_start_qnote_from_frames ();
+				recompute_end_qnote_from_frames ();
 			}
 
 			start_change = true;
@@ -359,35 +382,36 @@ Location::set (const MusicFrame& s, const MusicFrame& e, bool allow_beat_recompu
 	} else {
 
 		/* range locations must exceed a minimum duration */
-		if (e.frame - s.frame < Config->get_range_location_minimum()) {
+		if (e.frames - s.frames < Config->get_range_location_minimum()) {
 			return -1;
 		}
 
-		if (s.frame != _start) {
+		if (s.frames != _start) {
 
 			framepos_t const old = _start;
-			_start = s.frame;
+			_start = s.frames;
+			_start_qn = s.qnotes;
 
-			if (allow_beat_recompute) {
-				recompute_start_beat_from_frames (s.division);
+			if (allow_qnote_recompute) {
+				recompute_start_qnote_from_frames ();
 			}
 
 			start_change = true;
 
 			if (is_session_range ()) {
 				Session::StartTimeChanged (old); /* EMIT SIGNAL */
-				AudioFileSource::set_header_position_offset (s.frame);
+				AudioFileSource::set_header_position_offset (s.frames);
 			}
 		}
 
 
-		if (e.frame != _end) {
+		if (e.frames != _end) {
 
 			framepos_t const old = _end;
-			_end = e.frame;
-
-			if (allow_beat_recompute) {
-				recompute_end_beat_from_frames (e.division);
+			_end = e.frames;
+			_end_qn = e.qnotes;
+			if (allow_qnote_recompute) {
+				recompute_end_qnote_from_frames ();
 			}
 
 			end_change = true;
@@ -415,9 +439,9 @@ Location::set (const MusicFrame& s, const MusicFrame& e, bool allow_beat_recompu
 }
 
 int
-Location::move_to (framepos_t pos, const uint32_t sub_num)
+Location::move_to (const AudioMusic& pos)
 {
-	if (pos < 0) {
+	if (pos.frames < 0) {
 		return -1;
 	}
 
@@ -425,11 +449,17 @@ Location::move_to (framepos_t pos, const uint32_t sub_num)
 		return -1;
 	}
 
-	if (_start != pos) {
-		_start = pos;
-		_end = _start + length();
-		recompute_start_beat_from_frames (sub_num);
-		recompute_end_beat_from_frames (0);
+	if (_start != pos.frames) {
+		_start = pos.frames;
+		_start_qn = pos.qnotes;
+
+		if (position_lock_style() == AudioTime) {
+			_end = _start + length().frames;
+			recompute_end_qnote_from_frames ();
+		} else {
+			_end_qn = _start_qn + length().qnotes;
+			recompute_frames_from_qnote ();
+		}
 
 		changed (this); /* EMIT SIGNAL */
 		Changed (); /* EMIT SIGNAL */
@@ -479,7 +509,7 @@ Location::set_is_range_marker (bool yn, void*)
 void
 Location::set_skip (bool yn)
 {
-	if (is_range_marker() && length() > 0) {
+	if (is_range_marker() && length().frames > 0) {
 		if (set_flag_internal (yn, IsSkip)) {
 			flags_changed (this);
 			FlagsChanged ();
@@ -490,7 +520,7 @@ Location::set_skip (bool yn)
 void
 Location::set_skipping (bool yn)
 {
-	if (is_range_marker() && is_skip() && length() > 0) {
+	if (is_range_marker() && is_skip() && length().frames > 0) {
 		if (set_flag_internal (yn, IsSkipping)) {
 			flags_changed (this);
 			FlagsChanged ();
@@ -581,16 +611,16 @@ Location::get_state ()
 	id().print (buf, sizeof (buf));
 	node->add_property("id", buf);
 	node->add_property ("name", name());
-	snprintf (buf, sizeof (buf), "%" PRId64, start());
+	snprintf (buf, sizeof (buf), "%" PRId64, _start);
 	node->add_property ("start", buf);
-	snprintf (buf, sizeof (buf), "%" PRId64, end());
+	snprintf (buf, sizeof (buf), "%" PRId64, _end);
 	node->add_property ("end", buf);
 
 	if (position_lock_style() == MusicTime) {
-		snprintf (buf, sizeof (buf), "%lf", _start_beat);
-		node->add_property ("start-beat", buf);
-		snprintf (buf, sizeof (buf), "%lf", _end_beat);
-		node->add_property ("end-beat", buf);
+		snprintf (buf, sizeof (buf), "%lf", _start_qn);
+		node->add_property ("start-qn", buf);
+		snprintf (buf, sizeof (buf), "%lf", _end_qn);
+		node->add_property ("end-qn", buf);
 	}
 
 	node->add_property ("flags", enum_2_string (_flags));
@@ -615,6 +645,8 @@ Location::set_state (const XMLNode& node, int version)
 
 	string cd_name;
 	string cd_value;
+	double start_qn;
+	double end_qn;
 
 	if (node.name() != "Location") {
 		error << _("incorrect XML node passed to Location::set_state") << endmsg;
@@ -703,25 +735,36 @@ Location::set_state (const XMLNode& node, int version)
 	}
 
 	if (position_lock_style() == AudioTime) {
-		recompute_start_beat_from_frames (0);
-		recompute_end_beat_from_frames (0);
+		recompute_start_qnote_from_frames ();
+		recompute_end_qnote_from_frames ();
 	} else{
 		/* music */
 		bool has_beat = false;
 
 		if ((prop = node.property ("start-beat")) != 0) {
-			sscanf (prop->value().c_str(), "%lf", &_start_beat);
+			sscanf (prop->value().c_str(), "%lf", &start_qn);
+			_end_qn = _session.qn_at_beat (start_qn);
 			has_beat = true;
 		}
 
 		if ((prop = node.property ("end-beat")) != 0) {
-			sscanf (prop->value().c_str(), "%lf", &_end_beat);
+			sscanf (prop->value().c_str(), "%lf", &end_qn);
+			_end_qn = _session.qn_at_beat (end_qn);
 			has_beat = true;
 		}
 
+		if ((prop = node.property ("start-qn")) != 0) {
+			sscanf (prop->value().c_str(), "%lf", &_start_qn);
+			has_beat = true;
+		}
+
+		if ((prop = node.property ("end-qn")) != 0) {
+			sscanf (prop->value().c_str(), "%lf", &_end_qn);
+			has_beat = true;
+		}
 		if (!has_beat) {
-			recompute_start_beat_from_frames (0);
-			recompute_end_beat_from_frames (0);
+			recompute_start_qnote_from_frames ();
+			recompute_end_qnote_from_frames ();
 		}
 	}
 
@@ -745,8 +788,8 @@ Location::set_position_lock_style (PositionLockStyle ps)
 	_position_lock_style = ps;
 
 	if (ps == MusicTime) {
-		recompute_start_beat_from_frames (0);
-		recompute_end_beat_from_frames (0);
+		recompute_start_qnote_from_frames ();
+		recompute_end_qnote_from_frames ();
 	}
 
 	position_lock_style_changed (this); /* EMIT SIGNAL */
@@ -754,25 +797,24 @@ Location::set_position_lock_style (PositionLockStyle ps)
 }
 
 void
-Location::recompute_start_beat_from_frames (const uint32_t sub_num)
+Location::recompute_start_qnote_from_frames ()
 {
-	_start_beat = _session.tempo_map().exact_beat_at_frame (_start, sub_num);
+	_start_qn = _session.tempo_map().quarter_note_at_frame (_start);
 }
 void
-Location::recompute_end_beat_from_frames (const uint32_t sub_num)
+Location::recompute_end_qnote_from_frames ()
 {
-	_end_beat = _session.tempo_map().exact_beat_at_frame (_end, sub_num);
+	_end_qn = _session.tempo_map().quarter_note_at_frame (_end);
 }
 
 void
-Location::recompute_frames_from_beat ()
+Location::recompute_frames_from_qnote ()
 {
 	if (_position_lock_style != MusicTime) {
 		return;
 	}
 
-	TempoMap& map (_session.tempo_map());
-	set (map.frame_at_beat (_start_beat), map.frame_at_beat (_end_beat), false);
+	set (_session.audiomusic_at_qn (_start_qn), _session.audiomusic_at_qn (_end_qn), false);
 }
 
 void
@@ -1215,7 +1257,7 @@ Locations::set_state (const XMLNode& node, int version)
 }
 
 
-typedef std::pair<framepos_t,Location*> LocationPair;
+typedef std::pair<AudioMusic,Location*> LocationPair;
 
 struct LocationStartEarlierComparison
 {
@@ -1231,7 +1273,7 @@ struct LocationStartLaterComparison
 	}
 };
 
-framepos_t
+AudioMusic
 Locations::first_mark_before (framepos_t frame, bool include_special_ranges)
 {
 	Glib::Threads::Mutex::Lock lm (lock);
@@ -1256,12 +1298,12 @@ Locations::first_mark_before (framepos_t frame, bool include_special_ranges)
 		if (!include_special_ranges && ((*i).second->is_auto_loop() || (*i).second->is_auto_punch())) {
 			continue;
 		}
-		if ((*i).first < frame) {
+		if ((*i).first.frames < frame) {
 			return (*i).first;
 		}
 	}
 
-	return -1;
+	return AudioMusic (-1, -1.0);
 }
 
 Location*
@@ -1279,10 +1321,10 @@ Locations::mark_at (framepos_t pos, framecnt_t slop) const
 	for (LocationList::const_iterator i = locations.begin(); i != locations.end(); ++i) {
 
 		if ((*i)->is_mark()) {
-			if (pos > (*i)->start()) {
-				delta = pos - (*i)->start();
+			if (pos > (*i)->start().frames) {
+				delta = pos - (*i)->start().frames;
 			} else {
-				delta = (*i)->start() - pos;
+				delta = (*i)->start().frames - pos;
 			}
 
 			if (slop == 0 && delta == 0) {
@@ -1302,7 +1344,7 @@ Locations::mark_at (framepos_t pos, framecnt_t slop) const
 	return closest;
 }
 
-framepos_t
+AudioMusic
 Locations::first_mark_after (framepos_t frame, bool include_special_ranges)
 {
 	Glib::Threads::Mutex::Lock lm (lock);
@@ -1327,12 +1369,12 @@ Locations::first_mark_after (framepos_t frame, bool include_special_ranges)
 		if (!include_special_ranges && ((*i).second->is_auto_loop() || (*i).second->is_auto_punch())) {
 			continue;
 		}
-		if ((*i).first > frame) {
+		if ((*i).first.frames > frame) {
 			return (*i).first;
 		}
 	}
 
-	return -1;
+	return AudioMusic (-1, -1.0);
 }
 
 /** Look for the `marks' (either locations which are marks, or start/end points of range markers) either
@@ -1343,9 +1385,9 @@ Locations::first_mark_after (framepos_t frame, bool include_special_ranges)
  *  @param after Filled in with the position of the next `mark' after `frame' (or max_framepos if none exists)
  */
 void
-Locations::marks_either_side (framepos_t const frame, framepos_t& before, framepos_t& after) const
+Locations::marks_either_side (framepos_t const frame, AudioMusic& before, AudioMusic& after) const
 {
-	before = after = max_framepos;
+	before = after = _session.audiomusic_at_musicframe (max_framepos);
 
 	LocationList locs;
 
@@ -1356,7 +1398,7 @@ Locations::marks_either_side (framepos_t const frame, framepos_t& before, framep
 
 	/* Get a list of positions; don't store any that are exactly on our requested position */
 
-	std::list<framepos_t> positions;
+	std::list<AudioMusic> positions;
 
 	for (LocationList::const_iterator i = locs.begin(); i != locs.end(); ++i) {
 		if (((*i)->is_auto_loop() || (*i)->is_auto_punch())) {
@@ -1365,15 +1407,15 @@ Locations::marks_either_side (framepos_t const frame, framepos_t& before, framep
 
 		if (!(*i)->is_hidden()) {
 			if ((*i)->is_mark ()) {
-				if ((*i)->start() != frame) {
-					positions.push_back ((*i)->start ());
+				if ((*i)->start().frames != frame) {
+					positions.push_back ((*i)->start());
 				}
 			} else {
-				if ((*i)->start() != frame) {
-					positions.push_back ((*i)->start ());
+				if ((*i)->start().frames != frame) {
+					positions.push_back ((*i)->start());
 				}
-				if ((*i)->end() != frame) {
-					positions.push_back ((*i)->end ());
+				if ((*i)->end().frames != frame) {
+					positions.push_back ((*i)->end());
 				}
 			}
 		}
@@ -1385,8 +1427,8 @@ Locations::marks_either_side (framepos_t const frame, framepos_t& before, framep
 
 	positions.sort ();
 
-	std::list<framepos_t>::iterator i = positions.begin ();
-	while (i != positions.end () && *i < frame) {
+	std::list<AudioMusic>::iterator i = positions.begin ();
+	while (i != positions.end () && (*i).frames < frame) {
 		++i;
 	}
 
@@ -1471,7 +1513,7 @@ Locations::find_all_between (framepos_t start, framepos_t end, LocationList& ll,
 
 	for (LocationList::const_iterator i = locations.begin(); i != locations.end(); ++i) {
 		if ((flags == 0 || (*i)->matches (flags)) &&
-		    ((*i)->start() >= start && (*i)->end() < end)) {
+		    ((*i)->start().frames >= start && (*i)->end().frames < end)) {
 			ll.push_back (*i);
 		}
 	}

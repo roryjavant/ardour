@@ -137,7 +137,7 @@ ExportTimespanSelector::location_sorter(Gtk::TreeModel::iterator a, Gtk::TreeMod
 	if (l2 == ls)
 		return +1;
 
-	return l1->start() - l2->start();
+	return l1->start().frames - l2->start().frames;
 }
 
 void
@@ -152,7 +152,7 @@ ExportTimespanSelector::add_range_to_selection (ARDOUR::Location const * loc, bo
 		id = loc->id().to_s();
 	}
 
-	span->set_range (loc->start(), loc->end());
+	span->set_range (loc->start().frames, loc->end().frames);
 	span->set_name (loc->name());
 	span->set_range_id (id);
 	span->set_realtime (rt);
@@ -221,8 +221,8 @@ ExportTimespanSelector::construct_label (ARDOUR::Location const * location) cons
 	std::string start;
 	std::string end;
 
-	framepos_t start_frame = location->start();
-	framepos_t end_frame = location->end();
+	framepos_t start_frame = location->start().frames;
+	framepos_t end_frame = location->end().frames;
 
 	switch (state->time_format) {
 	  case AudioClock::BBT:
@@ -264,7 +264,7 @@ ExportTimespanSelector::construct_label (ARDOUR::Location const * location) cons
 std::string
 ExportTimespanSelector::construct_length (ARDOUR::Location const * location) const
 {
-	if (location->length() == 0) {
+	if (location->length().frames == 0) {
 		return "";
 	}
 
@@ -272,23 +272,23 @@ ExportTimespanSelector::construct_length (ARDOUR::Location const * location) con
 
 	switch (state->time_format) {
 	case AudioClock::BBT:
-		s << bbt_str (location->length ());
+		s << bbt_str (location->length ().frames);
 		break;
 
 	case AudioClock::Timecode:
 	{
 		Timecode::Time tc;
-		_session->timecode_duration (location->length(), tc);
+		_session->timecode_duration (location->length().frames, tc);
 		tc.print (s);
 		break;
 	}
 
 	case AudioClock::MinSec:
-		s << ms_str (location->length ());
+		s << ms_str (location->length ().frames);
 		break;
 
 	case AudioClock::Frames:
-		s << location->length ();
+		s << location->length ().frames;
 		break;
 	}
 

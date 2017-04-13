@@ -54,11 +54,13 @@ class RegionSelection : public std::list<RegionView*>
 
 	framepos_t start () const;
 	double     start_qn () const;
+	ARDOUR::AudioMusic start_am () const { return ARDOUR::AudioMusic (start(), start_qn()); }
 
 	/* "end" collides with list<>::end */
 
 	framepos_t end_frame () const;
 	double     end_qn () const;
+	ARDOUR::AudioMusic end_am () const { return ARDOUR::AudioMusic (end_frame(), end_qn()); };
 
 	const std::list<RegionView *>& by_layer() const { return _bylayer; }
 	void  by_position (std::list<RegionView*>&) const;

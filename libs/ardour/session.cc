@@ -302,8 +302,8 @@ Session::Session (AudioEngine &eng,
 	, _clicks_cleared (0)
 	, _count_in_samples (0)
 	, _play_range (false)
-	, _range_selection (-1,-1)
-	, _object_selection (-1,-1)
+	, _range_selection (AudioMusic (-1, -1.0), AudioMusic (-1, -1.0))
+	, _object_selection (AudioMusic (-1, -1.0), AudioMusic (-1, -1.0))
 	, _preroll_record_punch_pos (-1)
 	, _preroll_record_trim_len (0)
 	, _count_in_once (false)
@@ -1552,7 +1552,7 @@ Session::set_track_monitor_input_status (bool yn)
 void
 Session::auto_punch_start_changed (Location* location)
 {
-	replace_event (SessionEvent::PunchIn, location->start());
+	replace_event (SessionEvent::PunchIn, location->start().frames);
 
 	if (get_record_enabled() && config.get_punch_in()) {
 		/* capture start has been changed, so save new pending state */
@@ -1563,7 +1563,7 @@ Session::auto_punch_start_changed (Location* location)
 void
 Session::auto_punch_end_changed (Location* location)
 {
-	framepos_t when_to_stop = location->end();
+	framepos_t when_to_stop = location->end().frames;
 	// when_to_stop += _worst_output_latency + _worst_input_latency;
 	replace_event (SessionEvent::PunchOut, when_to_stop);
 }
@@ -1571,9 +1571,9 @@ Session::auto_punch_end_changed (Location* location)
 void
 Session::auto_punch_changed (Location* location)
 {
-	framepos_t when_to_stop = location->end();
+	framepos_t when_to_stop = location->end().frames;
 
-	replace_event (SessionEvent::PunchIn, location->start());
+	replace_event (SessionEvent::PunchIn, location->start().frames);
 	//when_to_stop += _worst_output_latency + _worst_input_latency;
 	replace_event (SessionEvent::PunchOut, when_to_stop);
 }
@@ -1585,14 +1585,14 @@ Session::auto_punch_changed (Location* location)
 void
 Session::auto_loop_declick_range (Location* loc, framepos_t & pos, framepos_t & length)
 {
-	pos = max (loc->start(), loc->end() - 64);
-	length = loc->end() - pos;
+	pos = max (loc->start().frames, loc->end().frames - 64);
+	length = loc->end().frames - pos;
 }
 
 void
 Session::auto_loop_changed (Location* location)
 {
-	replace_event (SessionEvent::AutoLoop, location->end(), location->start());
+	replace_event (SessionEvent::AutoLoop, location->end().frames, location->start().frames);
 	framepos_t dcp;
 	framecnt_t dcl;
 	auto_loop_declick_range (location, dcp, dcl);
@@ -1603,11 +1603,11 @@ Session::auto_loop_changed (Location* location)
 
 		// if (_transport_frame > location->end()) {
 
-		if (_transport_frame < location->start() || _transport_frame > location->end()) {
+		if (_transport_frame < location->start().frames || _transport_frame > location->end().frames) {
 			// relocate to beginning of loop
 			clear_events (SessionEvent::LocateRoll);
 
-			request_locate (location->start(), true);
+			request_locate (location->start().frames, true);
 
 		}
 		else if (Config->get_seamless_loop() && !loop_changing) {
@@ -1616,7 +1616,7 @@ Session::auto_loop_changed (Location* location)
 			// previous loop end
 			loop_changing = true;
 
-			if (location->end() > last_loopend) {
+			if (location->end().frames > last_loopend) {
 				clear_events (SessionEvent::LocateRoll);
 				SessionEvent *ev = new SessionEvent (SessionEvent::LocateRoll, SessionEvent::Add, last_loopend, last_loopend, 0, true);
 				queue_event (ev);
@@ -1635,13 +1635,13 @@ Session::auto_loop_changed (Location* location)
 	framepos_t pos;
 
 	if (!transport_rolling() && select_playhead_priority_target (pos)) {
-		if (pos == location->start()) {
+		if (pos == location->start().frames) {
 			request_locate (pos);
 		}
 	}
 
 
-	last_loopend = location->end();
+	last_loopend = location->end().frames;
 	set_dirty ();
 }
 
@@ -1653,7 +1653,7 @@ Session::set_auto_punch_location (Location* location)
 	if ((existing = _locations->auto_punch_location()) != 0 && existing != location) {
 		punch_connections.drop_connections();
 		existing->set_auto_punch (false, this);
-		remove_event (existing->start(), SessionEvent::PunchIn);
+		remove_event (existing->start().frames, SessionEvent::PunchIn);
 		clear_events (SessionEvent::PunchOut);
 		auto_punch_location_changed (0);
 	}
@@ -1683,7 +1683,7 @@ Session::set_auto_punch_location (Location* location)
 }
 
 void
-Session::set_session_extents (framepos_t start, framepos_t end)
+Session::set_session_extents (const AudioMusic& start, const AudioMusic& end)
 {
 	Location* existing;
 	if ((existing = _locations->session_range_location()) == 0) {
@@ -1709,7 +1709,7 @@ Session::set_auto_loop_location (Location* location)
 	if ((existing = _locations->auto_loop_location()) != 0 && existing != location) {
 		loop_connections.drop_connections ();
 		existing->set_auto_loop (false, this);
-		remove_event (existing->end(), SessionEvent::AutoLoop);
+		remove_event (existing->end().frames, SessionEvent::AutoLoop);
 		framepos_t dcp;
 		framecnt_t dcl;
 		auto_loop_declick_range (existing, dcp, dcl);
@@ -1728,7 +1728,7 @@ Session::set_auto_loop_location (Location* location)
 		return;
 	}
 
-	last_loopend = location->end();
+	last_loopend = location->end().frames;
 
 	loop_connections.drop_connections ();
 
@@ -1803,7 +1803,7 @@ Session::consolidate_skips (Location* loc)
                         continue;
                 }
 
-                switch (Evoral::coverage ((*l)->start(), (*l)->end(), loc->start(), loc->end())) {
+                switch (Evoral::coverage ((*l)->start().frames, (*l)->end().frames, loc->start().frames, loc->end().frames)) {
                 case Evoral::OverlapInternal:
                 case Evoral::OverlapExternal:
                 case Evoral::OverlapStart:
@@ -1845,7 +1845,7 @@ Session::_sync_locations_to_skips ()
 		Location* location = *i;
 
 		if (location->is_skip() && location->is_skipping()) {
-			SessionEvent* ev = new SessionEvent (SessionEvent::Skip, SessionEvent::Add, location->start(), location->end(), 1.0);
+			SessionEvent* ev = new SessionEvent (SessionEvent::Skip, SessionEvent::Add, location->start().frames, location->end().frames, 1.0);
 			queue_event (ev);
 		}
 	}
@@ -2102,9 +2102,9 @@ Session::audible_frame () const
 			} else {
 				// latent loops
 				Location *location = _locations->auto_loop_location();
-				frameoffset_t lo = location->start() - ret;
+				frameoffset_t lo = location->start().frames - ret;
 				if (lo > 0) {
-					ret = location->end () - lo;
+					ret = location->end ().frames - lo;
 				}
 			}
 
@@ -4518,12 +4518,12 @@ Session::maybe_update_session_range (framepos_t a, framepos_t b)
 
 	} else {
 
-		if (a < _session_range_location->start()) {
-			_session_range_location->set_start (a);
+		if (a < _session_range_location->start().frames) {
+			_session_range_location->set_start (audiomusic_at_musicframe (a));
 		}
 
-		if (_session_range_end_is_free && (b > _session_range_location->end())) {
-			_session_range_location->set_end (b);
+		if (_session_range_end_is_free && (b > _session_range_location->end().frames)) {
+			_session_range_location->set_end (audiomusic_at_musicframe (b));
 		}
 	}
 }
@@ -5679,7 +5679,7 @@ void
 Session::update_locations_after_tempo_map_change (const Locations::LocationList& loc)
 {
 	for (Locations::LocationList::const_iterator i = loc.begin(); i != loc.end(); ++i) {
-		(*i)->recompute_frames_from_beat ();
+		(*i)->recompute_frames_from_qnote ();
 	}
 }
 
@@ -6406,7 +6406,7 @@ void
 Session::goto_end ()
 {
 	if (_session_range_location) {
-		request_locate (_session_range_location->end(), false);
+		request_locate (_session_range_location->end().frames, false);
 	} else {
 		request_locate (0, false);
 	}
@@ -6416,7 +6416,7 @@ void
 Session::goto_start (bool and_roll)
 {
 	if (_session_range_location) {
-		request_locate (_session_range_location->start(), and_roll);
+		request_locate (_session_range_location->start().frames, and_roll);
 	} else {
 		request_locate (0, and_roll);
 	}
@@ -6425,13 +6425,13 @@ Session::goto_start (bool and_roll)
 framepos_t
 Session::current_start_frame () const
 {
-	return _session_range_location ? _session_range_location->start() : 0;
+	return _session_range_location ? _session_range_location->start() .frames: 0;
 }
 
 framepos_t
 Session::current_end_frame () const
 {
-	return _session_range_location ? _session_range_location->end() : 0;
+	return _session_range_location ? _session_range_location->end().frames : 0;
 }
 
 void
@@ -6481,7 +6481,7 @@ Session::start_time_changed (framepos_t old)
 
 	Location* l = _locations->auto_loop_location ();
 
-	if (l && l->start() == old) {
+	if (l && l->start().frames == old) {
 		l->set_start (s->start(), true);
 	}
 	set_dirty ();
@@ -6501,7 +6501,7 @@ Session::end_time_changed (framepos_t old)
 
 	Location* l = _locations->auto_loop_location ();
 
-	if (l && l->end() == old) {
+	if (l && l->end().frames == old) {
 		l->set_end (s->end(), true);
 	}
 	set_dirty ();
@@ -6932,18 +6932,18 @@ Session::reconnect_ltc_output ()
 }
 
 void
-Session::set_range_selection (MusicFrame start, MusicFrame end)
+Session::set_range_selection (const AudioMusic& start, const AudioMusic& end)
 {
-	_range_selection = Evoral::Range<MusicFrame> (start, end);
+	_range_selection = Evoral::Range<AudioMusic> (start, end);
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif
 }
 
 void
-Session::set_object_selection (framepos_t start, framepos_t end)
+Session::set_object_selection (const AudioMusic& start, const AudioMusic& end)
 {
-	_object_selection = Evoral::Range<framepos_t> (start, end);
+	_object_selection = Evoral::Range<AudioMusic> (start, end);
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif
@@ -6952,7 +6952,7 @@ Session::set_object_selection (framepos_t start, framepos_t end)
 void
 Session::clear_range_selection ()
 {
-	_range_selection = Evoral::Range<MusicFrame> (-1,-1);
+	_range_selection = Evoral::Range<AudioMusic> (AudioMusic (-1, -1.0), AudioMusic (-1, -1.0));
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif
@@ -6961,7 +6961,7 @@ Session::clear_range_selection ()
 void
 Session::clear_object_selection ()
 {
-	_object_selection = Evoral::Range<framepos_t> (-1,-1);
+	_object_selection = Evoral::Range<AudioMusic> (AudioMusic (-1, -1.0), AudioMusic (-1, -1.0));
 #ifdef USE_TRACKS_CODE_FEATURES
 	follow_playhead_priority ();
 #endif

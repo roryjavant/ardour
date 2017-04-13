@@ -2835,7 +2835,7 @@ framepos_t
 MidiRegionView::snap_pixel_to_sample(double x, bool ensure_snap)
 {
 	PublicEditor& editor (trackview.editor());
-	return snap_frame_to_frame (editor.pixel_to_sample (x), ensure_snap).frame;
+	return snap_frame_to_frame (editor.pixel_to_sample (x), ensure_snap).frames;
 }
 
 /** @param x Pixel relative to the region position.
@@ -3487,20 +3487,20 @@ MidiRegionView::nudge_notes (bool forward, bool fine)
 
 		/* use grid */
 
-		MusicFrame next_pos (ref_point, 0);
+		AudioMusic next_pos (ref_point, 0);
 		if (forward) {
-			if (max_framepos - 1 < next_pos.frame) {
-				next_pos.frame += 1;
+			if (max_framepos - 1 < next_pos.frames) {
+				next_pos.frames += 1;
 			}
 		} else {
-			if (next_pos.frame == 0) {
+			if (next_pos.frames == 0) {
 				return;
 			}
-			next_pos.frame -= 1;
+			next_pos.frames -= 1;
 		}
 
 		trackview.editor().snap_to (next_pos, (forward ? RoundUpAlways : RoundDownAlways), false);
-		const framecnt_t distance = ref_point - next_pos.frame;
+		const framecnt_t distance = ref_point - next_pos.frames;
 		delta = region_frames_to_region_beats (fabs ((double)distance));
 	}
 

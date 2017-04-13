@@ -82,11 +82,6 @@ namespace ARDOUR {
 	static const framecnt_t max_framecnt = INT64_MAX;
 	static const layer_t    max_layer    = UINT32_MAX;
 
-	// a set of (time) intervals: first of pair is the offset of the start within the region, second is the offset of the end
-	typedef std::list<std::pair<frameoffset_t, frameoffset_t> > AudioIntervalResult;
-	// associate a set of intervals with regions (e.g. for silence detection)
-	typedef std::map<boost::shared_ptr<ARDOUR::Region>,AudioIntervalResult> AudioIntervalMap;
-
 	typedef std::list<boost::shared_ptr<Region> > RegionList;
 
 	struct IOChange {
@@ -368,6 +363,12 @@ namespace ARDOUR {
 		bool operator> (const AudioMusic& other) const {
 			return frames > other.frames;
 		}
+		bool operator<= (const AudioMusic& other) const {
+			return (*this == other) || frames < other.frames;
+		}
+		bool operator>= (const AudioMusic& other) const {
+			return (*this == other) || frames > other.frames;
+		}
 	};
 
 	/* used for translating audio frames to an exact musical position using a note divisor.
@@ -424,28 +425,33 @@ namespace ARDOUR {
 
 	};
 
+	// a set of (time) intervals: first of pair is the offset of the start within the region, second is the offset of the end
+	typedef std::list<std::pair<AudioMusic, AudioMusic> > AudioIntervalResult;
+	// associate a set of intervals with regions (e.g. for silence detection)
+	typedef std::map<boost::shared_ptr<ARDOUR::Region>,AudioIntervalResult> AudioIntervalMap;
+
 	/* XXX: slightly unfortunate that there is this and Evoral::Range<>,
 	   but this has a uint32_t id which Evoral::Range<> does not.
 	*/
-	struct MusicFrameRange {
-		MusicFrame start;
-		MusicFrame end;
+	struct AudioMusicRange {
+		AudioMusic start;
+		AudioMusic end;
 		uint32_t id;
 
-		MusicFrameRange (MusicFrame s, MusicFrame e, uint32_t i) : start (s), end (e) , id (i) {}
+		AudioMusicRange (AudioMusic s, AudioMusic e, uint32_t i) : start (s), end (e) , id (i) {}
 
-		framecnt_t length() const { return end.frame - start.frame + 1; }
+		AudioMusic length() const { return end - start; }
 
-		bool operator== (const MusicFrameRange& other) const {
+		bool operator== (const AudioMusicRange& other) const {
 			return start == other.start && end == other.end && id == other.id;
 		}
 
-		bool equal (const MusicFrameRange& other) const {
+		bool equal (const AudioMusicRange& other) const {
 			return start == other.start && end == other.end;
 		}
 
 		Evoral::OverlapType coverage (framepos_t s, framepos_t e) const {
-			return Evoral::coverage (start.frame, end.frame, s, e);
+			return Evoral::coverage (start.frames, end.frames, s, e);
 		}
 	};
 

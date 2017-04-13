@@ -205,7 +205,7 @@ Editor::location_changed (Location *location)
 	}
 
 	lam->set_name (location->name ());
-	lam->set_position (location->start(), location->end());
+	lam->set_position (location->start().frames, location->end().frames);
 
 	if (location->is_auto_loop()) {
 		update_loop_range_view ();
@@ -636,7 +636,7 @@ Editor::LocationMarkers::setup_lines ()
 }
 
 void
-Editor::mouse_add_new_marker (framepos_t where, bool is_cd)
+Editor::mouse_add_new_marker (const AudioMusic& start, bool is_cd)
 {
 	string markername;
 	int flags = (is_cd ? Location::IsCDMarker|Location::IsMark : Location::IsMark);
@@ -646,12 +646,7 @@ Editor::mouse_add_new_marker (framepos_t where, bool is_cd)
 		if (!choose_new_marker_name(markername)) {
 			return;
 		}
-		int32_t const division = get_grid_music_divisions (0);
-		Location *location = new Location (*_session,
-						   MusicFrame (where, division),
-						   MusicFrame (where, division),
-						   markername,
-						   (Location::Flags) flags);
+		Location *location = new Location (*_session, start, start, markername, (Location::Flags) flags);
 
 		begin_reversible_command (_("add marker"));
 
@@ -673,7 +668,7 @@ Editor::mouse_add_new_marker (framepos_t where, bool is_cd)
 }
 
 void
-Editor::mouse_add_new_loop (framepos_t where)
+Editor::mouse_add_new_loop (const AudioMusic& where)
 {
 	if (!_session) {
 		return;
@@ -683,13 +678,13 @@ Editor::mouse_add_new_loop (framepos_t where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	framepos_t const end = where + current_page_samples() / 8;
+	AudioMusic const end = where + _session->audiomusic_at_musicframe (current_page_samples() / 8);
 
 	set_loop_range (where, end,  _("set loop range"));
 }
 
 void
-Editor::mouse_add_new_punch (framepos_t where)
+Editor::mouse_add_new_punch (const AudioMusic& where)
 {
 	if (!_session) {
 		return;
@@ -699,13 +694,13 @@ Editor::mouse_add_new_punch (framepos_t where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	framepos_t const end = where + current_page_samples() / 8;
+	AudioMusic const end = where + _session->audiomusic_at_musicframe (current_page_samples() / 8);
 
 	set_punch_range (where, end,  _("set punch range"));
 }
 
 void
-Editor::mouse_add_new_range (framepos_t where)
+Editor::mouse_add_new_range (const AudioMusic& where)
 {
 	if (!_session) {
 		return;
@@ -715,7 +710,7 @@ Editor::mouse_add_new_range (framepos_t where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	framepos_t const end = where + current_page_samples() / 8;
+	AudioMusic const end = where + _session->audiomusic_at_musicframe (current_page_samples() / 8);
 
 	string name;
 	_session->locations()->next_available_name (name, _("range"));
@@ -1118,7 +1113,7 @@ Editor::marker_menu_select_all_selectables_using_range ()
 	bool is_start;
 
 	if (((l = find_location_from_marker (marker, is_start)) != 0) && (l->end() > l->start())) {
-	        select_all_within (l->start(), l->end() - 1, 0,  DBL_MAX, track_views, Selection::Set, false);
+	        select_all_within (l->start().frames, l->end().frames - 1, 0,  DBL_MAX, track_views, Selection::Set, false);
 	}
 
 }
@@ -1158,15 +1153,15 @@ Editor::marker_menu_play_from ()
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {
-			_session->request_locate (l->start(), true);
+			_session->request_locate (l->start().frames, true);
 		}
 		else {
 			//_session->request_bounded_roll (l->start(), l->end());
 
 			if (is_start) {
-				_session->request_locate (l->start(), true);
+				_session->request_locate (l->start().frames, true);
 			} else {
-				_session->request_locate (l->end(), true);
+				_session->request_locate (l->end().frames, true);
 			}
 		}
 	}
@@ -1188,13 +1183,13 @@ Editor::marker_menu_set_playhead ()
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {
-			_session->request_locate (l->start(), false);
+			_session->request_locate (l->start().frames, false);
 		}
 		else {
 			if (is_start) {
-				_session->request_locate (l->start(), false);
+				_session->request_locate (l->start().frames, false);
 			} else {
-				_session->request_locate (l->end(), false);
+				_session->request_locate (l->end().frames, false);
 			}
 		}
 	}
@@ -1220,15 +1215,15 @@ Editor::marker_menu_range_to_next ()
 		return;
 	}
 
-	framepos_t start;
-	framepos_t end;
+	AudioMusic start (0, 0.0);
+	AudioMusic end (0, 0.0);
 	_session->locations()->marks_either_side (marker->position(), start, end);
 
-	if (end != max_framepos) {
+	if (end.frames != max_framepos) {
 		string range_name = l->name();
 		range_name += "-range";
 
-		Location* newrange = new Location (*_session, marker->position(), end, range_name, Location::IsRangeMarker);
+		Location* newrange = new Location (*_session, l->start(), end, range_name, Location::IsRangeMarker);
 		_session->locations()->add (newrange);
 	}
 }
@@ -1246,17 +1241,17 @@ Editor::marker_menu_set_from_playhead ()
 	Location* l;
 	bool is_start;
 	const int32_t divisions = get_grid_music_divisions (0);
-
+	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (_session->audible_frame (), divisions));
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {
-			l->set_start (MusicFrame (_session->audible_frame (), divisions), false, true);
+			l->set_start (start_am, false, true);
 		}
 		else {
 			if (is_start) {
-				l->set_start (MusicFrame (_session->audible_frame (), divisions), false, true);
+				l->set_start (start_am, false, true);
 			} else {
-				l->set_end (MusicFrame (_session->audible_frame (), divisions), false, true);
+				l->set_end (start_am, false, true);
 			}
 		}
 	}
@@ -1286,7 +1281,7 @@ Editor::marker_menu_set_from_selection (bool /*force_regions*/)
 			if (!selection->time.empty()) {
 				l->set (selection->time.start(), selection->time.end_frame());
 			} else if (!selection->regions.empty()) {
-				l->set (selection->regions.start(), selection->regions.end_frame());
+				l->set (selection->regions.start_am(), selection->regions.end_am());
 			}
 		}
 	}
@@ -1309,10 +1304,10 @@ Editor::marker_menu_play_range ()
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {
-			_session->request_locate (l->start(), true);
+			_session->request_locate (l->start().frames, true);
 		}
 		else {
-			_session->request_bounded_roll (l->start(), l->end());
+			_session->request_bounded_roll (l->start().frames, l->end().frames);
 
 		}
 	}
@@ -1337,7 +1332,7 @@ Editor::marker_menu_loop_range ()
 			l2->set (l->start(), l->end());
 
 			// enable looping, reposition and start rolling
-			_session->request_locate (l2->start(), true);
+			_session->request_locate (l2->start().frames, true);
 			_session->request_play_loop(true);
 		}
 	}
@@ -1356,13 +1351,13 @@ Editor::marker_menu_zoom_to_range ()
 		return;
 	}
 
-	framecnt_t const extra = l->length() * 0.05;
-	framepos_t a = l->start ();
+	framecnt_t const extra = l->length().frames * 0.05;
+	framepos_t a = l->start ().frames;
 	if (a >= extra) {
 		a -= extra;
 	}
 
-	framepos_t b = l->end ();
+	framepos_t b = l->end ().frames;
 	if (b < (max_framepos - extra)) {
 		b += extra;
 	}
@@ -1691,8 +1686,8 @@ Editor::update_loop_range_view ()
 
 	if (_session->get_play_loop() && ((tll = transport_loop_location()) != 0)) {
 
-		double x1 = sample_to_pixel (tll->start());
-		double x2 = sample_to_pixel (tll->end());
+		double x1 = sample_to_pixel (tll->start().frames);
+		double x2 = sample_to_pixel (tll->end().frames);
 
 		transport_loop_range_rect->set_x0 (x1);
 		transport_loop_range_rect->set_x1 (x2);
@@ -1719,12 +1714,12 @@ Editor::update_punch_range_view ()
 		double pixel_end;
 
 		if (_session->config.get_punch_in()) {
-			pixel_start = sample_to_pixel (tpl->start());
+			pixel_start = sample_to_pixel (tpl->start().frames);
 		} else {
 			pixel_start = 0;
 		}
 		if (_session->config.get_punch_out()) {
-			pixel_end = sample_to_pixel (tpl->end());
+			pixel_end = sample_to_pixel (tpl->end().frames);
 		} else {
 			pixel_end = sample_to_pixel (max_framepos);
 		}
@@ -1777,7 +1772,7 @@ Editor::goto_nth_marker (int n)
 	for (Locations::LocationList::iterator i = ordered.begin(); n >= 0 && i != ordered.end(); ++i) {
 		if ((*i)->is_mark() && !(*i)->is_hidden() && !(*i)->is_session_range()) {
 			if (n == 0) {
-				_session->request_locate ((*i)->start(), _session->transport_rolling());
+				_session->request_locate ((*i)->start().frames, _session->transport_rolling());
 				break;
 			}
 			--n;

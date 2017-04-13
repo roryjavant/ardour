@@ -742,7 +742,7 @@ Session::track_slave_state (float slave_speed, framepos_t slave_transport_frame,
 
 				Location* al = _locations->auto_loop_location();
 
-				if (al && play_loop && (slave_transport_frame < al->start() || slave_transport_frame > al->end())) {
+				if (al && play_loop && (slave_transport_frame < al->start().frames || slave_transport_frame > al->end().frames)) {
 					// cancel looping
 					request_play_loop(false);
 				}
@@ -1292,7 +1292,7 @@ Session::compute_stop_limit () const
 	} else if (punching_in && !punching_out) {
 		/* punching in but never out */
 		return max_framepos;
-	} else if (punching_in && punching_out && _locations->auto_punch_location()->end() > current_end_frame()) {
+	} else if (punching_in && punching_out && _locations->auto_punch_location()->end().frames > current_end_frame()) {
 		/* punching in and punching out after session end */
 		return max_framepos;
 	}

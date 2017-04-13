@@ -321,8 +321,8 @@ get_location_times(const Location* location,
                    framepos_t*     length)
 {
 	if (location) {
-		*start  = location->start();
-		*end    = location->end();
+		*start  = location->start().frames;
+		*end    = location->end().frames;
 		*length = *end - *start;
 	}
 }
@@ -1245,7 +1245,7 @@ MidiDiskstream::get_state ()
 		if (_session.preroll_record_punch_enabled ()) {
 			snprintf (buf, sizeof (buf), "%" PRId64, _session.preroll_record_punch_pos ());
 		} else if (_session.config.get_punch_in() && ((pi = _session.locations()->auto_punch_location()) != 0)) {
-			snprintf (buf, sizeof (buf), "%" PRId64, pi->start());
+			snprintf (buf, sizeof (buf), "%" PRId64, pi->start().frames);
 		} else {
 			snprintf (buf, sizeof (buf), "%" PRId64, _session.transport_frame());
 		}
@@ -1446,7 +1446,7 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 	DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose (
 		             "%1 MDS pre-read read %8 offset = %9 @ %4..%5 from %2 write to %3, LOOPED ? %6 .. %7\n", _name,
 		             _playback_buf->get_read_ptr(), _playback_buf->get_write_ptr(), playback_sample, playback_sample + nframes,
-		             (loc ? loc->start() : -1), (loc ? loc->end() : -1), nframes, Port::port_offset()));
+		             (loc ? loc->start().frames : -1), (loc ? loc->end().frames : -1), nframes, Port::port_offset()));
 
 	//cerr << "======== PRE ========\n";
 	//_playback_buf->dump (cerr);
@@ -1457,12 +1457,12 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 	if (loc) {
 		framepos_t effective_start;
 
-		Evoral::Range<framepos_t> loop_range (loc->start(), loc->end() - 1);
+		Evoral::Range<framepos_t> loop_range (loc->start().frames, loc->end().frames - 1);
 		effective_start = loop_range.squish (playback_sample);
 
 		DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose ("looped, effective start adjusted to %1\n", effective_start));
 
-		if (effective_start == loc->start()) {
+		if (effective_start == loc->start().frames) {
 			/* We need to turn off notes that may extend
 			   beyond the loop end.
 			*/
@@ -1472,7 +1472,7 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 
 		/* for split-cycles we need to offset the events */
 
-		if (loc->end() >= effective_start && loc->end() < effective_start + nframes) {
+		if (loc->end().frames >= effective_start && loc->end().frames < effective_start + nframes) {
 
 			/* end of loop is within the range we are reading, so
 			   split the read in two, and lie about the location
@@ -1481,11 +1481,11 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 
 			framecnt_t first, second;
 
-			first = loc->end() - effective_start;
+			first = loc->end().frames - effective_start;
 			second = nframes - first;
 
 			DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose ("loop read for eff %1 end %2: %3 and %4, cycle offset %5\n",
-			                                                      effective_start, loc->end(), first, second));
+			                                                      effective_start, loc->end().frames, first, second));
 
 			if (first) {
 				DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose ("loop read #1, from %1 for %2\n",
@@ -1495,8 +1495,8 @@ MidiDiskstream::get_playback (MidiBuffer& dst, framecnt_t nframes)
 
 			if (second) {
 				DEBUG_TRACE (DEBUG::MidiDiskstreamIO, string_compose ("loop read #2, from %1 for %2\n",
-										      loc->start(), second));
-				events_read += _playback_buf->read (dst, loc->start(), second);
+										      loc->start().frames, second));
+				events_read += _playback_buf->read (dst, loc->start().frames, second);
 			}
 
 		} else {

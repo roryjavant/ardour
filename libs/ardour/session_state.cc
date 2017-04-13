@@ -1298,7 +1298,7 @@ Session::state (bool full_state)
 		// for a template, just create a new Locations, populate it
 		// with the default start and end, and get the state for that.
 		Location* range = new Location (*this, 0, 0, _("session"), Location::IsSessionRange);
-		range->set (max_framepos, 0);
+		range->set (audiomusic_at_musicframe (max_framepos), audiomusic_at_musicframe (0));
 		loc.add (range);
 		XMLNode& locations_state = loc.get_state();
 
@@ -1550,7 +1550,7 @@ Session::set_state (const XMLNode& node, int version)
 	locations_changed ();
 
 	if (_session_range_location) {
-		AudioFileSource::set_header_position_offset (_session_range_location->start());
+		AudioFileSource::set_header_position_offset (_session_range_location->start().frames);
 	}
 
 	if ((child = find_named_node (node, "Regions")) == 0) {
@@ -3960,9 +3960,9 @@ Session::config_changed (std::string p, bool ours)
 		if ((location = _locations->auto_punch_location()) != 0) {
 
 			if (config.get_punch_in ()) {
-				replace_event (SessionEvent::PunchIn, location->start());
+				replace_event (SessionEvent::PunchIn, location->start().frames);
 			} else {
-				remove_event (location->start(), SessionEvent::PunchIn);
+				remove_event (location->start().frames, SessionEvent::PunchIn);
 			}
 		}
 
@@ -3973,7 +3973,7 @@ Session::config_changed (std::string p, bool ours)
 		if ((location = _locations->auto_punch_location()) != 0) {
 
 			if (config.get_punch_out()) {
-				replace_event (SessionEvent::PunchOut, location->end());
+				replace_event (SessionEvent::PunchOut, location->end().frames);
 			} else {
 				clear_events (SessionEvent::PunchOut);
 			}

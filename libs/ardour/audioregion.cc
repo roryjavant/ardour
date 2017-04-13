@@ -279,13 +279,13 @@ AudioRegion::AudioRegion (boost::shared_ptr<const AudioRegion> other)
 	assert (_sources.size() == _master_sources.size());
 }
 
-AudioRegion::AudioRegion (boost::shared_ptr<const AudioRegion> other, MusicFrame offset)
+AudioRegion::AudioRegion (boost::shared_ptr<const AudioRegion> other, AudioMusic offset)
 	: Region (other, offset)
 	, AUDIOREGION_COPY_STATE (other)
 	  /* As far as I can see, the _envelope's times are relative to region position, and have nothing
 	     to do with sources (and hence _start).  So when we copy the envelope, we just use the supplied offset.
 	  */
-	, _envelope (Properties::envelope, boost::shared_ptr<AutomationList> (new AutomationList (*other->_envelope.val(), offset.frame, other->_length)))
+	, _envelope (Properties::envelope, boost::shared_ptr<AutomationList> (new AutomationList (*other->_envelope.val(), offset.frames, other->_length)))
 	, _automatable (other->session())
 	, _fade_in_suspended (0)
 	, _fade_out_suspended (0)
@@ -1892,24 +1892,24 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, framecnt_t f
 	assert (fade_length >= 0);
 	assert (min_length > 0);
 
-	framepos_t pos = _start;
-	framepos_t const end = _start + _length;
+	AudioMusic pos = start_am();
+	AudioMusic const end = start_am() + length_am();
 
 	AudioIntervalResult silent_periods;
 
 	bool in_silence = true;
-	frameoffset_t silence_start = _start;
+	AudioMusic silence_start = start_am();
 
 	while (pos < end && !itt.cancel) {
 
 		framecnt_t cur_samples = 0;
-		framecnt_t const to_read = min (end - pos, block_size);
+		framecnt_t const to_read = min (end.frames - pos.frames, block_size);
 		/* fill `loudest' with the loudest absolute sample at each instant, across all channels */
 		memset (loudest.get(), 0, sizeof (Sample) * block_size);
 
 		for (uint32_t n = 0; n < n_channels(); ++n) {
 
-			cur_samples = read_raw_internal (buf.get(), pos, to_read, n);
+			cur_samples = read_raw_internal (buf.get(), pos.frames, to_read, n);
 			for (framecnt_t i = 0; i < cur_samples; ++i) {
 				loudest[i] = max (loudest[i], abs (buf[i]));
 			}
@@ -1921,20 +1921,20 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, framecnt_t f
 			if (silence && !in_silence) {
 				/* non-silence to silence */
 				in_silence = true;
-				silence_start = pos + i + fade_length;
+				silence_start = _session.audiomusic_at_musicframe (pos.frames + i + fade_length);
 			} else if (!silence && in_silence) {
 				/* silence to non-silence */
 				in_silence = false;
-				frameoffset_t silence_end = pos + i - 1 - fade_length;
+				AudioMusic silence_end = _session.audiomusic_at_musicframe (pos.frames + i - 1 - fade_length);
 
-				if (silence_end - silence_start >= min_length) {
+				if (silence_end.frames - silence_start.frames >= min_length) {
 					silent_periods.push_back (std::make_pair (silence_start, silence_end));
 				}
 			}
 		}
 
-		pos += cur_samples;
-		itt.progress = (end - pos) / (double)_length;
+		pos = _session.audiomusic_at_musicframe (pos.frames + cur_samples);
+		itt.progress = (end.frames - pos.frames) / (double)_length;
 
 		if (cur_samples == 0) {
 			assert (pos >= end);
@@ -1944,8 +1944,8 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, framecnt_t f
 
 	if (in_silence && !itt.cancel) {
 		/* last block was silent, so finish off the last period */
-		if (end - 1 - silence_start >= min_length + fade_length) {
-			silent_periods.push_back (std::make_pair (silence_start, end - 1));
+		if (end.frames - 1 - silence_start.frames >= min_length + fade_length) {
+			silent_periods.push_back (std::make_pair (silence_start, end));
 		}
 	}
 

@@ -1283,9 +1283,9 @@ Editor::button_press_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemTyp
 	    UIConfiguration::instance().get_follow_edits() && 
 	    !_session->config.get_external_sync()) {
 
-		MusicFrame where (canvas_event_sample (event), 0);
+		AudioMusic where (canvas_event_sample (event), 0);
 		snap_to (where);
-		_session->request_locate (where.frame, false);
+		_session->request_locate (where.frames, false);
 	}
 
 	switch (event->button.button) {
@@ -1332,7 +1332,7 @@ Editor::button_release_dispatch (GdkEventButton* ev)
 bool
 Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemType item_type)
 {
-	MusicFrame where (canvas_event_sample (event), 0);
+	AudioMusic where (canvas_event_sample (event), 0.0);
 	AutomationTimeAxisView* atv = 0;
 
 	_press_cursor_ctx.reset();
@@ -1480,7 +1480,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			case SamplesRulerItem:
 			case MinsecRulerItem:
 			case BBTRulerItem:
-				popup_ruler_menu (where.frame, item_type);
+				popup_ruler_menu (where, item_type);
 				break;
 
 			case MarkerItem:
@@ -1572,7 +1572,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 		case MarkerBarItem:
 			if (!_dragging_playhead) {
 				snap_to_with_modifier (where, event, RoundNearest, true);
-				mouse_add_new_marker (where.frame);
+				mouse_add_new_marker (where);
 			}
 			return true;
 
@@ -1580,20 +1580,20 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			if (!_dragging_playhead) {
 				// if we get here then a dragged range wasn't done
 				snap_to_with_modifier (where, event, RoundNearest, true);
-				mouse_add_new_marker (where.frame, true);
+				mouse_add_new_marker (where, true);
 			}
 			return true;
 		case TempoBarItem:
 		case TempoCurveItem:
 			if (!_dragging_playhead) {
 				snap_to_with_modifier (where, event);
-				mouse_add_new_tempo_event (where.frame);
+				mouse_add_new_tempo_event (where);
 			}
 			return true;
 
 		case MeterBarItem:
 			if (!_dragging_playhead) {
-				mouse_add_new_meter_event (pixel_to_sample (event->button.x));
+				mouse_add_new_meter_event (_session->audiomusic_at_musicframe (pixel_to_sample (event->button.x)));
 			}
 			return true;
 			break;
@@ -1631,7 +1631,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 				bool with_guard_points = Keyboard::modifier_state_equals (event->button.state, Keyboard::PrimaryModifier);
 				atv = dynamic_cast<AutomationTimeAxisView*>(clicked_axisview);
 				if (atv) {
-					atv->add_automation_event (event, where.frame, event->button.y, with_guard_points);
+					atv->add_automation_event (event, where.frames, event->button.y, with_guard_points);
 				}
 				return true;
 				break;
@@ -2521,7 +2521,7 @@ Editor::start_selection_grab (ArdourCanvas::Item* /*item*/, GdkEvent* event)
 
 	playlist->clear_changes ();
 
-	AudioMusic selection_start = _session->audiomusic_at_musicframe (selection->time[clicked_selection].start);
+	AudioMusic selection_start = selection->time[clicked_selection].start;
 	clicked_routeview->playlist()->add_region (region, selection_start);
 	_session->add_command(new StatefulDiffCommand (playlist));
 

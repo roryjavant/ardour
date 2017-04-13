@@ -1113,7 +1113,7 @@ Editor::time_selection_changed ()
 
 	if (_session && !_drags->active()) {
 		if (selection->time.length() != 0) {
-			_session->set_range_selection (selection->time.start().frame, selection->time.end_frame());
+			_session->set_range_selection (selection->time.start(), selection->time.end_frame());
 		} else {
 			_session->clear_range_selection ();
 		}
@@ -1496,7 +1496,7 @@ Editor::region_selection_changed ()
 
 	if (_session) {
 		if (!selection->regions.empty()) {
-			_session->set_object_selection (selection->regions.start(), selection->regions.end_frame());
+			_session->set_object_selection (selection->regions.start_am(), selection->regions.end_am());
 		} else {
 			_session->clear_object_selection ();
 		}
@@ -1722,7 +1722,7 @@ Editor::set_selection_from_region ()
 
 	/* select range (this will clear the region selection) */
 
-	selection->set (selection->regions.start(), selection->regions.end_frame());
+	selection->set (selection->regions.start_am(), selection->regions.end_am());
 
 	/* and select the tracks */
 
@@ -1773,10 +1773,10 @@ Editor::select_all_selectables_using_time_selection ()
 		return;
 	}
 
-	MusicFrame start = selection->time[clicked_selection].start;
-	MusicFrame end = selection->time[clicked_selection].end;
+	AudioMusic start = selection->time[clicked_selection].start;
+	AudioMusic end = selection->time[clicked_selection].end;
 
-	if (end.frame - start.frame < 1)  {
+	if (end.frames - start.frames < 1)  {
 		return;
 	}
 
@@ -1792,7 +1792,7 @@ Editor::select_all_selectables_using_time_selection ()
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (start.frame, end.frame - 1, 0, DBL_MAX, touched);
+		(*iter)->get_selectables (start.frames, end.frames - 1, 0, DBL_MAX, touched);
 	}
 
 	begin_reversible_selection_op (X_("select all from range"));
@@ -1807,7 +1807,7 @@ Editor::select_all_selectables_using_punch()
 	Location* location = _session->locations()->auto_punch_location();
 	list<Selectable *> touched;
 
-	if (location == 0 || (location->end() - location->start() <= 1))  {
+	if (location == 0 || (location->end().frames - location->start().frames <= 1))  {
 		return;
 	}
 
@@ -1824,7 +1824,7 @@ Editor::select_all_selectables_using_punch()
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (location->start(), location->end() - 1, 0, DBL_MAX, touched);
+		(*iter)->get_selectables (location->start().frames, location->end().frames - 1, 0, DBL_MAX, touched);
 	}
 	begin_reversible_selection_op (X_("select all from punch"));
 	selection->set (touched);
@@ -1838,7 +1838,7 @@ Editor::select_all_selectables_using_loop()
 	Location* location = _session->locations()->auto_loop_location();
 	list<Selectable *> touched;
 
-	if (location == 0 || (location->end() - location->start() <= 1))  {
+	if (location == 0 || (location->end().frames - location->start().frames <= 1))  {
 		return;
 	}
 
@@ -1855,7 +1855,7 @@ Editor::select_all_selectables_using_loop()
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (location->start(), location->end() - 1, 0, DBL_MAX, touched);
+		(*iter)->get_selectables (location->start().frames, location->end().frames - 1, 0, DBL_MAX, touched);
 	}
 	begin_reversible_selection_op (X_("select all from loop"));
 	selection->set (touched);
@@ -1970,8 +1970,8 @@ Editor::select_all_selectables_using_edit (bool after, bool from_context_menu)
 void
 Editor::select_all_selectables_between (bool within)
 {
-	MusicFrame start (0);
-	MusicFrame end (0);
+	AudioMusic start (0, 0.0);
+	AudioMusic end (0, 0.0);
 	list<Selectable *> touched;
 
 	if (!get_edit_op_range (start, end)) {
@@ -1981,7 +1981,7 @@ Editor::select_all_selectables_between (bool within)
 	if (internal_editing()) {
 		for (RegionSelection::iterator i = selection->regions.begin(); i != selection->regions.end(); ++i) {
 			MidiRegionView* mrv = dynamic_cast<MidiRegionView*>(*i);
-			mrv->select_range (start.frame, end.frame);
+			mrv->select_range (start.frames, end.frames);
 		}
 		return;
 	}
@@ -1998,7 +1998,7 @@ Editor::select_all_selectables_between (bool within)
 		if ((*iter)->hidden()) {
 			continue;
 		}
-		(*iter)->get_selectables (start.frame, end.frame, 0, DBL_MAX, touched, within);
+		(*iter)->get_selectables (start.frames, end.frames, 0, DBL_MAX, touched, within);
 	}
 
 	begin_reversible_selection_op (X_("Select all Selectables Between"));
@@ -2009,8 +2009,8 @@ Editor::select_all_selectables_between (bool within)
 void
 Editor::select_range_between ()
 {
-	MusicFrame start (0);
-	MusicFrame end (0);
+	AudioMusic start (0, 0.0);
+	AudioMusic end (0, 0.0);
 
 	if ( !selection->time.empty() ) {
 		selection->clear_time ();
@@ -2027,7 +2027,7 @@ Editor::select_range_between ()
 }
 
 bool
-Editor::get_edit_op_range (MusicFrame& start, MusicFrame& end) const
+Editor::get_edit_op_range (AudioMusic& start, AudioMusic& end) const
 {
 //	framepos_t m;
 //	bool ignored;
@@ -2040,8 +2040,8 @@ Editor::get_edit_op_range (MusicFrame& start, MusicFrame& end) const
 		end = selection->time.end_frame();
 		return true;
 	} else {
-		start = 0;
-		end = 0;
+		start = AudioMusic (0, 0.0);
+		end = AudioMusic (0, 0.0);
 		return false;
 	}
 
@@ -2136,7 +2136,7 @@ Editor::deselect_all ()
 }
 
 long
-Editor::select_range (framepos_t s, framepos_t e)
+Editor::select_range (const AudioMusic& s, const AudioMusic& e)
 {
 	begin_reversible_selection_op (X_("Select Range"));
 	selection->add (clicked_axisview);

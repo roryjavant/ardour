@@ -347,7 +347,7 @@ Region::Region (boost::shared_ptr<const Region> other)
     the start within \a other is given by \a offset
     (i.e. relative to the start of \a other's sources, the start is \a offset + \a other.start()
 */
-Region::Region (boost::shared_ptr<const Region> other, MusicFrame offset)
+Region::Region (boost::shared_ptr<const Region> other, AudioMusic offset)
 	: SessionObject(other->session(), other->name())
 	, _type (other->data_type())
 	, REGION_COPY_STATE (other)
@@ -370,18 +370,14 @@ Region::Region (boost::shared_ptr<const Region> other, MusicFrame offset)
 	use_sources (other->_sources);
 	set_master_sources (other->_master_sources);
 
-	_position = other->_position + offset.frame;
-	_start = other->_start + offset.frame;
-
-	const double offset_qn = _session.tempo_map().exact_qn_at_frame (other->_position + offset.frame, offset.division)
-		- other->_quarter_note;
-
+	_position = other->_position + offset.frames;
+	_start = other->_start + offset.frames;
 
 	/* prevent offset of 0 from altering musical position */
-	if (offset.frame != 0) {
-		_quarter_note = other->_quarter_note + offset_qn;
+	if (offset.frames != 0) {
+		_quarter_note = other->_quarter_note + offset.qnotes;
 		_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
-		_start_qn = other->_start_qn + offset_qn;
+		_start_qn = other->_start_qn + offset.qnotes;
 	} else {
 		_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
 		_start_qn = other->_start_qn;
@@ -464,7 +460,7 @@ Region::set_name (const std::string& str)
 void
 Region::set_length (framecnt_t len, const int32_t sub_num)
 {
-	//cerr << "Region::set_length() len = " << len << endl;
+	//cerr << "Region::set_length() len = " << len << "sub num : " << sub_num << endl;
 	if (locked()) {
 		return;
 	}
@@ -542,7 +538,11 @@ Region::set_length_internal (const AudioMusic& len)
 
 	_length = len.frames;
 	_length_qn = len.qnotes;
-
+	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
+		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << std::endl;
+	} else {
+		std::cout << "region set len internal sanity check ok for " << name() << std::endl;
+	}
 }
 
 void

@@ -115,7 +115,7 @@ class LIBARDOUR_API MidiRegion : public Region
 
 	MidiRegion (const SourceList&);
 	MidiRegion (boost::shared_ptr<const MidiRegion>);
-	MidiRegion (boost::shared_ptr<const MidiRegion>, ARDOUR::MusicFrame offset);
+	MidiRegion (boost::shared_ptr<const MidiRegion>, ARDOUR::AudioMusic offset);
 
 	framecnt_t _read_at (const SourceList&, Evoral::EventSink<framepos_t>& dst,
 	                     framepos_t position,

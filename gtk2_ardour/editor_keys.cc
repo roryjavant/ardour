@@ -43,7 +43,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 {
 	if (_session) {
 
-		MusicFrame start = selection->time.start();
+		AudioMusic start = selection->time.start();
 		framepos_t end;
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
 			end = _session->audible_frame();
@@ -58,7 +58,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 		if ( (_edit_point == EditAtPlayhead) && selection->tracks.empty() )
 			select_all_tracks();
 
-		selection->set (start, end);
+		selection->set (start, _session->audiomusic_at_musicframe (end));
 
 		//if session is playing a range, cancel that
 		if (_session->get_play_range())
@@ -72,27 +72,27 @@ Editor::keyboard_selection_begin (Editing::EditIgnoreOption ign)
 {
 	if (_session) {
 
-		MusicFrame start (0, 0);
-		MusicFrame end = selection->time.end_frame();
+		AudioMusic start (0, 0.0);
+		AudioMusic end = selection->time.end_frame();
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
-			start.frame = _session->audible_frame();
+			start.frames = _session->audible_frame();
 		} else {
-			start.frame = get_preferred_edit_position(ign);
+			start.frames = get_preferred_edit_position(ign);
 		}
 
 		//snap the selection start/end
 		snap_to(start);
 
 		//if there's not already a sensible selection endpoint, go "forever"
-		if (start.frame > end.frame) {
+		if (start > end) {
 #ifdef MIXBUS
 			// 4hours at most.
 			// This works around a visual glitch in red-bordered selection rect.
-			end.frame = start.frame + _session->nominal_frame_rate() * 60 * 60 * 4;
+			end.frames = start.frames + _session->nominal_frame_rate() * 60 * 60 * 4;
 #else
-			end.frame = max_framepos;
+			end.frames = max_framepos;
 #endif
-			end.division = 0;
+			end.qnotes = _session->tempo_map().quarter_note_at_frame (end.frames);
 		}
 
 		//if no tracks are selected and we're working from the keyboard, enable all tracks (_something_ has to be selected for any range selection)

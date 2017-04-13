@@ -144,8 +144,8 @@ public:
 	bool motion_handler (GdkEvent*, bool);
 	void abort ();
 
-	ARDOUR::MusicFrame adjusted_frame (ARDOUR::framepos_t, GdkEvent const *, bool snap = true) const;
-	ARDOUR::MusicFrame adjusted_current_frame (GdkEvent const *, bool snap = true) const;
+	ARDOUR::AudioMusic adjusted_frame (ARDOUR::framepos_t, GdkEvent const *, bool snap = true) const;
+	ARDOUR::AudioMusic adjusted_current_frame (GdkEvent const *, bool snap = true) const;
 
         bool was_double_click() const { return _was_double_click; }
         void set_double_click (bool yn) { _was_double_click = yn; }
@@ -225,7 +225,7 @@ protected:
 		return _raw_grab_frame;
 	}
 
-	ARDOUR::MusicFrame grab_frame () const {
+	ARDOUR::AudioMusic grab_frame () const {
 		return _grab_frame;
 	}
 
@@ -237,7 +237,7 @@ protected:
 		return _last_pointer_y;
 	}
 
-	ARDOUR::MusicFrame last_pointer_frame () const {
+	ARDOUR::AudioMusic last_pointer_frame () const {
 		return _last_pointer_frame;
 	}
 
@@ -248,7 +248,7 @@ protected:
 	double current_pointer_y () const;
 
 	/* sets snap delta from unsnapped pos */
-	void setup_snap_delta (ARDOUR::MusicFrame pos);
+	void setup_snap_delta (ARDOUR::AudioMusic pos);
 
 	boost::shared_ptr<ARDOUR::Region> add_midi_region (MidiTimeAxisView*, bool commit);
 
@@ -276,8 +276,8 @@ private:
 	double _last_pointer_x; ///< trackview x of the pointer last time a motion occurred
 	double _last_pointer_y; ///< trackview y of the pointer last time a motion occurred
 	ARDOUR::framepos_t _raw_grab_frame; ///< unsnapped frame that the mouse was at when start_grab was called, or 0
-	ARDOUR::MusicFrame _grab_frame; ///< adjusted_frame that the mouse was at when start_grab was called, or 0
-	ARDOUR::MusicFrame _last_pointer_frame; ///< adjusted_frame the last time a motion occurred
+	ARDOUR::AudioMusic _grab_frame; ///< adjusted_frame that the mouse was at when start_grab was called, or 0
+	ARDOUR::AudioMusic _last_pointer_frame; ///< adjusted_frame the last time a motion occurred
 
 	/* difference between some key position's snapped and unsnapped
 	 *  framepos. used for relative snap.
@@ -487,7 +487,7 @@ private:
 	TimeAxisView *prev_tav;		// where regions were most recently dragged from
 	TimeAxisView *orig_tav;		// where drag started
 	ARDOUR::AudioMusic _prev_amount;
-	ARDOUR::MusicFrame _prev_position;
+	ARDOUR::AudioMusic _prev_position;
 	ARDOUR::framecnt_t _selection_length;
 	double _selection_length_qn;
 	bool allow_moves_across_tracks; // only if all selected regions are on one track
@@ -1171,9 +1171,9 @@ private:
 	bool _add;
 	TrackSelection _track_selection_at_start;
 	bool _time_selection_at_start;
-	ARDOUR::MusicFrame _grab;
-	ARDOUR::MusicFrame start_at_start;
-	ARDOUR::MusicFrame end_at_start;
+	ARDOUR::AudioMusic _grab;
+	ARDOUR::AudioMusic start_at_start;
+	ARDOUR::AudioMusic end_at_start;
 };
 
 /** Range marker drag */
@@ -1236,8 +1236,8 @@ private:
 class AutomationRangeDrag : public Drag
 {
 public:
-	AutomationRangeDrag (Editor *, AutomationTimeAxisView *, std::list<ARDOUR::MusicFrameRange> const &);
-	AutomationRangeDrag (Editor *, RegionView *, std::list<ARDOUR::MusicFrameRange> const &);
+	AutomationRangeDrag (Editor *, AutomationTimeAxisView *, std::list<ARDOUR::AudioMusicRange> const &);
+	AutomationRangeDrag (Editor *, RegionView *, std::list<ARDOUR::AudioMusicRange> const &);
 
 	void start_grab (GdkEvent *, Gdk::Cursor* c = 0);
 	void motion (GdkEvent *, bool);
@@ -1253,7 +1253,7 @@ private:
 	double y_fraction (boost::shared_ptr<AutomationLine>, double global_y_position) const;
 	double value (boost::shared_ptr<ARDOUR::AutomationList> list, double x) const;
 
-	std::list<ARDOUR::MusicFrameRange> _ranges;
+	std::list<ARDOUR::AudioMusicRange> _ranges;
 
 	/** A line that is part of the drag */
 	struct Line {

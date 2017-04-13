@@ -163,7 +163,7 @@ AutomationRegionView::canvas_group_event (GdkEvent* ev)
  *  @param y y position, relative to our TimeAxisView.
  */
 void
-AutomationRegionView::add_automation_event (GdkEvent *, framepos_t when, double y, bool with_guard_points)
+AutomationRegionView::add_automation_event (GdkEvent *, framepos_t at, double y, bool with_guard_points)
 {
 	if (!_line) {
 		boost::shared_ptr<Evoral::Control> c = _region->control(_parameter, true);
@@ -183,11 +183,11 @@ AutomationRegionView::add_automation_event (GdkEvent *, framepos_t when, double 
 
 	/* snap frame */
 
-	when = snap_frame_to_frame (when - _region->start ()).frame + _region->start ();
+	ARDOUR::AudioMusic when = snap_frame_to_frame (at - _region->start ()) + _region->start_am ();
 
 	/* map using line */
 
-	double when_d = when;
+	double when_d = when.frames;
 	_line->view_to_model_coord (when_d, y);
 
 	XMLNode& before = _line->the_list()->get_state();

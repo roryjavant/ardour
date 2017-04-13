@@ -204,16 +204,16 @@ MidiClockTicker::transport_looped()
 
 	DEBUG_TRACE (DEBUG::MidiClock,
 		     string_compose ("Transport looped, position: %1, loop start: %2, loop end: %3, play loop: %4\n",
-				     _session->transport_frame(), loop_location->start(), loop_location->end(), _session->get_play_loop())
+				     _session->transport_frame(), loop_location->start().frames, loop_location->end().frames, _session->get_play_loop())
 		);
 
 	// adjust _last_tick, so that the next MIDI clock message is sent
 	// in due time (and the tick interval is still constant)
 
-	framecnt_t elapsed_since_last_tick = loop_location->end() - _last_tick;
+	framecnt_t elapsed_since_last_tick = loop_location->end().frames - _last_tick;
 
-	if (loop_location->start() > elapsed_since_last_tick) {
-		_last_tick = loop_location->start() - elapsed_since_last_tick;
+	if (loop_location->start().frames > elapsed_since_last_tick) {
+		_last_tick = loop_location->start().frames - elapsed_since_last_tick;
 	} else {
 		_last_tick = 0;
 	}
@@ -251,7 +251,7 @@ MidiClockTicker::tick (const framepos_t& /* transport_frame */, pframes_t nframe
 			if (_session->get_play_loop()) {
 				assert(_session->locations()->auto_loop_location());
 
-				if (_pos->frame == _session->locations()->auto_loop_location()->start()) {
+				if (_pos->frame == _session->locations()->auto_loop_location()->start().frames) {
 					send_start_event (0, nframes);
 				} else {
 					send_continue_event (0, nframes);

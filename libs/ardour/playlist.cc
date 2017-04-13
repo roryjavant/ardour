@@ -1157,7 +1157,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool), list<MusicFrameRange>& ranges, bool result_is_hidden)
+Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(const AudioMusic&, const AudioMusic&,bool), list<AudioMusicRange>& ranges, bool result_is_hidden)
 {
 	boost::shared_ptr<Playlist> ret;
 	boost::shared_ptr<Playlist> pl;
@@ -1166,9 +1166,9 @@ Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, Mu
 		return boost::shared_ptr<Playlist>();
 	}
 
-	MusicFrame start = ranges.front().start;
+	AudioMusic start = ranges.front().start;
 
-	for (list<MusicFrameRange>::iterator i = ranges.begin(); i != ranges.end(); ++i) {
+	for (list<AudioMusicRange>::iterator i = ranges.begin(); i != ranges.end(); ++i) {
 
 		pl = (this->*pmf)((*i).start, (*i).end, result_is_hidden);
 
@@ -1181,7 +1181,7 @@ Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, Mu
 			   chopped.
 			*/
 
-			ret->paste (pl, _session.audiomusic_at_musicframe ((*i).start) - _session.audiomusic_at_musicframe (start), 1.0f);
+			ret->paste (pl, (*i).start - start, 1.0f);
 		}
 	}
 
@@ -1189,21 +1189,21 @@ Playlist::cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, Mu
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut (list<MusicFrameRange>& ranges, bool result_is_hidden)
+Playlist::cut (list<AudioMusicRange>& ranges, bool result_is_hidden)
 {
-	boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool) = &Playlist::cut;
+	boost::shared_ptr<Playlist> (Playlist::*pmf)(const AudioMusic&, const AudioMusic&,bool) = &Playlist::cut;
 	return cut_copy (pmf, ranges, result_is_hidden);
 }
 
 boost::shared_ptr<Playlist>
-Playlist::copy (list<MusicFrameRange>& ranges, bool result_is_hidden)
+Playlist::copy (list<AudioMusicRange>& ranges, bool result_is_hidden)
 {
-	boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&,bool) = &Playlist::copy;
+	boost::shared_ptr<Playlist> (Playlist::*pmf)(const AudioMusic&, const AudioMusic&,bool) = &Playlist::copy;
 	return cut_copy (pmf, ranges, result_is_hidden);
 }
 
 boost::shared_ptr<Playlist>
-Playlist::cut (MusicFrame& s, MusicFrame& e, bool result_is_hidden)
+Playlist::cut (const AudioMusic& start, const AudioMusic& end, bool result_is_hidden)
 {
 	boost::shared_ptr<Playlist> the_copy;
 	RegionList thawlist;
@@ -1212,18 +1212,15 @@ Playlist::cut (MusicFrame& s, MusicFrame& e, bool result_is_hidden)
 	string new_name = _name;
 	new_name += '.';
 	new_name += buf;
-	AudioMusic start = _session.audiomusic_at_musicframe (s);
-	AudioMusic end = _session.audiomusic_at_musicframe (e);
-	AudioMusic cnt = end - start;
 
 	if ((the_copy = PlaylistFactory::create (shared_from_this(), start, end - start, new_name, result_is_hidden)) == 0) {
 		return boost::shared_ptr<Playlist>();
 	}
 
 	{
+		AudioMusic new_end = _session.audiomusic_at_musicframe (end.frames - 1);
 		RegionWriteLock rlock (this);
-		end.frames -= 1;
-		partition_internal (start, end, true, thawlist);
+		partition_internal (start, new_end, true, thawlist);
 	}
 
 	for (RegionList::iterator i = thawlist.begin(); i != thawlist.end(); ++i) {
@@ -1234,12 +1231,11 @@ Playlist::cut (MusicFrame& s, MusicFrame& e, bool result_is_hidden)
 }
 
 boost::shared_ptr<Playlist>
-Playlist::copy (MusicFrame& start, MusicFrame& end, bool result_is_hidden)
+Playlist::copy (const AudioMusic& start, const AudioMusic& end, bool result_is_hidden)
 {
 	char buf[32];
-	AudioMusic start_am = _session.audiomusic_at_musicframe (start);
-	AudioMusic const end_am = _session.audiomusic_at_musicframe (end);
-	AudioMusic length_am = end_am - start_am;
+
+	AudioMusic length = end - start;
 	snprintf (buf, sizeof (buf), "%" PRIu32, ++subcnt);
 	string new_name = _name;
 	new_name += '.';
@@ -1247,7 +1243,7 @@ Playlist::copy (MusicFrame& start, MusicFrame& end, bool result_is_hidden)
 
 	// cnt = min (_get_extent().second - start, cnt);  (We need the full range length when copy/pasting in Ripple.  Why was this limit here?  It's not in CUT... )
 
-	return PlaylistFactory::create (shared_from_this(), start_am, length_am, new_name, result_is_hidden);
+	return PlaylistFactory::create (shared_from_this(), start, length, new_name, result_is_hidden);
 }
 
 int
@@ -1309,7 +1305,7 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 			add_region_internal (copy, position);
 			set_layer (copy, DBL_MAX);
 
-			position = _session.audiomusic_at_musicframe (position.frames + gap.frames);
+			position = position + gap;
 		} else {
 			RegionFactory::region_name (name, region->name(), false);
 			PropertyList plist;
@@ -1325,7 +1321,7 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 			add_region_internal (copy, position);
 			set_layer (copy, DBL_MAX);
 
-			position = _session.audiomusic_at_qn (position.qnotes + gap.qnotes);
+			position = position + gap;
 		}
 	}
 
@@ -1366,7 +1362,7 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 			add_region_internal (copy, position);
 			set_layer (copy, DBL_MAX);
 
-			position = _session.audiomusic_at_musicframe (position.frames + gap.frames);
+			position = position + gap;
 		} else {
 			RegionFactory::region_name (name, region->name(), false);
 			PropertyList plist;
@@ -1382,12 +1378,12 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 			add_region_internal (copy, position);
 			set_layer (copy, DBL_MAX);
 
-			position = _session.audiomusic_at_qn (position.qnotes + gap.qnotes);
+			position = position + gap;
 		}
 	}
 
 	if (position < end) {
-		AudioMusic length = min (AudioMusic (region->length(), region->length_qn()), end - position);
+		AudioMusic length = min (region->length_am(), end - position);
 		RegionFactory::region_name (name, region->name(), false);
 
 		{
@@ -1407,40 +1403,40 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 }
 
 void
-Playlist::duplicate_range (MusicFrameRange& range, float times)
+Playlist::duplicate_range (AudioMusicRange& range, float times)
 {
-	MusicFrame length = range.length();
+	AudioMusic length = range.length();
 	boost::shared_ptr<Playlist> pl = copy (range.start, length, true);
-	paste (pl, _session.audiomusic_at_musicframe (range.end), times);
+	paste (pl, range.end, times);
 }
 
 void
-Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
+Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 {
 	if (ranges.empty()) {
 		return;
 	}
 
-	framepos_t min_pos = max_framepos;
-	framepos_t max_pos = 0;
+	AudioMusic min_pos = _session.audiomusic_at_musicframe (max_framepos);
+	AudioMusic max_pos (0, 0.0);
 
-	for (std::list<MusicFrameRange>::const_iterator i = ranges.begin();
+	for (std::list<AudioMusicRange>::const_iterator i = ranges.begin();
 	     i != ranges.end();
 	     ++i) {
-		min_pos = min (min_pos, (*i).start.frame);
-		max_pos = max (max_pos, (*i).end.frame);
+		min_pos = min (min_pos, (*i).start);
+		max_pos = max (max_pos, (*i).end);
 	}
 
-	framecnt_t offset = max_pos - min_pos;
+	AudioMusic offset = max_pos - min_pos;
 
 	int count = 1;
 	int itimes = (int) floor (times);
 	while (itimes--) {
-		for (list<MusicFrameRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
-			MusicFrame length ((*i).length());
+		for (list<AudioMusicRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
+			AudioMusic length = (*i).length();
 			boost::shared_ptr<Playlist> pl = copy ((*i).start, length, true);
 			paste (pl
-			       , _session.audiomusic_at_musicframe (MusicFrame((*i).start.frame + (offset * count), (*i).start.division))
+			       , _session.audiomusic_at_musicframe ((*i).start.frames + (offset.frames * count))
 			       , 1.0f);
 		}
 		++count;
@@ -1487,7 +1483,7 @@ Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
  }
 
  void
- Playlist::split (const MusicFrame& at)
+ Playlist::split (const AudioMusic& at)
  {
 	 RegionWriteLock rlock (this);
 	 RegionList copy (regions.rlist());
@@ -1501,28 +1497,27 @@ Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
  }
 
  void
- Playlist::split_region (boost::shared_ptr<Region> region, const MusicFrame& playlist_position)
+ Playlist::split_region (boost::shared_ptr<Region> region, const AudioMusic& playlist_position)
  {
 	 RegionWriteLock rl (this);
 	 _split_region (region, playlist_position);
  }
 
  void
- Playlist::_split_region (boost::shared_ptr<Region> region, const MusicFrame& playlist_position)
+ Playlist::_split_region (boost::shared_ptr<Region> region, const AudioMusic& playlist_position)
  {
-	 if (!region->covers (playlist_position.frame)) {
+	 if (!region->covers (playlist_position.frames)) {
 		 return;
 	 }
 
-	 if (region->position() == playlist_position.frame ||
-	     region->last_frame() == playlist_position.frame) {
+	 if (region->position() == playlist_position.frames ||
+	     region->last_frame() == playlist_position.frames) {
 		 return;
 	 }
 
 	 boost::shared_ptr<Region> left;
 	 boost::shared_ptr<Region> right;
-	 AudioMusic const pl_pos_am = _session.audiomusic_at_musicframe (playlist_position);
-	 AudioMusic before = pl_pos_am - region->position_am();
+	 AudioMusic before = playlist_position - region->position_am();
 	 AudioMusic after (region->length() - before.frames, region->length_qn() - before.qnotes);
 	 string before_name;
 	 string after_name;
@@ -1548,7 +1543,7 @@ Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
 		    since it supplies that offset to the Region constructor, which
 		    is necessary to get audio region gain envelopes right.
 		 */
-		 left = RegionFactory::create (region, MusicFrame (0, 0), plist, true);
+		 left = RegionFactory::create (region, AudioMusic (0, 0.0), plist, true);
 	 }
 
 	 RegionFactory::region_name (after_name, region->name(), false);
@@ -1564,11 +1559,11 @@ Playlist::duplicate_ranges (std::list<MusicFrameRange>& ranges, float times)
 		 plist.add (Properties::layer, region->layer ());
 
 		 /* same note as above */
-		 right = RegionFactory::create (region, MusicFrame (before.frames, playlist_position.division), plist, true);
+		 right = RegionFactory::create (region, before, plist, true);
 	 }
 
 	 add_region_internal (left, region->position_am());
-	 add_region_internal (right, pl_pos_am);
+	 add_region_internal (right, playlist_position);
 
 	 remove_region_internal (region);
 
@@ -3454,16 +3449,16 @@ Playlist::uncombine (boost::shared_ptr<Region> target)
 }
 
 void
-Playlist::fade_range (list<MusicFrameRange>& ranges)
+Playlist::fade_range (list<AudioMusicRange>& ranges)
 {
 	RegionReadLock rlock (this);
-	for (list<MusicFrameRange>::iterator r = ranges.begin(); r != ranges.end(); ) {
-		list<MusicFrameRange>::iterator tmpr = r;
+	for (list<AudioMusicRange>::iterator r = ranges.begin(); r != ranges.end(); ) {
+		list<AudioMusicRange>::iterator tmpr = r;
 		++tmpr;
 		for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ) {
 			RegionList::const_iterator tmpi = i;
 			++tmpi;
-			(*i)->fade_range ((*r).start.frame, (*r).end.frame);
+			(*i)->fade_range ((*r).start.frames, (*r).end.frames);
 			i = tmpi;
 		}
 		r = tmpr;

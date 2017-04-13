@@ -284,7 +284,7 @@ LocationEditRow::set_location (Location *loc)
 		cd_check_button.set_active (location->is_cd_marker());
 		cd_check_button.show();
 
-		if (location->start() == _session->current_start_frame()) {
+		if (location->start().frames == _session->current_start_frame()) {
 			cd_check_button.set_sensitive (false);
 		} else {
 			cd_check_button.set_sensitive (true);
@@ -295,7 +295,7 @@ LocationEditRow::set_location (Location *loc)
 		glue_check_button.show();
 	}
 
-	start_clock.set (location->start(), true);
+	start_clock.set (location->start().frames, true);
 
 
 	if (!location->is_mark()) {
@@ -306,8 +306,8 @@ LocationEditRow::set_location (Location *loc)
 			end_hbox.pack_start (length_clock, false, false, 4);
 		}
 
-		end_clock.set (location->end(), true);
-		length_clock.set (location->length(), true);
+		end_clock.set (location->end().frames, true);
+		length_clock.set (location->length().frames, true);
 
 		end_clock.show();
 		length_clock.show();
@@ -415,13 +415,14 @@ LocationEditRow::to_playhead_button_pressed (LocationPart part)
 	}
 
 	const int32_t divisions = PublicEditor::instance().get_grid_music_divisions (0);
+	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (_session->transport_frame (), divisions));
 
 	switch (part) {
 		case LocStart:
-			location->set_start (MusicFrame (_session->transport_frame (), divisions), false, true);
+			location->set_start (start_am, false, true);
 			break;
 		case LocEnd:
-			location->set_end (MusicFrame (_session->transport_frame (), divisions), false, true);
+			location->set_end (start_am, false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}
@@ -464,19 +465,22 @@ LocationEditRow::clock_changed (LocationPart part)
 	}
 
 	const int32_t divisions = PublicEditor::instance().get_grid_music_divisions (0);
+	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (start_clock.current_time(), divisions));
+	AudioMusic const end_am = _session->audiomusic_at_musicframe (MusicFrame (end_clock.current_time(), divisions));
+	AudioMusic const loc_start_am = _session->audiomusic_at_musicframe (MusicFrame (location->start().frames + length_clock.current_duration(), divisions));
 
 	switch (part) {
 		case LocStart:
-			location->set_start (MusicFrame (start_clock.current_time(), divisions), false, true);
+			location->set_start (start_am, false, true);
 			break;
 		case LocEnd:
-			location->set_end (MusicFrame (end_clock.current_time(), divisions), false, true);
+			location->set_end (end_am, false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}
 			break;
 		case LocLength:
-			location->set_end (MusicFrame (location->start() + length_clock.current_duration(), divisions), false, true);
+			location->set_end (loc_start_am, false, true);
 			if (location->is_session_range()) {
 				_session->set_end_is_free (false);
 			}
@@ -524,7 +528,7 @@ LocationEditRow::cd_toggled ()
 	//}
 
 	if (cd_check_button.get_active()) {
-		if (location->start() <= _session->current_start_frame()) {
+		if (location->start().frames <= _session->current_start_frame()) {
 			error << _("You cannot put a CD marker at the start of the session") << endmsg;
 			cd_check_button.set_active (false);
 			return;
@@ -630,8 +634,8 @@ LocationEditRow::end_changed ()
 	// update end and length
 	i_am_the_modifier++;
 
-	end_clock.set (location->end());
-	length_clock.set (location->length());
+	end_clock.set (location->end().frames);
+	length_clock.set (location->length().frames);
 
 	i_am_the_modifier--;
 }
@@ -644,9 +648,9 @@ LocationEditRow::start_changed ()
 	// update end and length
 	i_am_the_modifier++;
 
-	start_clock.set (location->start());
+	start_clock.set (location->start().frames);
 
-	if (location->start() == _session->current_start_frame()) {
+	if (location->start().frames == _session->current_start_frame()) {
 		cd_check_button.set_sensitive (false);
 	} else {
 		cd_check_button.set_sensitive (true);
@@ -678,9 +682,9 @@ LocationEditRow::location_changed ()
 
 	i_am_the_modifier++;
 
-	start_clock.set (location->start());
-	end_clock.set (location->end());
-	length_clock.set (location->length());
+	start_clock.set (location->start().frames);
+	end_clock.set (location->end().frames);
+	length_clock.set (location->length().frames);
 
 	set_clock_editable_status ();
 

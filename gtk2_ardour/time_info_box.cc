@@ -138,7 +138,7 @@ TimeInfoBox::TimeInfoBox (std::string state_node_name, bool with_punch)
 	Editor::instance().get_selection().TimeChanged.connect (sigc::mem_fun (*this, &TimeInfoBox::selection_changed));
 	Editor::instance().get_selection().RegionsChanged.connect (sigc::mem_fun (*this, &TimeInfoBox::selection_changed));
 
-	Region::RegionPropertyChanged.connect (region_property_connections, invalidator (*this), boost::bind (&TimeInfoBox::region_property_change, this, _1, _2), gui_context());
+	//Region::RegionPropertyChanged.connect (region_property_connections, invalidator (*this), boost::bind (&TimeInfoBox::region_property_change, this, _1, _2), gui_context());
 	Editor::instance().MouseModeChanged.connect (editor_connections, invalidator(*this), boost::bind (&TimeInfoBox::track_mouse_mode, this), gui_context());
 }
 
@@ -282,8 +282,8 @@ TimeInfoBox::selection_changed ()
 					selection_start->set_off (false);
 					selection_end->set_off (false);
 					selection_length->set_off (false);
-					selection_start->set (selection.time.start().frame);
-					selection_end->set (selection.time.end_frame().frame);
+					selection_start->set (selection.time.start().frames);
+					selection_end->set (selection.time.end_frame().frames);
 					selection_length->set (selection.time.length());
 				} else {
 					selection_start->set_off (true);
@@ -341,8 +341,8 @@ TimeInfoBox::selection_changed ()
 			selection_start->set_off (false);
 			selection_end->set_off (false);
 			selection_length->set_off (false);
-			selection_start->set (selection.time.start().frame);
-			selection_end->set (selection.time.end_frame().frame);
+			selection_start->set (selection.time.start().frames);
+			selection_end->set (selection.time.end_frame().frames);
 			selection_length->set (selection.time.length());
 		}
 		break;
@@ -388,6 +388,6 @@ TimeInfoBox::punch_changed (Location* loc)
 	punch_start->set_off (false);
 	punch_end->set_off (false);
 
-	punch_start->set (loc->start());
-	punch_end->set (loc->end());
+	punch_start->set (loc->start().frames);
+	punch_end->set (loc->end().frames);
 }

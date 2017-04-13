@@ -1015,8 +1015,8 @@ AudioDiskstream::read (Sample* buf, Sample* mixdown_buffer, float* gain_buffer,
 		*/
 
 		if ((loc = loop_location) != 0) {
-			loop_start = loc->start();
-			loop_end = loc->end();
+			loop_start = loc->start().frames;
+			loop_end = loc->end().frames;
 			loop_length = loop_end - loop_start;
 		}
 
@@ -1930,7 +1930,7 @@ AudioDiskstream::get_state ()
 		if (_session.preroll_record_punch_enabled ()) {
 			snprintf (buf, sizeof (buf), "%" PRId64, _session.preroll_record_punch_pos ());
 		} else if (_session.config.get_punch_in() && ((pi = _session.locations()->auto_punch_location()) != 0)) {
-			snprintf (buf, sizeof (buf), "%" PRId64, pi->start());
+			snprintf (buf, sizeof (buf), "%" PRId64, pi->start().frames);
 		} else {
 			snprintf (buf, sizeof (buf), "%" PRId64, _session.transport_frame());
 		}

@@ -48,9 +48,9 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-struct MusicFrameRangeComparator {
-	bool operator()(MusicFrameRange a, MusicFrameRange b) {
-		return a.start.frame < b.start.frame;
+struct AudioMusicRangeComparator {
+	bool operator()(AudioMusicRange a, AudioMusicRange b) {
+		return a.start.frames < b.start.frames;
 	}
 };
 
@@ -383,15 +383,15 @@ Selection::toggle (vector<RegionView*>& r)
 }
 
 long
-Selection::toggle (framepos_t start, framepos_t end)
+Selection::toggle (const AudioMusic& start, const AudioMusic& end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	MusicFrameRangeComparator cmp;
+	AudioMusicRangeComparator cmp;
 
 	/* XXX this implementation is incorrect */
 
-	time.push_back (MusicFrameRange (start, end, ++next_time_id));
+	time.push_back (AudioMusicRange (start, end, ++next_time_id));
 	time.consolidate ();
 	time.sort (cmp);
 
@@ -565,15 +565,15 @@ Selection::add (MidiRegionView* mrv)
 }
 
 long
-Selection::add (MusicFrame start, MusicFrame end)
+Selection::add (AudioMusic start, AudioMusic end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	MusicFrameRangeComparator cmp;
+	AudioMusicRangeComparator cmp;
 
 	/* XXX this implementation is incorrect */
 
-	time.push_back (MusicFrameRange (start, end, ++next_time_id));
+	time.push_back (AudioMusicRange (start, end, ++next_time_id));
 	time.consolidate ();
 	time.sort (cmp);
 
@@ -583,13 +583,13 @@ Selection::add (MusicFrame start, MusicFrame end)
 }
 
 void
-Selection::move_time (framecnt_t distance)
+Selection::move_time (const AudioMusic& distance)
 {
-	if (distance == 0) {
+	if (distance.frames == 0) {
 		return;
 	}
 
-	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<AudioMusicRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		(*i).start += distance;
 		(*i).end += distance;
 	}
@@ -598,19 +598,19 @@ Selection::move_time (framecnt_t distance)
 }
 
 void
-Selection::replace (uint32_t sid, MusicFrame start, MusicFrame end)
+Selection::replace (uint32_t sid, AudioMusic start, AudioMusic end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<AudioMusicRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		if ((*i).id == sid) {
 			time.erase (i);
-			time.push_back (MusicFrameRange(start,end, sid));
+			time.push_back (AudioMusicRange(start,end, sid));
 
 			/* don't consolidate here */
 
 
-			MusicFrameRangeComparator cmp;
+			AudioMusicRangeComparator cmp;
 			time.sort (cmp);
 
 			TimeChanged ();
@@ -773,7 +773,7 @@ Selection::remove (uint32_t selection_id)
 		return;
 	}
 
-	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<AudioMusicRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		if ((*i).id == selection_id) {
 			time.erase (i);
 
@@ -923,17 +923,17 @@ Selection::set (vector<RegionView*>& v)
  *  the list of tracks it applies to.
  */
 long
-Selection::set (MusicFrame start, MusicFrame end)
+Selection::set (AudioMusic start, AudioMusic end)
 {
 	clear_objects();  //enforce region/object exclusivity
 	clear_time();
 
-	if ((start == 0 && end == 0) || end.frame < start.frame) {
+	if ((start.frames == 0 && end.frames == 0) || end < start) {
 		return 0;
 	}
 
 	if (time.empty()) {
-		time.push_back (MusicFrameRange (start, end, ++next_time_id));
+		time.push_back (AudioMusicRange (start, end, ++next_time_id));
 	} else {
 		/* reuse the first entry, and remove all the rest */
 
@@ -960,18 +960,18 @@ Selection::set (MusicFrame start, MusicFrame end)
  *  @param end New end time.
  */
 void
-Selection::set_preserving_all_ranges (MusicFrame start, MusicFrame end)
+Selection::set_preserving_all_ranges (AudioMusic start, AudioMusic end)
 {
 	clear_objects();  //enforce region/object exclusivity
 
-	if ((start == 0 && end == 0) || (end < start)) {
+	if ((start.frames == 0 && end.frames == 0) || (end < start)) {
 		return;
 	}
 
 	if (time.empty ()) {
-		time.push_back (MusicFrameRange (start, end, ++next_time_id));
+		time.push_back (AudioMusicRange (start, end, ++next_time_id));
 	} else {
-		time.sort (MusicFrameRangeComparator ());
+		time.sort (AudioMusicRangeComparator ());
 		time.front().start = start;
 		time.back().end = end;
 	}
@@ -1359,15 +1359,15 @@ Selection::get_state () const
 	}
 
 	for (TimeSelection::const_iterator i = time.begin(); i != time.end(); ++i) {
-		XMLNode* t = node->add_child (X_("MusicFrameRange"));
-		snprintf(buf, sizeof(buf), "%" PRId64, (*i).start.frame);
+		XMLNode* t = node->add_child (X_("AudioMusicRange"));
+		snprintf(buf, sizeof(buf), "%" PRId64, (*i).start.frames);
 		t->add_property (X_("start"), string(buf));
-		snprintf(buf, sizeof(buf), "%" PRId64, (*i).end.frame);
+		snprintf(buf, sizeof(buf), "%" PRId64, (*i).end.frames);
 		t->add_property (X_("end"), string(buf));
-		snprintf(buf, sizeof(buf), "%d", (*i).start.division);
-		t->add_property (X_("start-division"), string(buf));
-		snprintf(buf, sizeof(buf), "%d", (*i).end.division);
-		t->add_property (X_("end-division"), string(buf));
+		snprintf(buf, sizeof(buf), "%lf", (*i).start.qnotes);
+		t->add_property (X_("start-qnotes"), string(buf));
+		snprintf(buf, sizeof(buf), "%lf", (*i).end.qnotes);
+		t->add_property (X_("end-qnotes"), string(buf));
 	}
 
 	for (MarkerSelection::const_iterator i = markers.begin(); i != markers.end(); ++i) {
@@ -1530,7 +1530,7 @@ Selection::set_state (XMLNode const & node, int)
 				}
 			}
 
-		} else if  ((*i)->name() == X_("MusicFrameRange")) {
+		} else if  ((*i)->name() == X_("AudioMusicRange")) {
 			XMLProperty const * prop_start = (*i)->property (X_("start"));
 			XMLProperty const * prop_end = (*i)->property (X_("end"));
 
@@ -1539,13 +1539,13 @@ Selection::set_state (XMLNode const & node, int)
 			framepos_t s (atol (prop_start->value ().c_str()));
 			framepos_t e (atol (prop_end->value ().c_str()));
 
-			XMLProperty const * prop_start_div = (*i)->property (X_("start-division"));
-			XMLProperty const * prop_end_div = (*i)->property (X_("end-division"));
-			if (prop_start_div && prop_end_div) {
-				set_preserving_all_ranges (MusicFrame (s, atol (prop_start_div->value ().c_str()))
-							   , MusicFrame (e, atol (prop_end_div->value ().c_str())));
+			XMLProperty const * prop_start_qn = (*i)->property (X_("start-qnotes"));
+			XMLProperty const * prop_end_qn = (*i)->property (X_("end-qnotes"));
+			if (prop_start_qn && prop_end_qn) {
+				set_preserving_all_ranges (AudioMusic (s, atof (prop_start_qn->value ().c_str()))
+							   , AudioMusic (e, atof (prop_end_qn->value ().c_str())));
 			} else {
-				set_preserving_all_ranges (s, e);
+				set_preserving_all_ranges (editor->session()->audiomusic_at_musicframe(s), editor->session()->audiomusic_at_musicframe(e));
 			}
 
 		} else if ((*i)->name() == X_("AutomationView")) {

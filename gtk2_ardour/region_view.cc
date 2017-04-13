@@ -239,14 +239,14 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double /*thr
 
 		/* coordinates for the rect are relative to the regionview origin */
 
-		cr->set_x0 (trackview.editor().sample_to_pixel (i->first - _region->start()));
-		cr->set_x1 (trackview.editor().sample_to_pixel (i->second - _region->start()));
+		cr->set_x0 (trackview.editor().sample_to_pixel (i->first.frames - _region->start()));
+		cr->set_x1 (trackview.editor().sample_to_pixel (i->second.frames - _region->start()));
 		cr->set_y0 (1);
 		cr->set_y1 (_height - 2);
 		cr->set_outline (false);
 		cr->set_fill_color (color);
 
-		shortest = min (shortest, i->second - i->first);
+		shortest = min (shortest, i->second.frames - i->first.frames);
 	}
 
 	/* Find shortest audible segment */
@@ -254,12 +254,12 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double /*thr
 
 	framecnt_t s = _region->start();
 	for (AudioIntervalResult::const_iterator i = silences.begin(); i != silences.end(); ++i) {
-		framecnt_t const dur = i->first - s;
+		framecnt_t const dur = i->first.frames - s;
 		if (dur > 0) {
 			shortest_audible = min (shortest_audible, dur);
 		}
 
-		s = i->second;
+		s = i->second.frames;
 	}
 
 	framecnt_t const dur = _region->start() + _region->length() - 1 - s;
@@ -274,7 +274,7 @@ RegionView::set_silent_frames (const AudioIntervalResult& silences, double /*thr
 
         /* both positions are relative to the region start offset in source */
 
-        _silence_text->set_x_position (trackview.editor().sample_to_pixel (silences.front().first - _region->start()) + 10.0);
+        _silence_text->set_x_position (trackview.editor().sample_to_pixel (silences.front().first.frames - _region->start()) + 10.0);
         _silence_text->set_y_position (20.0);
 
         double ms = (float) shortest/_region->session().frame_rate();
@@ -945,7 +945,7 @@ RegionView::move_contents (AudioMusic& distance)
  *  Used when inverting snap mode logic with key modifiers, or snap distance calculation.
  *  @return Snapped frame offset from this region's position.
  */
-MusicFrame
+AudioMusic
 RegionView::snap_frame_to_frame (frameoffset_t x, bool ensure_snap) const
 {
 	PublicEditor& editor = trackview.editor();
@@ -953,15 +953,15 @@ RegionView::snap_frame_to_frame (frameoffset_t x, bool ensure_snap) const
 	framepos_t const session_frame = x + _region->position();
 
 	/* try a snap in either direction */
-	MusicFrame frame (session_frame, 0);
+	AudioMusic frame (session_frame, 0.0);
 	editor.snap_to (frame, RoundNearest, false, ensure_snap);
 
 	/* if we went off the beginning of the region, snap forwards */
-	if (frame.frame < _region->position ()) {
-		frame.frame = session_frame;
+	if (frame.frames < _region->position ()) {
+		frame.frames = session_frame;
 		editor.snap_to (frame, RoundUpAlways, false, ensure_snap);
 	}
 
 	/* back to region relative, keeping the relevant divisor */
-	return MusicFrame (frame.frame - _region->position(), frame.division);
+	return frame - _region->position_am();
 }

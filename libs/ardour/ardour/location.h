@@ -58,7 +58,8 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 	};
 
 	Location (Session &);
-	Location (Session &, MusicFrame, MusicFrame, const std::string &, Flags bits = Flags(0));
+	Location (Session &, const AudioMusic&, const AudioMusic&, const std::string &, Flags bits = Flags(0));
+	Location (Session &, framepos_t, framepos_t, const std::string &, Flags bits = Flags(0));
 	Location (const Location& other);
 	Location (Session &, const XMLNode&);
 	Location* operator= (const Location& other);
@@ -69,17 +70,15 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 	void lock ();
 	void unlock ();
 
-	framepos_t start() const  { return _start; }
-	double     start_beat() const  { return _start_beat; }
-	framepos_t end() const { return _end; }
-	double     end_beat() const { return _end_beat; }
-	framecnt_t length() const { return _end - _start; }
+	AudioMusic start () const { return AudioMusic (_start, _start_qn); }
+	AudioMusic end () const { return AudioMusic (_end, _end_qn); }
+	AudioMusic length() const { return end() - start(); }
 
-	int set_start (const MusicFrame& s, bool force = false, bool allow_beat_recompute = true);
-	int set_end (const MusicFrame& e, bool force = false, bool allow_beat_recompute = true);
-	int set (const MusicFrame& start, const MusicFrame& end, bool allow_beat_recompute = true);
+	int set_start (const AudioMusic& s, bool force = false, bool allow_qnote_recompute = true);
+	int set_end (const AudioMusic& e, bool force = false, bool allow_qnote_recompute = true);
+	int set (const AudioMusic& start, const AudioMusic& end, bool allow_qnote_recompute = true);
 
-	int move_to (framepos_t pos, const uint32_t sub_num);
+	int move_to (const AudioMusic& pos);
 
 	const std::string& name() const { return _name; }
 	void set_name (const std::string &str);
@@ -145,7 +144,7 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 
 	PositionLockStyle position_lock_style() const { return _position_lock_style; }
 	void set_position_lock_style (PositionLockStyle ps);
-	void recompute_frames_from_beat ();
+	void recompute_frames_from_qnote ();
 
 	static PBD::Signal0<void> scene_changed; /* for use by backend scene change management, class level */
         PBD::Signal0<void> SceneChangeChanged;   /* for use by objects interested in this object */
@@ -153,9 +152,9 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
   private:
 	std::string        _name;
 	framepos_t         _start;
-	double             _start_beat;
+	double             _start_qn;
 	framepos_t         _end;
-	double             _end_beat;
+	double             _end_qn;
 	Flags              _flags;
 	bool               _locked;
 	PositionLockStyle  _position_lock_style;
@@ -163,8 +162,8 @@ class LIBARDOUR_API Location : public SessionHandleRef, public PBD::StatefulDest
 
 	void set_mark (bool yn);
 	bool set_flag_internal (bool yn, Flags flag);
-	void recompute_start_beat_from_frames (const uint32_t sub_num);
-	void recompute_end_beat_from_frames (const uint32_t sub_num);
+	void recompute_start_qnote_from_frames ();
+	void recompute_end_qnote_from_frames ();
 };
 
 /** A collection of session locations including unique dedicated locations (loop, punch, etc) */
@@ -201,10 +200,10 @@ class LIBARDOUR_API Locations : public SessionHandleRef, public PBD::StatefulDes
 
 	Location* mark_at (framepos_t, framecnt_t slop = 0) const;
 
-	framepos_t first_mark_before (framepos_t, bool include_special_ranges = false);
-	framepos_t first_mark_after (framepos_t, bool include_special_ranges = false);
+	AudioMusic first_mark_before (framepos_t, bool include_special_ranges = false);
+	AudioMusic first_mark_after (framepos_t, bool include_special_ranges = false);
 
-	void marks_either_side (framepos_t const, framepos_t &, framepos_t &) const;
+	void marks_either_side (framepos_t const, AudioMusic &, AudioMusic &) const;
 
 	void find_all_between (framepos_t start, framepos_t, LocationList&, Location::Flags);
 

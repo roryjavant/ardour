@@ -42,7 +42,7 @@ class LIBARDOUR_API AnalysisGraph {
 		~AnalysisGraph ();
 
 		void analyze_region (boost::shared_ptr<ARDOUR::AudioRegion>);
-		void analyze_range (boost::shared_ptr<ARDOUR::Route>, boost::shared_ptr<ARDOUR::AudioPlaylist>, const std::list<MusicFrameRange>&);
+		void analyze_range (boost::shared_ptr<ARDOUR::Route>, boost::shared_ptr<ARDOUR::AudioPlaylist>, const std::list<AudioMusicRange>&);
 		const AnalysisResults& results () const { return _results; }
 
 		void cancel () { _canceled = true; }

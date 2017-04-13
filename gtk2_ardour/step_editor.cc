@@ -121,10 +121,10 @@ StepEditor::prepare_step_edit_region ()
 		framecnt_t const next_bar_pos = tmap.frame_at_beat (next_bar_in_beats);
 		double const next_bar_qn = tmap.quarter_note_at_beat (next_bar_in_beats);
 		AudioMusic len (next_bar_pos - step_edit_insert_position, next_bar_qn - tmap.quarter_note_at_frame (step_edit_insert_position));
-		MusicFrame snap = step_edit_insert_position;
+		AudioMusic snap = AudioMusic (step_edit_insert_position, 0.0);
 		_editor.snap_to (snap);
 
-		step_edit_region = _mtv.add_region (_mtv.session()->audiomusic_at_musicframe (snap), len, true);
+		step_edit_region = _mtv.add_region (snap, len, true);
 
 		RegionView* rv = _mtv.midi_view()->find_view (step_edit_region);
 		step_edit_region_view = dynamic_cast<MidiRegionView*>(rv);
@@ -413,7 +413,7 @@ StepEditor::step_edit_bar_sync ()
 	}
 
 	framepos_t fpos = step_edit_region_view->region_beats_to_absolute_frames (step_edit_beat_pos);
-	fpos = _session->tempo_map().round_to_bar (fpos, RoundUpAlways).frame;
+	fpos = _session->tempo_map().round_to_bar (fpos, RoundUpAlways).frames;
 	step_edit_beat_pos = step_edit_region_view->region_frames_to_region_beats (fpos - step_edit_region->position()).round_up_to_beat();
 	step_edit_region_view->move_step_edit_cursor (step_edit_beat_pos);
 }

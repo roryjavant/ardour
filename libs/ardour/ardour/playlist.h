@@ -142,19 +142,19 @@ public:
 	void get_region_list_equivalent_regions (boost::shared_ptr<Region>, std::vector<boost::shared_ptr<Region> >&);
 	void get_source_equivalent_regions (boost::shared_ptr<Region>, std::vector<boost::shared_ptr<Region> >&);
 	void replace_region (boost::shared_ptr<Region> old, boost::shared_ptr<Region> newr, const AudioMusic& pos);
-	void split_region (boost::shared_ptr<Region>, const MusicFrame& position);
-	void split (const MusicFrame& at);
+	void split_region (boost::shared_ptr<Region>, const AudioMusic& position);
+	void split (const AudioMusic& at);
 	void shift (framepos_t at, frameoffset_t distance, bool move_intersected, bool ignore_music_glue);
 	void partition (const AudioMusic& start, const AudioMusic& end, bool cut = false);
 	void duplicate (boost::shared_ptr<Region>, const AudioMusic&, float times);
 	void duplicate (boost::shared_ptr<Region>, const AudioMusic&, const AudioMusic& gap, float times);
 	void duplicate_until (boost::shared_ptr<Region>, const AudioMusic&, const AudioMusic& gap, const AudioMusic& end);
-	void duplicate_range (MusicFrameRange&, float times);
-	void duplicate_ranges (std::list<MusicFrameRange>&, float times);
+	void duplicate_range (AudioMusicRange&, float times);
+	void duplicate_ranges (std::list<AudioMusicRange>&, float times);
 	void nudge_after (framepos_t start, framecnt_t distance, bool forwards);
 	boost::shared_ptr<Region> combine (const RegionList&);
 	void uncombine (boost::shared_ptr<Region>);
-	void fade_range (std::list<MusicFrameRange>&);
+	void fade_range (std::list<AudioMusicRange>&);
 
 	void shuffle (boost::shared_ptr<Region>, int dir);
 	void ripple (const AudioMusic& at, AudioMusic distance, RegionList *exclude);
@@ -167,8 +167,8 @@ public:
 
 	void update_after_tempo_map_change ();
 
-	boost::shared_ptr<Playlist> cut  (std::list<MusicFrameRange>&, bool result_is_hidden = true);
-	boost::shared_ptr<Playlist> copy (std::list<MusicFrameRange>&, bool result_is_hidden = true);
+	boost::shared_ptr<Playlist> cut  (std::list<AudioMusicRange>&, bool result_is_hidden = true);
+	boost::shared_ptr<Playlist> copy (std::list<AudioMusicRange>&, bool result_is_hidden = true);
 	int                         paste (boost::shared_ptr<Playlist>, const AudioMusic& position, float times);
 
 	const RegionListProperty& region_list_property () const { return regions; }
@@ -382,17 +382,17 @@ public:
 
 	std::pair<AudioMusic, AudioMusic> _get_extent() const;
 
-	boost::shared_ptr<Playlist> cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(MusicFrame&, MusicFrame&, bool),
-					      std::list<MusicFrameRange>& ranges, bool result_is_hidden);
-	boost::shared_ptr<Playlist> cut (MusicFrame& start, MusicFrame& end, bool result_is_hidden);
-	boost::shared_ptr<Playlist> copy (MusicFrame& start, MusicFrame& end, bool result_is_hidden);
+	boost::shared_ptr<Playlist> cut_copy (boost::shared_ptr<Playlist> (Playlist::*pmf)(const AudioMusic&, const AudioMusic&, bool),
+					      std::list<AudioMusicRange>& ranges, bool result_is_hidden);
+	boost::shared_ptr<Playlist> cut (const AudioMusic& start, const AudioMusic& end, bool result_is_hidden);
+	boost::shared_ptr<Playlist> copy (const AudioMusic& start, const AudioMusic& end, bool result_is_hidden);
 
 	void relayer ();
 
 	void begin_undo ();
 	void end_undo ();
 
-	virtual void _split_region (boost::shared_ptr<Region>, const MusicFrame& position);
+	virtual void _split_region (boost::shared_ptr<Region>, const AudioMusic& position);
 
 	typedef std::pair<boost::shared_ptr<Region>, boost::shared_ptr<Region> > TwoRegions;
 

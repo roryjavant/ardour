@@ -403,7 +403,7 @@ Editor::draw_measures (std::vector<ARDOUR::TempoMap::BBTPoint>& grid)
 }
 
 void
-Editor::mouse_add_new_tempo_event (framepos_t frame)
+Editor::mouse_add_new_tempo_event (const ARDOUR::AudioMusic& where)
 {
 	if (_session == 0) {
 		return;
@@ -412,12 +412,12 @@ Editor::mouse_add_new_tempo_event (framepos_t frame)
 	TempoMap& map(_session->tempo_map());
 
 	begin_reversible_command (_("add tempo mark"));
-	const double pulse = map.exact_qn_at_frame (frame, get_grid_music_divisions (0)) / 4.0;
+	const double pulse = where.qnotes / 4.0;
 
 	if (pulse > 0.0) {
 		XMLNode &before = map.get_state();
 		/* add music-locked ramped (?) tempo using the bpm/note type at frame*/
-		map.add_tempo (map.tempo_at_frame (frame), pulse, 0, MusicTime);
+		map.add_tempo (map.tempo_at_frame (where.frames), pulse, 0, MusicTime);
 
 		XMLNode &after = map.get_state();
 		_session->add_command(new MementoCommand<TempoMap>(map, &before, &after));
@@ -428,7 +428,7 @@ Editor::mouse_add_new_tempo_event (framepos_t frame)
 }
 
 void
-Editor::mouse_add_new_meter_event (framepos_t frame)
+Editor::mouse_add_new_meter_event (const ARDOUR::AudioMusic& where)
 {
 	if (_session == 0) {
 		return;
@@ -436,7 +436,7 @@ Editor::mouse_add_new_meter_event (framepos_t frame)
 
 
 	TempoMap& map(_session->tempo_map());
-	MeterDialog meter_dialog (map, frame, _("add"));
+	MeterDialog meter_dialog (map, where.frames, _("add"));
 
 	switch (meter_dialog.run ()) {
 	case RESPONSE_ACCEPT:

@@ -189,7 +189,7 @@ class LIBARDOUR_API AudioRegion : public Region
 	AudioRegion (boost::shared_ptr<AudioSource>);
 	AudioRegion (const SourceList &);
 	AudioRegion (boost::shared_ptr<const AudioRegion>);
-	AudioRegion (boost::shared_ptr<const AudioRegion>, ARDOUR::MusicFrame offset);
+	AudioRegion (boost::shared_ptr<const AudioRegion>, ARDOUR::AudioMusic offset);
 	AudioRegion (boost::shared_ptr<const AudioRegion>, const SourceList&);
 	AudioRegion (SourceList &);
 

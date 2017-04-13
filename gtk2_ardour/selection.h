@@ -128,8 +128,8 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 	void set (RegionView*, bool also_clear_tracks = true);
 	void set (MidiRegionView*);
 	void set (std::vector<RegionView*>&);
-	long set (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
-	void set_preserving_all_ranges (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
+	long set (ARDOUR::AudioMusic, ARDOUR::AudioMusic);
+	void set_preserving_all_ranges (ARDOUR::AudioMusic, ARDOUR::AudioMusic);
 	void set (boost::shared_ptr<Evoral::ControlList>);
 	void set (boost::shared_ptr<ARDOUR::Playlist>);
 	void set (const std::list<boost::shared_ptr<ARDOUR::Playlist> >&);
@@ -144,7 +144,7 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 	void toggle (MidiRegionView*);
 	void toggle (MidiCutBuffer*);
 	void toggle (std::vector<RegionView*>&);
-	long toggle (framepos_t, framepos_t);
+	long toggle (const ARDOUR::AudioMusic&, const ARDOUR::AudioMusic&);
 	void toggle (ARDOUR::AutomationList*);
 	void toggle (boost::shared_ptr<ARDOUR::Playlist>);
 	void toggle (const std::list<boost::shared_ptr<ARDOUR::Playlist> >&);
@@ -159,7 +159,7 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 	void add (MidiRegionView*);
 	void add (MidiCutBuffer*);
 	void add (std::vector<RegionView*>&);
-	long add (ARDOUR::MusicFrame, ARDOUR::MusicFrame);
+	long add (ARDOUR::AudioMusic, ARDOUR::AudioMusic);
 	void add (boost::shared_ptr<Evoral::ControlList>);
 	void add (boost::shared_ptr<ARDOUR::Playlist>);
 	void add (const std::list<boost::shared_ptr<ARDOUR::Playlist> >&);
@@ -186,9 +186,9 @@ class Selection : public sigc::trackable, public PBD::ScopedConnectionList
 
 	void remove_regions (TimeAxisView *);
 
-        void move_time (framecnt_t);
+        void move_time (const ARDOUR::AudioMusic&);
 
-	void replace (uint32_t time_index, ARDOUR::MusicFrame start, ARDOUR::MusicFrame end);
+	void replace (uint32_t time_index, ARDOUR::AudioMusic start, ARDOUR::AudioMusic end);
 
 /*
  * A note about items in an editing Selection:

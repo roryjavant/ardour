@@ -476,11 +476,11 @@ MiniTimeline::render (Cairo::RefPtr<Cairo::Context> const& ctx, cairo_rectangle_
 	const Locations::LocationList& ll (_session->locations ()->list ());
 	for (Locations::LocationList::const_iterator l = ll.begin(); l != ll.end(); ++l) {
 		if ((*l)->is_session_range ()) {
-			framepos_t when = (*l)->start ();
+			framepos_t when = (*l)->start ().frames;
 			if (when >= lmin && when <= lmax) {
 				lm.push_back (LocationMarker(_("start"), when));
 			}
-			when = (*l)->end ();
+			when = (*l)->end ().frames;
 			if (when >= lmin && when <= lmax) {
 				lm.push_back (LocationMarker(_("end"), when));
 			}
@@ -491,7 +491,7 @@ MiniTimeline::render (Cairo::RefPtr<Cairo::Context> const& ctx, cairo_rectangle_
 			continue;
 		}
 
-		framepos_t when = (*l)->start ();
+		framepos_t when = (*l)->start ().frames;
 		if (when < lmin || when > lmax) {
 			continue;
 		}

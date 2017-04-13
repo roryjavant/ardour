@@ -64,7 +64,7 @@ StripSilence::run (boost::shared_ptr<Region> r, Progress* progress)
 
         const AudioIntervalResult& silence = sm->second;
 
-	if (silence.size () == 1 && silence.front().first == 0 && silence.front().second == region->length() - 1) {
+	if (silence.size () == 1 && silence.front().first.frames == 0 && silence.front().second == region->length_am()) {
 		/* the region is all silence, so just return with nothing */
 		return 0;
 	}
@@ -80,8 +80,8 @@ StripSilence::run (boost::shared_ptr<Region> r, Progress* progress)
 
 	/* Add the possible audible section at the start of the region */
 	AudioIntervalResult::const_iterator first_silence = silence.begin ();
-	if (first_silence->first != region->start()) {
-		audible.push_back (std::make_pair (r->start(), first_silence->first));
+	if (first_silence->first != region->start_am()) {
+		audible.push_back (std::make_pair (r->start_am(), first_silence->first));
 	}
 
 	/* Add audible sections in the middle of the region */
@@ -98,10 +98,10 @@ StripSilence::run (boost::shared_ptr<Region> r, Progress* progress)
 	AudioIntervalResult::const_iterator last_silence = silence.end ();
 	--last_silence;
 
-	frameoffset_t const end_of_region = r->start() + r->length();
+	AudioMusic const end_of_region = r->start_am() + r->length_am();
 
-	if (last_silence->second < end_of_region - 1) {
-		audible.push_back (std::make_pair (last_silence->second, end_of_region - 1));
+	if (last_silence->second < end_of_region) {
+		audible.push_back (std::make_pair (last_silence->second, end_of_region));
 	}
 
 	int n = 0;
@@ -112,16 +112,16 @@ StripSilence::run (boost::shared_ptr<Region> r, Progress* progress)
 		PBD::PropertyList plist;
 		boost::shared_ptr<AudioRegion> copy;
 
-		plist.add (Properties::length, i->second - i->first);
-		plist.add (Properties::position, r->position() + (i->first - r->start()));
+		plist.add (Properties::length, i->second.frames - i->first.frames);
+		plist.add (Properties::position, r->position() + (i->first - r->start_am()).frames);
 
 		copy = boost::dynamic_pointer_cast<AudioRegion> (
-			RegionFactory::create (region, MusicFrame (i->first - r->start(), 0), plist)
+			RegionFactory::create (region, i->first - r->start_am(), plist)
 			);
 
 		copy->set_name (RegionFactory::new_region_name (region->name ()));
 
-		framecnt_t const f = std::min (_fade_length, (i->second - i->first) / 2);
+		framecnt_t const f = std::min (_fade_length, (i->second.frames - i->first.frames) / 2);
 
 		if (f > 0) {
 			copy->set_fade_in_active (true);

@@ -3998,19 +3998,19 @@ TempoMap::bbt_duration_at (framepos_t pos, const BBT_Time& bbt, int dir)
 	return 0;
 }
 
-MusicFrame
+AudioMusic
 TempoMap::round_to_bar (framepos_t fr, RoundMode dir)
 {
 	return round_to_type (fr, dir, Bar);
 }
 
-MusicFrame
+AudioMusic
 TempoMap::round_to_beat (framepos_t fr, RoundMode dir)
 {
 	return round_to_type (fr, dir, Beat);
 }
 
-MusicFrame
+AudioMusic
 TempoMap::round_to_quarter_note_subdivision (framepos_t fr, int sub_num, RoundMode dir)
 {
 	Glib::Threads::RWLock::ReaderLock lm (lock);
@@ -4091,7 +4091,7 @@ TempoMap::round_to_quarter_note_subdivision (framepos_t fr, int sub_num, RoundMo
 			if (rem > ticks) {
 				if (beats == 0) {
 					/* can't go backwards past zero, so ... */
-					return MusicFrame (0, 0);
+					return AudioMusic (0, 0.0);
 				}
 				/* step back to previous beat */
 				--beats;
@@ -4106,25 +4106,23 @@ TempoMap::round_to_quarter_note_subdivision (framepos_t fr, int sub_num, RoundMo
 		}
 	}
 
-	MusicFrame ret (0, 0);
-	ret.frame = frame_at_minute (minute_at_pulse_locked (_metrics, (beats + (ticks / BBT_Time::ticks_per_beat)) / 4.0));
-	ret.division = sub_num;
+	double const qnotes = beats + (ticks / BBT_Time::ticks_per_beat);
+	framepos_t const frames = frame_at_minute (minute_at_pulse_locked (_metrics, qnotes / 4.0));
+	AudioMusic ret = AudioMusic (frames, qnotes);
 
 	return ret;
 }
 
-MusicFrame
+AudioMusic
 TempoMap::round_to_type (framepos_t frame, RoundMode dir, BBTPointType type)
 {
 	Glib::Threads::RWLock::ReaderLock lm (lock);
 	const double minute = minute_at_frame (frame);
 	const double beat_at_framepos = max (0.0, beat_at_minute_locked (_metrics, minute));
 	BBT_Time bbt (bbt_at_beat_locked (_metrics, beat_at_framepos));
-	MusicFrame ret (0, 0);
 
 	switch (type) {
 	case Bar:
-		ret.division = -1;
 
 		if (dir < 0) {
 			/* find bar previous to 'frame' */
@@ -4133,9 +4131,10 @@ TempoMap::round_to_type (framepos_t frame, RoundMode dir, BBTPointType type)
 			bbt.beats = 1;
 			bbt.ticks = 0;
 
-			ret.frame = frame_at_minute (minute_at_bbt_locked (_metrics, bbt));
+			double const qnote = pulse_at_bbt_locked (_metrics, bbt) * 4.0;
+			framepos_t const frame = frame_at_minute (minute_at_pulse_locked (_metrics, qnote / 4.0));
 
-			return ret;
+			return AudioMusic (qnote, frame);
 
 		} else if (dir > 0) {
 			/* find bar following 'frame' */
@@ -4143,52 +4142,56 @@ TempoMap::round_to_type (framepos_t frame, RoundMode dir, BBTPointType type)
 			bbt.beats = 1;
 			bbt.ticks = 0;
 
-			ret.frame = frame_at_minute (minute_at_bbt_locked (_metrics, bbt));
+			double const qnote = pulse_at_bbt_locked (_metrics, bbt) * 4.0;
+			framepos_t const frame = frame_at_minute (minute_at_pulse_locked (_metrics, qnote / 4.0));
 
-			return ret;
+			return AudioMusic (qnote, frame);
 		} else {
 			/* true rounding: find nearest bar */
-			framepos_t raw_ft = frame_at_minute (minute_at_bbt_locked (_metrics, bbt));
+			double const raw_qnote  = pulse_at_bbt_locked (_metrics, bbt) * 4.0;
+			framepos_t const raw_ft = frame_at_minute (minute_at_pulse_locked (_metrics, raw_qnote / 4.0));
 			bbt.beats = 1;
 			bbt.ticks = 0;
-			framepos_t prev_ft = frame_at_minute (minute_at_bbt_locked (_metrics, bbt));
+			double const prev_ft_qnote = pulse_at_bbt_locked (_metrics, bbt) * 4.0;
+			framepos_t const prev_ft = frame_at_minute (minute_at_pulse_locked (_metrics, prev_ft_qnote / 4.0));
 			++bbt.bars;
-			framepos_t next_ft = frame_at_minute (minute_at_bbt_locked (_metrics, bbt));
+			double const next_ft_qnote = pulse_at_bbt_locked (_metrics, bbt) * 4.0;
+			framepos_t const next_ft = frame_at_minute (minute_at_pulse_locked (_metrics, next_ft_qnote / 4.0));
 
 			if ((raw_ft - prev_ft) > (next_ft - prev_ft) / 2) {
-				ret.frame = next_ft;
 
-				return ret;
+				return AudioMusic (next_ft, next_ft_qnote);
 			} else {
 				--bbt.bars;
-				ret.frame = prev_ft;
 
-				return ret;
+				return AudioMusic (prev_ft, prev_ft_qnote);
 			}
 		}
 
 		break;
 
 	case Beat:
-		ret.division = 1;
 
 		if (dir < 0) {
-			ret.frame = frame_at_minute (minute_at_beat_locked (_metrics, floor (beat_at_framepos)));
+			double const qnote = pulse_at_beat_locked (_metrics, floor (beat_at_framepos)) * 4.0;
+			framepos_t const frame = frame_at_minute (minute_at_pulse_locked (_metrics, qnote / 4.0));
 
-			return ret;
+			return AudioMusic (frame, qnote);
 		} else if (dir > 0) {
-			ret.frame = frame_at_minute (minute_at_beat_locked (_metrics, ceil (beat_at_framepos)));
+			double const qnote = pulse_at_beat_locked (_metrics, ceil (beat_at_framepos)) * 4.0;
+			framepos_t const frame = frame_at_minute (minute_at_pulse_locked (_metrics, qnote / 4.0));
 
-			return ret;
+			return AudioMusic (frame, qnote);;
 		} else {
-			ret.frame = frame_at_minute (minute_at_beat_locked (_metrics, floor (beat_at_framepos + 0.5)));
+			double const qnote = pulse_at_beat_locked (_metrics, floor (beat_at_framepos + 0.5)) * 4.0;
+			framepos_t const frame = frame_at_minute (minute_at_pulse_locked (_metrics, qnote / 4.0));
 
-			return ret;
+			return AudioMusic (frame, qnote);;;
 		}
 		break;
 	}
 
-	return MusicFrame (0, 0);
+	return AudioMusic (0, 0.0);
 }
 
 void

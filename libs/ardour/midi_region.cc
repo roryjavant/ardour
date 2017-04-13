@@ -58,7 +58,6 @@ MidiRegion::MidiRegion (const SourceList& srcs)
 	, _ignore_shift (false)
 {
 	_length_qn = midi_source(0)->length_beats().to_double();
-	//std::cout << std::setprecision (17) << "mr source ctor start beats : " << _start_qn << " qn pos : " << _session.tempo_map().quarter_note_at_frame (_position)  << " position : " << _position << " length beats : " << _length_qn << " length : " << _length << std::endl;
 	midi_source(0)->ModelChanged.connect_same_thread (_source_connection, boost::bind (&MidiRegion::model_changed, this));
 	model_changed ();
 	assert(_name.val().find("/") == string::npos);
@@ -77,20 +76,17 @@ MidiRegion::MidiRegion (boost::shared_ptr<const MidiRegion> other)
 }
 
 /** Create a new MidiRegion that is part of an existing one */
-MidiRegion::MidiRegion (boost::shared_ptr<const MidiRegion> other, MusicFrame offset)
+MidiRegion::MidiRegion (boost::shared_ptr<const MidiRegion> other, AudioMusic offset)
 	: Region (other, offset)
 	, _ignore_shift (false)
 {
 
-	const double offset_qn = _session.tempo_map().exact_qn_at_frame (other->_position + offset.frame, offset.division)
-		- other->_quarter_note;
-
-	if (offset.frame != 0) {
-		_start_qn = other->_start_qn + offset_qn;
-		_length_qn = other->_length_qn - offset_qn;
+	if (offset.frames != 0) {
+		_start_qn = other->_start_qn + offset.qnotes;
+		_length_qn = other->_length_qn - offset.qnotes;
 	}
 
-	std::cout << std::setprecision (17) << "mr copy off music ctor start beats : " << _start_qn << " length beats : " << _length_qn <<  " qn pos : " << _quarter_note << " beat : " << _beat << " other qn  : " << other->_quarter_note << " oth start beats  : " << other->_start_qn << " other length beats : " << other->_length_qn << " offset qn : " << offset_qn << " other beat : " << other->beat() << " start : " << _start << std::endl;
+	std::cout << std::setprecision (17) << "mr copy off music ctor start beats : " << _start_qn << " length beats : " << _length_qn <<  " qn pos : " << _quarter_note << " beat : " << _beat << " other qn  : " << other->_quarter_note << " oth start beats  : " << other->_start_qn << " other length beats : " << other->_length_qn << " offset qn : " << offset.qnotes << " other beat : " << other->beat() << " start : " << _start << std::endl;
 
 	assert(_name.val().find("/") == string::npos);
 	midi_source(0)->ModelChanged.connect_same_thread (_source_connection, boost::bind (&MidiRegion::model_changed, this));

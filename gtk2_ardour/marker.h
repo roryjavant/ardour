@@ -61,7 +61,7 @@ class ArdourMarker : public sigc::trackable
 
 
 	ArdourMarker (PublicEditor& editor, ArdourCanvas::Container &, guint32 rgba, const std::string& text, Type,
-		framepos_t frame = 0, bool handle_events = true);
+		      const ARDOUR::AudioMusic& pos = ARDOUR::AudioMusic (0, 0.0), bool handle_events = true);
 
 	virtual ~ArdourMarker ();
 

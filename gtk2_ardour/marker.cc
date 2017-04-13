@@ -64,7 +64,7 @@ void ArdourMarker::setup_sizes(const double timebar_height)
 }
 
 ArdourMarker::ArdourMarker (PublicEditor& ed, ArdourCanvas::Container& parent, guint32 rgba, const string& annotation,
-		Type type, framepos_t frame, bool handle_events)
+		Type type, const AudioMusic& pos, bool handle_events)
 
 	: editor (ed)
 	, _parent (&parent)
@@ -255,8 +255,8 @@ ArdourMarker::ArdourMarker (PublicEditor& ed, ArdourCanvas::Container& parent, g
 
 	}
 
-	frame_position = frame;
-	unit_position = editor.sample_to_pixel (frame);
+	frame_position = pos.frames;
+	unit_position = editor.sample_to_pixel (frame_position);
 	unit_position -= _shift;
 
 	group = new ArdourCanvas::Container (&parent, ArdourCanvas::Duple (unit_position, 1));
@@ -550,7 +550,7 @@ ArdourMarker::set_right_label_limit (double p)
 
 TempoMarker::TempoMarker (PublicEditor& editor, ArdourCanvas::Container& parent, guint32 rgba, const string& text,
 			  ARDOUR::TempoSection& temp)
-	: ArdourMarker (editor, parent, rgba, text, Tempo, temp.frame(), false),
+	: ArdourMarker (editor, parent, rgba, text, Tempo, AudioMusic (temp.frame(), temp.pulse() * 4.0), false),
 	  _tempo (temp)
 {
 	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_tempo_marker_event), group, this));
@@ -578,13 +578,14 @@ TempoMarker::update_height_mark (const double ratio)
 	points->push_back (ArdourCanvas::Duple ( M3, top));
 
 	mark->set (*points);
+
 }
 
 /***********************************************************************/
 
 MeterMarker::MeterMarker (PublicEditor& editor, ArdourCanvas::Container& parent, guint32 rgba, const string& text,
 			  ARDOUR::MeterSection& m)
-	: ArdourMarker (editor, parent, rgba, text, Meter, m.frame(), false),
+	: ArdourMarker (editor, parent, rgba, text, Meter, AudioMusic (m.frame(), m.pulse() * 4.0), false),
 	  _meter (m)
 {
 	group->Event.connect (sigc::bind (sigc::mem_fun (editor, &PublicEditor::canvas_meter_marker_event), group, this));

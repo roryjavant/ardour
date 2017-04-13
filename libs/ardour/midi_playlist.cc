@@ -384,14 +384,14 @@ MidiPlaylist::destroy_region (boost::shared_ptr<Region> region)
 	return changed;
 }
 void
-MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame& playlist_position)
+MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const AudioMusic& playlist_position)
 {
-	if (!region->covers (playlist_position.frame)) {
+	if (!region->covers (playlist_position.frames)) {
 		return;
 	}
 
-	if (region->position() == playlist_position.frame ||
-	    region->last_frame() == playlist_position.frame) {
+	if (region->position_am() == playlist_position ||
+	    region->last_frame() == playlist_position.frames) {
 		return;
 	}
 
@@ -406,9 +406,9 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 
 	string before_name;
 	string after_name;
-	const double before_qn = _session.tempo_map().exact_qn_at_frame (playlist_position.frame, playlist_position.division) - region->quarter_note();
+	const double before_qn = playlist_position.qnotes - region->quarter_note();
 	const double after_qn = mr->length_qn() - before_qn;
-	AudioMusic before (playlist_position.frame - region->position(), before_qn);
+	AudioMusic before = playlist_position - region->position_am();
 	AudioMusic after (region->length() - before.frames, region->length_qn() - before_qn);
 
 	/* split doesn't change anything about length, so don't try to splice */
@@ -431,7 +431,7 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 		   since it supplies that offset to the Region constructor, which
 		   is necessary to get audio region gain envelopes right.
 		*/
-		left = RegionFactory::create (region, MusicFrame (0, 0), plist, true);
+		left = RegionFactory::create (region, AudioMusic (0, 0.0), plist, true);
 	}
 
 	RegionFactory::region_name (after_name, region->name(), false);
@@ -447,10 +447,10 @@ MidiPlaylist::_split_region (boost::shared_ptr<Region> region, const MusicFrame&
 		plist.add (Properties::layer, region->layer ());
 
 		/* same note as above */
-		right = RegionFactory::create (region, MusicFrame (before.frames, playlist_position.division), plist, true);
+		right = RegionFactory::create (region, before, plist, true);
 	}
 	add_region_internal (left, region->position_am());
-	add_region_internal (right, AudioMusic (before.frames, before_qn) + region->position_am());
+	add_region_internal (right, before + region->position_am());
 
 	remove_region_internal (region);
 

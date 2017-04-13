@@ -279,7 +279,7 @@ Session::request_play_loop (bool yn, bool change_transport_roll)
 				   to set up position for the new loop. Don't
 				   do this if we're rolling already.
 				*/
-				request_locate (location->start(), false);
+				request_locate (location->start().frames, false);
 			}
 		}
 	} else {
@@ -292,7 +292,7 @@ Session::request_play_loop (bool yn, bool change_transport_roll)
 }
 
 void
-Session::request_play_range (list<MusicFrameRange>* range, bool leave_rolling)
+Session::request_play_range (list<AudioMusicRange>* range, bool leave_rolling)
 {
 	SessionEvent* ev = new SessionEvent (SessionEvent::SetPlayAudioRange, SessionEvent::Add, SessionEvent::Immediate, 0, (leave_rolling ? 1.0 : 0.0));
 	if (range) {
@@ -580,15 +580,15 @@ Session::non_realtime_locate ()
 
 		Location *loc  = _locations->auto_loop_location();
 
-		if (!loc || (_transport_frame < loc->start() || _transport_frame >= loc->end())) {
+		if (!loc || (_transport_frame < loc->start().frames || _transport_frame >= loc->end().frames)) {
 			/* jumped out of loop range: stop tracks from looping,
 			   but leave loop (mode) enabled.
 			 */
 			set_track_loop (false);
 
 		} else if (loc && Config->get_seamless_loop() &&
-                   ((loc->start() <= _transport_frame) ||
-                   (loc->end() > _transport_frame) ) ) {
+                   ((loc->start().frames <= _transport_frame) ||
+                   (loc->end().frames > _transport_frame) ) ) {
 
 			/* jumping to start of loop. This  might have been done before but it is
 			 * idempotent and cheap. Doing it here ensures that when we start playback
@@ -1080,7 +1080,7 @@ Session::set_play_loop (bool yn, double speed)
 			framecnt_t dcl;
 			auto_loop_declick_range (loc, dcp, dcl);
 			merge_event (new SessionEvent (SessionEvent::AutoLoopDeclick, SessionEvent::Replace, dcp, dcl, 0.0f));
-			merge_event (new SessionEvent (SessionEvent::AutoLoop, SessionEvent::Replace, loc->end(), loc->start(), 0.0f));
+			merge_event (new SessionEvent (SessionEvent::AutoLoop, SessionEvent::Replace, loc->end().frames, loc->start().frames, 0.0f));
 
 			/* if requested to roll, locate to start of loop and
 			 * roll but ONLY if we're not already rolling.
@@ -1093,11 +1093,11 @@ Session::set_play_loop (bool yn, double speed)
 				   rolling, do not locate to loop start.
 				*/
 				if (!transport_rolling() && (speed != 0.0)) {
-					start_locate (loc->start(), true, true, false, true);
+					start_locate (loc->start().frames, true, true, false, true);
 				}
 			} else {
 				if (speed != 0.0) {
-					start_locate (loc->start(), true, true, false, true);
+					start_locate (loc->start().frames, true, true, false, true);
 				}
 			}
 		}
@@ -1302,7 +1302,7 @@ Session::locate (framepos_t target_frame, bool with_roll, bool with_flush, bool 
 		Location* al = _locations->auto_loop_location();
 
 		if (al) {
-			if (_transport_frame < al->start() || _transport_frame >= al->end()) {
+			if (_transport_frame < al->start().frames || _transport_frame >= al->end().frames) {
 
 				// located outside the loop: cancel looping directly, this is called from event handling context
 
@@ -1320,13 +1320,13 @@ Session::locate (framepos_t target_frame, bool with_roll, bool with_flush, bool 
 					}
 				}
 
-			} else if (_transport_frame == al->start()) {
+			} else if (_transport_frame == al->start().frames) {
 
 				// located to start of loop - this is looping, basically
 
 				if (!have_looped) {
 					/* first time */
-					if (_last_roll_location != al->start()) {
+					if (_last_roll_location != al->start().frames) {
 						/* didn't start at loop start - playback must have
 						 * started before loop since we've now hit the loop
 						 * end.
@@ -1445,7 +1445,7 @@ Session::set_transport_speed (double speed, framepos_t destination_frame, bool a
 			Location *location = _locations->auto_loop_location();
 
 			if (location != 0) {
-				if (_transport_frame != location->start()) {
+				if (_transport_frame != location->start().frames) {
 
 					if (Config->get_seamless_loop()) {
 						/* force tracks to do their thing */
@@ -1454,7 +1454,7 @@ Session::set_transport_speed (double speed, framepos_t destination_frame, bool a
 
 					/* jump to start and then roll from there */
 
-					request_locate (location->start(), true);
+					request_locate (location->start().frames, true);
 					return;
 				}
 			}
@@ -1959,7 +1959,7 @@ Session::unset_play_range ()
 }
 
 void
-Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
+Session::set_play_range (list<AudioMusicRange>& range, bool leave_rolling)
 {
 	SessionEvent* ev;
 
@@ -1983,12 +1983,12 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 	/* cancel loop play */
 	unset_play_loop ();
 
-	list<MusicFrameRange>::size_type sz = range.size();
+	list<AudioMusicRange>::size_type sz = range.size();
 
 	if (sz > 1) {
 
-		list<MusicFrameRange>::iterator i = range.begin();
-		list<MusicFrameRange>::iterator next;
+		list<AudioMusicRange>::iterator i = range.begin();
+		list<AudioMusicRange>::iterator next;
 
 		while (i != range.end()) {
 
@@ -1998,7 +1998,7 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 			/* locating/stopping is subject to delays for declicking.
 			 */
 
-			framepos_t requested_frame = i->end.frame;
+			framepos_t requested_frame = i->end.frames;
 
 			if (requested_frame > current_block_size) {
 				requested_frame -= current_block_size;
@@ -2009,7 +2009,7 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 			if (next == range.end()) {
 				ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, requested_frame, 0, 0.0f);
 			} else {
-				ev = new SessionEvent (SessionEvent::RangeLocate, SessionEvent::Add, requested_frame, (*next).start.frame, 0.0f);
+				ev = new SessionEvent (SessionEvent::RangeLocate, SessionEvent::Add, requested_frame, (*next).start.frames, 0.0f);
 			}
 
 			merge_event (ev);
@@ -2019,7 +2019,7 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 
 	} else if (sz == 1) {
 
-		ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, range.front().end.frame, 0, 0.0f);
+		ev = new SessionEvent (SessionEvent::RangeStop, SessionEvent::Add, range.front().end.frames, 0, 0.0f);
 		merge_event (ev);
 
 	}
@@ -2030,7 +2030,7 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 
 	/* now start rolling at the right place */
 
-	ev = new SessionEvent (SessionEvent::LocateRoll, SessionEvent::Add, SessionEvent::Immediate, range.front().start.frame, 0.0f, false);
+	ev = new SessionEvent (SessionEvent::LocateRoll, SessionEvent::Add, SessionEvent::Immediate, range.front().start.frames, 0.0f, false);
 	merge_event (ev);
 
 	DEBUG_TRACE (DEBUG::Transport, string_compose ("send TSC5 with speed = %1\n", _transport_speed));
@@ -2040,8 +2040,8 @@ Session::set_play_range (list<MusicFrameRange>& range, bool leave_rolling)
 void
 Session::request_bounded_roll (framepos_t start, framepos_t end)
 {
-	MusicFrameRange ar (start, end, 0);
-	list<MusicFrameRange> lar;
+	AudioMusicRange ar (audiomusic_at_musicframe (start), audiomusic_at_musicframe (end), 0);
+	list<AudioMusicRange> lar;
 
 	lar.push_back (ar);
 	request_play_range (&lar, true);

@@ -461,7 +461,7 @@ Editor::drop_paths (const RefPtr<Gdk::DragContext>& context,
 		ev.button.x = x;
 		ev.button.y = y;
 
-		MusicFrame when (window_event_sample (&ev, 0, &cy), 0);
+		AudioMusic when (window_event_sample (&ev, 0, &cy), 0.0);
 		snap_to (when);
 
 		bool copy = ((context->get_actions() & (Gdk::ACTION_COPY | Gdk::ACTION_LINK | Gdk::ACTION_MOVE)) == Gdk::ACTION_COPY);
@@ -470,9 +470,9 @@ Editor::drop_paths (const RefPtr<Gdk::DragContext>& context,
 		   the main event loop with GTK/Quartz. Since import/embed wants
 		   to push up a progress dialog, defer all this till we go idle.
 		*/
-		Glib::signal_idle().connect (sigc::bind (sigc::mem_fun (*this, &Editor::idle_drop_paths), paths, when.frame, cy, copy));
+		Glib::signal_idle().connect (sigc::bind (sigc::mem_fun (*this, &Editor::idle_drop_paths), paths, when.frames, cy, copy));
 #else
-		drop_paths_part_two (paths, when.frame, cy, copy);
+		drop_paths_part_two (paths, when.frames, cy, copy);
 #endif
 	}
 

@@ -255,7 +255,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	/* selection */
 
 	Selection& get_selection() const { return *selection; }
-	bool get_selection_extents (framepos_t &start, framepos_t &end) const;  // the time extents of the current selection, whether Range, Region(s), Control Points, or Notes
+	bool get_selection_extents (ARDOUR::AudioMusic& start, ARDOUR::AudioMusic& end) const;  // the time extents of the current selection, whether Range, Region(s), Control Points, or Notes
 	Selection& get_cut_buffer() const { return *cut_buffer; }
 
 	void set_selection (std::list<Selectable*>, Selection::Operation);
@@ -272,7 +272,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void invert_selection_in_track ();
 	void invert_selection ();
 	void deselect_all ();
-	long select_range (framepos_t, framepos_t);
+	long select_range (const ARDOUR::AudioMusic&, const ARDOUR::AudioMusic&);
 
 	void set_selected_regionview_from_region_list (boost::shared_ptr<ARDOUR::Region> region, Selection::Operation op = Selection::Set);
 
@@ -458,18 +458,18 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	TrackViewList axis_views_from_routes (boost::shared_ptr<ARDOUR::RouteList>) const;
 
-	void snap_to (ARDOUR::MusicFrame& first,
+	void snap_to (ARDOUR::AudioMusic& first,
 	              ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	              bool                for_mark  = false,
 		      bool                ensure_snap = false);
 
-	void snap_to_with_modifier (ARDOUR::MusicFrame& first,
+	void snap_to_with_modifier (ARDOUR::AudioMusic& first,
 	                            GdkEvent const *    ev,
 	                            ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	                            bool                for_mark  = false);
 
-	void snap_to (ARDOUR::MusicFrame& first,
-	              ARDOUR::MusicFrame& last,
+	void snap_to (ARDOUR::AudioMusic& first,
+	              ARDOUR::AudioMusic& last,
 	              ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	              bool                for_mark  = false);
 
@@ -547,13 +547,13 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void metric_get_minsec (std::vector<ArdourCanvas::Ruler::Mark>&, gdouble, gdouble, gint);
 
 	/* editing operations that need to be public */
-	void mouse_add_new_marker (framepos_t where, bool is_cd=false);
-	void split_regions_at (ARDOUR::MusicFrame, RegionSelection&, bool snap = true);
+	void mouse_add_new_marker (const ARDOUR::AudioMusic& where, bool is_cd=false);
+	void split_regions_at (ARDOUR::AudioMusic, RegionSelection&, bool snap = true);
 	void split_region_at_points (boost::shared_ptr<ARDOUR::Region>, ARDOUR::AnalysisFeatureList&, bool can_ferret, bool select_new = false);
 	RegionSelection get_regions_from_selection_and_mouse (framepos_t);
 
-	void mouse_add_new_tempo_event (framepos_t where);
-	void mouse_add_new_meter_event (framepos_t where);
+	void mouse_add_new_tempo_event (const ARDOUR::AudioMusic& where);
+	void mouse_add_new_meter_event (const ARDOUR::AudioMusic& where);
 	void edit_tempo_section (ARDOUR::TempoSection*);
 	void edit_meter_section (ARDOUR::MeterSection*);
 
@@ -715,9 +715,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void hide_marker (ArdourCanvas::Item*, GdkEvent*);
 	void clear_marker_display ();
-	void mouse_add_new_range (framepos_t);
-	void mouse_add_new_loop (framepos_t);
-	void mouse_add_new_punch (framepos_t);
+	void mouse_add_new_range (const ARDOUR::AudioMusic&);
+	void mouse_add_new_loop (const ARDOUR::AudioMusic&);
+	void mouse_add_new_punch (const ARDOUR::AudioMusic&);
 	bool choose_new_marker_name(std::string &name);
 	void update_cd_marker_display ();
 	void ensure_cd_marker_updated (LocationMarkers * lam, ARDOUR::Location * location);
@@ -914,7 +914,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void compute_fixed_ruler_scale (); //calculates the RulerScale of the fixed rulers
 	void update_fixed_rulers ();
 	void update_tempo_based_rulers ();
-	void popup_ruler_menu (framepos_t where = 0, ItemType type = RegionItem);
+	void popup_ruler_menu (const ARDOUR::AudioMusic where = ARDOUR::AudioMusic (0, 0.0), ItemType type = RegionItem);
 	void update_ruler_visibility ();
 	void set_ruler_visible (RulerType, bool);
 	void toggle_ruler_visibility (RulerType rt);
@@ -1243,7 +1243,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void lower_region_to_bottom ();
 	void split_region_at_transients ();
 	void crop_region_to_selection ();
-	void crop_region_to (const ARDOUR::MusicFrame& start, const ARDOUR::MusicFrame& end);
+	void crop_region_to (const ARDOUR::AudioMusic& start, const ARDOUR::AudioMusic& end);
 	void set_sync_point (framepos_t, const RegionSelection&);
 	void set_region_sync_position ();
 	void remove_region_sync();
@@ -1482,8 +1482,8 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void set_loop_from_region (bool play);
 
-	void set_loop_range (framepos_t start, framepos_t end, std::string cmd);
-	void set_punch_range (framepos_t start, framepos_t end, std::string cmd);
+	void set_loop_range (const ARDOUR::AudioMusic& start, const ARDOUR::AudioMusic& end, std::string cmd);
+	void set_punch_range (const ARDOUR::AudioMusic& start, const ARDOUR::AudioMusic& end, std::string cmd);
 
 	void toggle_location_at_playhead_cursor ();
 	void add_location_from_playhead_cursor ();
@@ -2004,7 +2004,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void external_edit_region ();
 
 	int write_audio_selection (TimeSelection&);
-	bool write_audio_range (ARDOUR::AudioPlaylist&, const ARDOUR::ChanCount& channels, std::list<ARDOUR::MusicFrameRange>&);
+	bool write_audio_range (ARDOUR::AudioPlaylist&, const ARDOUR::ChanCount& channels, std::list<ARDOUR::AudioMusicRange>&);
 
 	void write_selection ();
 
@@ -2155,7 +2155,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 
 	void selected_marker_moved (ARDOUR::Location*);
 
-	bool get_edit_op_range (ARDOUR::MusicFrame& start, ARDOUR::MusicFrame& end) const;
+	bool get_edit_op_range (ARDOUR::AudioMusic& start, ARDOUR::AudioMusic& end) const;
 
 	void get_regions_at (RegionSelection&, framepos_t where, const TrackViewList& ts) const;
 	void get_regions_after (RegionSelection&, framepos_t where, const TrackViewList& ts) const;
@@ -2172,12 +2172,12 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void select_next_route ();
 	void select_prev_route ();
 
-	void snap_to_internal (ARDOUR::MusicFrame& first,
+	void snap_to_internal (ARDOUR::AudioMusic& first,
 	                       ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	                       bool                for_mark  = false,
 			       bool                ensure_snap = false);
 
-	void timecode_snap_to_internal (ARDOUR::MusicFrame& first,
+	void timecode_snap_to_internal (ARDOUR::AudioMusic& first,
 	                                ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	                                bool                for_mark  = false);
 

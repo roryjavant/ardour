@@ -259,8 +259,8 @@ intptr_t Session::vst_callback (
 				newflags |= kVstTransportCycleActive;
 				Location * looploc = session->locations ()->auto_loop_location ();
 				if (looploc) try {
-					timeinfo->cycleStartPos = session->tempo_map ().quarter_note_at_frame_rt (looploc->start ());
-					timeinfo->cycleEndPos = session->tempo_map ().quarter_note_at_frame_rt (looploc->end ());
+					timeinfo->cycleStartPos = looploc->start().qnotes;
+					timeinfo->cycleEndPos = looploc->end().qnotes;
 
 					newflags |= kVstCyclePosValid;
 				} catch (...) { }

@@ -349,10 +349,10 @@ ExportProfileManager::find_file (std::string const & pattern)
 }
 
 void
-ExportProfileManager::set_selection_range (framepos_t start, framepos_t end)
+ExportProfileManager::set_selection_range (AudioMusic start, AudioMusic end)
 {
 
-	if (start || end) {
+	if (start.frames || end.frames) {
 		selection_range.reset (new Location (session));
 		selection_range->set_name (_("Selection"));
 		selection_range->set (start, end);
@@ -366,7 +366,7 @@ ExportProfileManager::set_selection_range (framepos_t start, framepos_t end)
 }
 
 std::string
-ExportProfileManager::set_single_range (framepos_t start, framepos_t end, string name)
+ExportProfileManager::set_single_range (AudioMusic start, AudioMusic end, string name)
 {
 	single_range_mode = true;
 
@@ -411,7 +411,7 @@ ExportProfileManager::init_timespans (XMLNodeList nodes)
 		ExportTimespanPtr timespan = handler->add_timespan();
 		timespan->set_name (session_range->name());
 		timespan->set_range_id (session_range->id().to_s());
-		timespan->set_range (session_range->start(), session_range->end());
+		timespan->set_range (session_range->start().frames, session_range->end().frames);
 		state->timespans->push_back (timespan);
 		return false;
 	}
@@ -446,7 +446,7 @@ ExportProfileManager::deserialize_timespan (XMLNode & root)
 		ExportTimespanPtr timespan = handler->add_timespan();
 		timespan->set_name (location->name());
 		timespan->set_range_id (location->id().to_s());
-		timespan->set_range (location->start(), location->end());
+		timespan->set_range (location->start().frames, location->end().frames);
 		state->timespans->push_back (timespan);
 	}
 

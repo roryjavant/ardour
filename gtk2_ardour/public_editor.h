@@ -148,7 +148,7 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	 * Snap a value according to the current snap setting.
 	 * ensure_snap overrides SnapOff and magnetic snap
 	 */
-	virtual void snap_to (ARDOUR::MusicFrame& first,
+	virtual void snap_to (ARDOUR::AudioMusic& first,
 	                      ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	                      bool                for_mark  = false,
 			      bool                ensure_snap = false) = 0;
@@ -206,7 +206,7 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual double sample_to_pixel_unrounded (framepos_t frame) const = 0;
 
 	virtual Selection& get_selection () const = 0;
-	virtual bool get_selection_extents (framepos_t &start, framepos_t &end) const = 0;
+	virtual bool get_selection_extents (ARDOUR::AudioMusic& start, ARDOUR::AudioMusic& end) const = 0;
 	virtual Selection& get_cut_buffer () const = 0;
 
 	virtual void set_selection (std::list<Selectable*>, Selection::Operation) = 0;
@@ -224,8 +224,8 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual void set_show_measures (bool yn) = 0;
 	virtual bool show_measures () const = 0;
 	virtual void remove_tracks () = 0;
-	virtual void set_loop_range (framepos_t start, framepos_t end, std::string cmd) = 0;
-	virtual void set_punch_range (framepos_t start, framepos_t end, std::string cmd) = 0;
+	virtual void set_loop_range (const ARDOUR::AudioMusic& start, const ARDOUR::AudioMusic& end, std::string cmd) = 0;
+	virtual void set_punch_range (const ARDOUR::AudioMusic& start, const ARDOUR::AudioMusic& end, std::string cmd) = 0;
 
 	virtual void jump_forward_to_mark () = 0;
 	virtual void jump_backward_to_mark () = 0;
@@ -326,9 +326,9 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual void restore_editing_space () = 0;
 	virtual framepos_t get_preferred_edit_position (Editing::EditIgnoreOption = Editing::EDIT_IGNORE_NONE, bool from_context_menu = false, bool from_outside_canvas = false) = 0;
 	virtual void toggle_meter_updating() = 0;
-	virtual void split_regions_at (ARDOUR::MusicFrame, RegionSelection&, bool snap) = 0;
+	virtual void split_regions_at (ARDOUR::AudioMusic, RegionSelection&, bool snap) = 0;
 	virtual void split_region_at_points (boost::shared_ptr<ARDOUR::Region>, ARDOUR::AnalysisFeatureList&, bool can_ferret, bool select_new = false) = 0;
-	virtual void mouse_add_new_marker (framepos_t where, bool is_cd=false) = 0;
+	virtual void mouse_add_new_marker (const ARDOUR::AudioMusic& where, bool is_cd=false) = 0;
 	virtual void foreach_time_axis_view (sigc::slot<void,TimeAxisView&>) = 0;
 	virtual void add_to_idle_resize (TimeAxisView*, int32_t) = 0;
 	virtual framecnt_t get_nudge_distance (framepos_t pos, framecnt_t& next) = 0;
@@ -455,7 +455,7 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual ARDOUR::Location* find_location_from_marker (ArdourMarker *, bool &) const = 0;
 	virtual ArdourMarker* find_marker_from_location_id (PBD::ID const &, bool) const = 0;
 
-	virtual void snap_to_with_modifier (ARDOUR::MusicFrame& first,
+	virtual void snap_to_with_modifier (ARDOUR::AudioMusic& first,
 	                                    GdkEvent const *    ev,
 	                                    ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
 	                                    bool                for_mark  = false) = 0;
@@ -466,8 +466,8 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual void get_regionviews_by_id (PBD::ID const id, RegionSelection & regions) const = 0;
 	virtual void get_per_region_note_selection (std::list<std::pair<PBD::ID, std::set<boost::shared_ptr<Evoral::Note<Evoral::Beats> > > > >&) const = 0;
 
-	virtual void mouse_add_new_tempo_event (framepos_t where) = 0;
-	virtual void mouse_add_new_meter_event (framepos_t where) = 0;
+	virtual void mouse_add_new_tempo_event (const ARDOUR::AudioMusic& where) = 0;
+	virtual void mouse_add_new_meter_event (const ARDOUR::AudioMusic& where) = 0;
 	virtual void edit_tempo_section (ARDOUR::TempoSection*) = 0;
 	virtual void edit_meter_section (ARDOUR::MeterSection*) = 0;
 

@@ -1500,8 +1500,8 @@ RouteTimeAxisView::fade_range (TimeSelection& selection)
 	float const speed = tr->speed();
 	if (speed != 1.0f) {
 		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = session_frame_to_track_frame((*i).start.frame, speed);
-			(*i).end   = session_frame_to_track_frame((*i).end.frame,   speed);
+			(*i).start = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).start.frames, speed));
+			(*i).end   = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).end.frames,   speed));
 		}
 	}
 
@@ -1535,22 +1535,21 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 	float const speed = tr->speed();
 	if (speed != 1.0f) {
 		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = session_frame_to_track_frame((*i).start.frame, speed);
-			(*i).end   = session_frame_to_track_frame((*i).end.frame,   speed);
+			(*i).start = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).start.frames, speed));
+			(*i).end   = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).end.frames,   speed));
 		}
 	}
 
         playlist->clear_changes ();
         playlist->clear_owned_changes ();
-	AudioMusic const time_length = _session->audiomusic_at_musicframe (time.end_frame())
-		- _session->audiomusic_at_musicframe (time.start());
+	AudioMusic const time_length = time.end_frame() - time.start();
 
 	switch (op) {
 	case Delete:
 		if (playlist->cut (time) != 0) {
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(_session->audiomusic_at_musicframe (time.start())
+				playlist->ripple(time.start()
 						 , AudioMusic (-time_length.frames, -time_length.qnotes)
 						 , NULL);
 			}
@@ -1568,7 +1567,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 			_editor.get_cut_buffer().add (what_we_got);
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(_session->audiomusic_at_musicframe (time.start())
+				playlist->ripple(time.start()
 						 , AudioMusic (-time_length.frames, -time_length.qnotes)
 						 , NULL);
 			}
@@ -1589,7 +1588,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 		if ((what_we_got = playlist->cut (time)) != 0) {
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(_session->audiomusic_at_musicframe (time.start())
+				playlist->ripple(time.start()
 						 , AudioMusic (-time_length.frames, -time_length.qnotes)
 						 , NULL);
 			}

@@ -632,18 +632,18 @@ AutomationTimeAxisView::add_automation_event (GdkEvent* event, framepos_t frame,
 
 	_line->view_to_model_coord (x, y);
 
-	MusicFrame when (frame, 0);
+	AudioMusic when (frame, 0.0);
 	_editor.snap_to_with_modifier (when, event);
 
 	XMLNode& before = list->get_state();
 	std::list<Selectable*> results;
 
-	if (list->editor_add (when.frame, y, with_guard_points)) {
+	if (list->editor_add (when.frames, y, with_guard_points)) {
 		XMLNode& after = list->get_state();
 		_editor.begin_reversible_command (_("add automation event"));
 		_session->add_command (new MementoCommand<ARDOUR::AutomationList> (*list.get (), &before, &after));
 
-		_line->get_selectables (when.frame, when.frame, 0.0, 1.0, results);
+		_line->get_selectables (when.frames, when.frames, 0.0, 1.0, results);
 		_editor.get_selection ().set (results);
 
 		_editor.commit_reversible_command ();
@@ -993,8 +993,8 @@ AutomationTimeAxisView::cut_copy_clear_one (AutomationLine& line, Selection& sel
 
 	/* convert time selection to automation list model coordinates */
 	const Evoral::TimeConverter<double, ARDOUR::framepos_t>& tc = line.time_converter ();
-	double const start = tc.from (selection.time.front().start.frame - tc.origin_b ());
-	double const end = tc.from (selection.time.front().end.frame - tc.origin_b ());
+	double const start = tc.from (selection.time.front().start.frames - tc.origin_b ());
+	double const end = tc.from (selection.time.front().end.frames - tc.origin_b ());
 
 	switch (op) {
 	case Delete:

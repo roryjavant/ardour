@@ -116,7 +116,7 @@ BasicUI::loop_location (framepos_t start, framepos_t end)
 		session->set_auto_loop_location (loc);
 	} else {
 		tll->set_hidden (false, this);
-		tll->set (start, end);
+		tll->set (session->audiomusic_at_musicframe (start), session->audiomusic_at_musicframe (end));
 	}
 }
 
@@ -292,10 +292,10 @@ BasicUI::save_state ()
 void
 BasicUI::prev_marker ()
 {
-	framepos_t pos = session->locations()->first_mark_before (session->transport_frame());
+	AudioMusic pos = session->locations()->first_mark_before (session->transport_frame());
 
-	if (pos >= 0) {
-		session->request_locate (pos, session->transport_rolling());
+	if (pos.frames >= 0) {
+		session->request_locate (pos.frames, session->transport_rolling());
 	} else {
 		session->goto_start ();
 	}
@@ -304,10 +304,10 @@ BasicUI::prev_marker ()
 void
 BasicUI::next_marker ()
 {
-	framepos_t pos = session->locations()->first_mark_after (session->transport_frame());
+	AudioMusic pos = session->locations()->first_mark_after (session->transport_frame());
 
-	if (pos >= 0) {
-		session->request_locate (pos, session->transport_rolling());
+	if (pos.frames >= 0) {
+		session->request_locate (pos.frames, session->transport_rolling());
 	} else {
 		session->goto_end();
 	}
@@ -586,7 +586,7 @@ BasicUI::goto_nth_marker (int n)
 	for (Locations::LocationList::iterator i = ordered.begin(); n >= 0 && i != ordered.end(); ++i) {
 		if ((*i)->is_mark() && !(*i)->is_hidden() && !(*i)->is_session_range()) {
 			if (n == 0) {
-				session->request_locate ((*i)->start(), session->transport_rolling());
+				session->request_locate ((*i)->start().frames, session->transport_rolling());
 				break;
 			}
 			--n;
