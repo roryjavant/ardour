@@ -155,7 +155,7 @@ class LIBARDOUR_API Region
 	 * the audio fills the whole position sample. the last music time (quarter note)
 	 * of a region is at the end of the position frame, so no -1 offset is required for the and qnote.
 	*/
-	AudioMusic end_am () const { return AudioMusic (last_frame(), + _quarter_note + _length_qn); }
+	AudioMusic end_am () const { return AudioMusic (last_frame(), _quarter_note + _length_qn); }
 
 	/** Return the earliest possible value of _position given the
 	 *  value of _start within the region's sources
