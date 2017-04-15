@@ -56,8 +56,8 @@ TimeSelection::consolidate ()
 			}
 
 			if (a->coverage (b->start.frames, b->end.frames) != Evoral::OverlapNone) {
-				a->start = (a->start < b->start) ? a->start : b->start;//std::min (a->start, b->start);
-				a->end = (b->end < a->end) ? a->end : b->end; //std::max (a->end, b->end);
+				a->start = std::min (a->start, b->start);
+				a->end = std::max (a->end, b->end);
 				erase (b);
 				changed = true;
 				goto restart;
@@ -78,7 +78,7 @@ TimeSelection::start ()
 	AudioMusic first (max_framepos, 0.0);
 
 	for (std::list<AudioMusicRange>::iterator i = begin(); i != end(); ++i) {
-		if ((*i).start.frames < first.frames) {
+		if ((*i).start < first) {
 			first = (*i).start;
 		}
 	}
@@ -95,7 +95,7 @@ TimeSelection::end_frame ()
 	AudioMusic last (0, 0.0);
 
 	for (std::list<AudioMusicRange>::iterator i = begin(); i != end(); ++i) {
-		if ((*i).end.frames >= last.frames) {
+		if ((*i).end >= last) {
 			last = (*i).end;
 		}
 	}
