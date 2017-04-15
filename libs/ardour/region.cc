@@ -474,13 +474,13 @@ Region::set_length (framecnt_t len, const int32_t sub_num)
 		if (max_framepos - len < _position) {
 			return;
 		}
-
-		if (!verify_length (len)) {
+		double const end_qn = _session.tempo_map().exact_qn_at_frame (_position + len, sub_num);
+		AudioMusic len_am (_position + len, end_qn);
+		len_am -= position_am();
+		if (!verify_length (len_am)) {
 			return;
 		}
 
-		AudioMusic len_am (_position + len, _session.tempo_map().exact_qn_at_frame (_position + len, sub_num));
-		len_am -= AudioMusic (_position, _quarter_note);
 		set_length_internal (len_am);
 		_whole_file = false;
 		first_edit ();
@@ -512,7 +512,7 @@ Region::set_length (AudioMusic& len)
 			return;
 		}
 
-		if (!verify_length (len.frames)) {
+		if (!verify_length (len)) {
 			return;
 		}
 
@@ -1128,34 +1128,33 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 		return;
 	}
 
-	AudioMusic const start_shift = position - AudioMusic (_position, _quarter_note);
-	AudioMusic new_start (0, 0.0);
+	AudioMusic const start_shift = position - position_am();
+	AudioMusic new_start = position;
 
 	if (start_shift.frames > 0) {
 
 		if (_start > max_framepos - start_shift.frames) {
-			new_start = AudioMusic (max_framepos, (AudioMusic (_start, _start_qn) + start_shift).qnotes);
+			new_start = _session.audiomusic_at_musicframe (max_framepos);
 		} else {
-			new_start = AudioMusic (_start, _start_qn) + start_shift;
+			new_start = start_am() + start_shift;
 		}
 
 	} else if (start_shift.frames < 0) {
 
 		if (_start < -(start_shift.frames) && !can_trim_start_before_source_start ()) {
-			new_start = AudioMusic (0, 0.0);
+			new_start = _session.audiomusic_at_musicframe (0);
 		} else {
-			new_start = AudioMusic (_start, _start_qn) + start_shift;
+			new_start = start_am() + start_shift;
 		}
 
 	} else {
-		new_start = AudioMusic (_start, _start_qn);
+		new_start = start_am();
 	}
 
 	AudioMusic new_length (length);
-	if (!verify_start_and_length (new_start.frames, new_length.frames)) {
+	if (!verify_start_and_length (new_start, new_length)) {
 		return;
 	}
-
 
 	PropertyChange what_changed;
 
@@ -1183,12 +1182,12 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 		what_changed.add (Properties::position);
 	}
 
-	if (_length != length.frames) {
+	if (_length != new_length.frames) {
 		if (!property_changes_suspended()) {
 			_last_length = _length;
 			_last_length_qn = _length_qn;
 		}
-		set_length_internal (length);
+		set_length_internal (new_length);
 		what_changed.add (Properties::length);
 		what_changed.add (Properties::length_qn);
 	}
@@ -1850,7 +1849,7 @@ Region::source_length(uint32_t n) const
 }
 
 bool
-Region::verify_length (framecnt_t& len)
+Region::verify_length (AudioMusic& len)
 {
 	if (source() && (source()->destructive() || source()->length_mutable())) {
 		return true;
@@ -1862,13 +1861,15 @@ Region::verify_length (framecnt_t& len)
 		maxlen = max (maxlen, source_length(n) - _start);
 	}
 
-	len = min (len, maxlen);
+	if (len.frames != min (len.frames, maxlen)) {
+		len = _session.audiomusic_at_musicframe (min (len.frames, maxlen));
+	}
 
 	return true;
 }
 
 bool
-Region::verify_start_and_length (framepos_t new_start, framecnt_t& new_length)
+Region::verify_start_and_length (const AudioMusic& new_start, AudioMusic& new_length)
 {
 	if (source() && (source()->destructive() || source()->length_mutable())) {
 		return true;
@@ -1877,10 +1878,12 @@ Region::verify_start_and_length (framepos_t new_start, framecnt_t& new_length)
 	framecnt_t maxlen = 0;
 
 	for (uint32_t n = 0; n < _sources.size(); ++n) {
-		maxlen = max (maxlen, source_length(n) - new_start);
+		maxlen = max (maxlen, source_length(n) - new_start.frames);
 	}
 
-	new_length = min (new_length, maxlen);
+	if (new_length.frames  != min (new_length.frames, maxlen)) {
+		new_length = _session.audiomusic_at_musicframe (min (new_length.frames, maxlen));
+	}
 
 	return true;
 }

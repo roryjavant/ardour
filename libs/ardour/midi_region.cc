@@ -618,27 +618,26 @@ MidiRegion::trim_to_internal (const AudioMusic& position, const AudioMusic& leng
 		set_position_internal (position);
 		what_changed.add (Properties::position);
 
-		double new_start_qn = start_qn() + (pos_qn - old_pos_qn);
-		framepos_t new_start = _session.tempo_map().frames_between_quarter_notes (pos_qn - new_start_qn, pos_qn);
+		double const new_start_qn = start_qn() + (pos_qn - old_pos_qn);
+		framepos_t const new_start_frame = _session.tempo_map().frames_between_quarter_notes (pos_qn - new_start_qn, pos_qn);
+		AudioMusic new_start (new_start_frame, new_start_qn);
 
-		if (!verify_start_and_length (new_start, new_length.frames)) {
+		if (!verify_start_and_length (new_start, new_length)) {
 			return;
 		}
 
-		_start_qn = new_start_qn;
-		what_changed.add (Properties::start_qn);
-
-		set_start_internal (AudioMusic (new_start, new_start_qn));
+		set_start_internal (new_start);
 		what_changed.add (Properties::start);
+		what_changed.add (Properties::start_qn);
 	}
 
-	if (_length != length.frames) {
+	if (_length != new_length.frames) {
 
-		if (!verify_start_and_length (_start, new_length.frames)) {
+		if (!verify_start_and_length (start_am(), new_length)) {
 			return;
 		}
 
-		set_length_internal (length);
+		set_length_internal (new_length);
 		what_changed.add (Properties::length);
 		what_changed.add (Properties::length_qn);
 	}

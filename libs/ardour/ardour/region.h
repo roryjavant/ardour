@@ -397,7 +397,7 @@ class LIBARDOUR_API Region
 	virtual void set_length_internal (const AudioMusic& new_length);
 	virtual void set_start_internal (const AudioMusic& new_start);
 	void set_start_beats_from_start_frames (const int32_t sub_num = 0);
-	bool verify_start_and_length (framepos_t, framecnt_t&);
+	bool verify_start_and_length (const AudioMusic&, AudioMusic&);
 	void first_edit ();
 	void update_length_beats ();
 	void update_last_position ();
@@ -450,7 +450,7 @@ class LIBARDOUR_API Region
 
 	bool verify_start (framepos_t);
 	bool verify_start_mutable (framepos_t&_start);
-	bool verify_length (framecnt_t&);
+	bool verify_length (AudioMusic&);
 
 	virtual void recompute_at_start () = 0;
 	virtual void recompute_at_end () = 0;
