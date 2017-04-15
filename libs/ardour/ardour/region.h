@@ -149,13 +149,12 @@ class LIBARDOUR_API Region
 
 	framepos_t first_frame () const { return _position; }
 	framepos_t last_frame ()  const { return _position + _length - 1; }
-	double     end_qn ()  const { return _quarter_note + _length_qn; }
-	/**
-	 * potential confision here. the last frame (sample) of a region of length 1 is its position frame.
-	 * the audio fills the whole position sample. the last music time (quarter note)
-	 * of a region is at the end of the position frame, so no -1 offset is required for the and qnote.
+	/** potential confision here. the last frame (sample) of a region of length 1 is its position frame.
+	 *  the audio fills the whole position sample, but does not include the next one.
+	 *  the last music time (quarter note) of a region is the smallest musical distance before the next sample.
 	*/
-	AudioMusic end_am () const { return AudioMusic (last_frame(), _quarter_note + _length_qn); }
+	double     end_qn ()  const { return _quarter_note + _length_qn - DBL_MIN; }
+	AudioMusic end_am () const { return AudioMusic (last_frame(), end_qn()); }
 
 	/** Return the earliest possible value of _position given the
 	 *  value of _start within the region's sources
