@@ -375,18 +375,18 @@ SessionOptionEditor::SessionOptionEditor (Session* s)
 
 	add_option (_("Misc"), li);
 
-	add_option (_("Misc"), new OptionEditorHeading (_("Glue to Bars and Beats")));
+	add_option (_("Misc"), new OptionEditorHeading (_("Glue to Music")));
 
 	add_option (_("Misc"), new BoolOption (
 				"glue-new-markers-to-bars-and-beats",
-				_("Glue new markers to bars and beats"),
+				_("Glue new markers to music"),
 				sigc::mem_fun (*_session_config, &SessionConfiguration::get_glue_new_markers_to_bars_and_beats),
 				sigc::mem_fun (*_session_config, &SessionConfiguration::set_glue_new_markers_to_bars_and_beats)
 				));
 
 	add_option (_("Misc"), new BoolOption (
 				"glue-new-regions-to-bars-and-beats",
-				_("Glue new regions to bars and beats"),
+				_("Glue new regions to music"),
 				sigc::mem_fun (*_session_config, &SessionConfiguration::get_glue_new_regions_to_bars_and_beats),
 				sigc::mem_fun (*_session_config, &SessionConfiguration::set_glue_new_regions_to_bars_and_beats)
 				));

@@ -57,7 +57,7 @@ namespace Properties {
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framepos_t>        start;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framecnt_t>        length;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framepos_t>        position;
-	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            beat;
+	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            quarter_note;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            start_qn;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<double>            length_qn;
 	LIBARDOUR_API extern PBD::PropertyDescriptor<framecnt_t>        sync_position;
@@ -194,9 +194,6 @@ class LIBARDOUR_API Region
 	void set_position_lock_style (PositionLockStyle ps);
 	void recompute_position_from_lock_style (const int32_t sub_num);
 
-	/* meter-based beat at the region position */
-	double beat () const { return _beat; }
-	void set_beat (double beat) { _beat = beat; }
 	/* quarter-note at the region position */
 	double quarter_note () const { return _quarter_note; }
 	void set_quarter_note (double qn) { _quarter_note = qn; }
@@ -412,13 +409,11 @@ class LIBARDOUR_API Region
 	PBD::Property<framepos_t>  _start;
 	PBD::Property<framecnt_t>  _length;
 	PBD::Property<framepos_t>  _position;
-	PBD::Property<double>      _beat;
+	PBD::Property<double>      _quarter_note;
 	PBD::Property<double>      _start_qn;
 	PBD::Property<double>      _length_qn;
 	/** Sync position relative to the start of our file */
 	PBD::Property<framepos_t>  _sync_position;
-
-	double                  _quarter_note;
 
 	SourceList              _sources;
 	/** Used when timefx are applied, so we can always use the original source */

@@ -915,7 +915,7 @@ Editor::build_marker_menu (Location* loc)
 	}
 	lock_item->signal_activate().connect (sigc::mem_fun (*this, &Editor::toggle_marker_menu_lock));
 
-	items.push_back (CheckMenuElem (_("Glue to Bars and Beats")));
+	items.push_back (CheckMenuElem (_("Glue to Music")));
 	Gtk::CheckMenuItem* glue_item = static_cast<Gtk::CheckMenuItem*> (&items.back());
 	glue_item->set_active (loc->position_lock_style() == MusicTime);
 
@@ -954,7 +954,7 @@ Editor::build_range_marker_menu (Location* loc, bool loop_or_punch, bool session
 	items.push_back (MenuElem (_("Zoom to Range"), sigc::mem_fun (*this, &Editor::marker_menu_zoom_to_range)));
 
 	items.push_back (SeparatorElem());
-	items.push_back (CheckMenuElem (_("Glue to Bars and Beats")));
+	items.push_back (CheckMenuElem (_("Glue to Music")));
 
 	Gtk::CheckMenuItem* glue_item = static_cast<Gtk::CheckMenuItem*> (&items.back());
 	glue_item->set_active (loc->position_lock_style() == MusicTime);

@@ -206,7 +206,7 @@ reset_start (Session* session, boost::shared_ptr<MidiRegion> region)
 {
 	/* set start_qn to quarter note value from incorrect bbt*/
 	TempoMap& tmap (session->tempo_map());
-	double new_start_qn = tmap.quarter_note_at_beat (region->beat()) - tmap.quarter_note_at_beat (region->beat() - region->start_qn());
+	double new_start_qn = region->quarter_note() - (region->quarter_note() - region->start_qn());
 
 	/* force a change to start and start_qn */
 	PositionLockStyle old_pls = region->position_lock_style();
@@ -222,8 +222,8 @@ reset_length (Session* session, boost::shared_ptr<MidiRegion> region)
 {
 	/* set length_qn to quarter note value */
 	TempoMap& tmap (session->tempo_map());
-	double new_length_qn = tmap.quarter_note_at_beat (region->beat() + region->length_qn())
-		- tmap.quarter_note_at_beat (region->beat());
+	double new_length_qn = tmap.quarter_note_at_beat (tmap.beat_at_quarter_note (region->quarter_note()) + region->length_qn())
+		- region->quarter_note();
 
 	/* force a change to length and length_qn */
 	PositionLockStyle old_pls = region->position_lock_style();

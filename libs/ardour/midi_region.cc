@@ -86,7 +86,7 @@ MidiRegion::MidiRegion (boost::shared_ptr<const MidiRegion> other, AudioMusic of
 		_length_qn = other->_length_qn - offset.qnotes;
 	}
 
-	std::cout << std::setprecision (17) << "mr copy off music ctor start beats : " << _start_qn << " length beats : " << _length_qn <<  " qn pos : " << _quarter_note << " beat : " << _beat << " other qn  : " << other->_quarter_note << " oth start beats  : " << other->_start_qn << " other length beats : " << other->_length_qn << " offset qn : " << offset.qnotes << " other beat : " << other->beat() << " start : " << _start << std::endl;
+	std::cout << std::setprecision (17) << "mr copy off music ctor start beats : " << _start_qn << " length beats : " << _length_qn <<  " qn pos : " << _quarter_note << " other qn  : " << other->_quarter_note << " oth start beats  : " << other->_start_qn << " other length beats : " << other->_length_qn << " offset qn : " << offset.qnotes << " start : " << _start << std::endl;
 
 	assert(_name.val().find("/") == string::npos);
 	midi_source(0)->ModelChanged.connect_same_thread (_source_connection, boost::bind (&MidiRegion::model_changed, this));
@@ -176,12 +176,11 @@ MidiRegion::clone (boost::shared_ptr<MidiSource> newsrc) const
 	plist.add (Properties::start_qn, _start_qn);
 	plist.add (Properties::length, _length);
 	plist.add (Properties::position, _position);
-	plist.add (Properties::beat, _beat);
+	plist.add (Properties::quarter_note, quarter_note());
 	plist.add (Properties::length_qn, _length_qn);
 	plist.add (Properties::layer, 0);
 
 	boost::shared_ptr<MidiRegion> ret (boost::dynamic_pointer_cast<MidiRegion> (RegionFactory::create (newsrc, plist, true)));
-	ret->set_quarter_note (quarter_note());
 
 	return ret;
 }
@@ -268,7 +267,6 @@ MidiRegion::set_position_internal (const AudioMusic& pos)
 
 	_position = pos.frames;
 	_quarter_note = pos.qnotes;
-	_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
 
 	/* in construction from src */
 	if (_length_qn == 0.0) {
@@ -301,7 +299,7 @@ MidiRegion::set_position_internal (const AudioMusic& pos)
 	}
 
 	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
-		std::cout << "midi region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _position - _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << std::endl;
+		std::cout << "midi region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << std::endl;
 	} else {
 		std::cout << "midi region set position internal sanity check ok for " << name() << std::endl;
 	}

@@ -64,7 +64,7 @@ namespace ARDOUR {
 		PBD::PropertyDescriptor<framepos_t> start;
 		PBD::PropertyDescriptor<framecnt_t> length;
 		PBD::PropertyDescriptor<framepos_t> position;
-		PBD::PropertyDescriptor<double> beat;
+		PBD::PropertyDescriptor<double> quarter_note;
 		PBD::PropertyDescriptor<double> start_qn;
 		PBD::PropertyDescriptor<double> length_qn;
 		PBD::PropertyDescriptor<framecnt_t> sync_position;
@@ -117,8 +117,8 @@ Region::make_property_quarks ()
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for length = %1\n",	Properties::length.property_id));
 	Properties::position.property_id = g_quark_from_static_string (X_("position"));
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for position = %1\n",	Properties::position.property_id));
-	Properties::beat.property_id = g_quark_from_static_string (X_("beat"));
-	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for beat = %1\n",	Properties::beat.property_id));
+	Properties::quarter_note.property_id = g_quark_from_static_string (X_("quarter-note"));
+	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for quarter-note = %1\n",Properties::quarter_note.property_id));
 	Properties::start_qn.property_id = g_quark_from_static_string (X_("start-qn"));
 	DEBUG_TRACE (DEBUG::Properties, string_compose ("quark for start-qn = %1\n",	Properties::start_qn.property_id));
 	Properties::length_qn.property_id = g_quark_from_static_string (X_("length-qn"));
@@ -163,7 +163,7 @@ Region::register_properties ()
 	add_property (_start);
 	add_property (_length);
 	add_property (_position);
-	add_property (_beat);
+	add_property (_quarter_note);
 	add_property (_start_qn);
 	add_property (_length_qn);
 	add_property (_sync_position);
@@ -183,11 +183,10 @@ Region::register_properties ()
 	, _start (Properties::start, (s))	\
 	, _length (Properties::length, (l))	\
 	, _position (Properties::position, 0) \
-	, _beat (Properties::beat, 0.0) \
+	, _quarter_note (Properties::quarter_note, 0.0) \
 	, _start_qn (Properties::start_qn, (0.0))	\
 	, _length_qn (Properties::length_qn, (0.0))	\
 	, _sync_position (Properties::sync_position, (s))	\
-	, _quarter_note (0.0) \
 	, _transient_user_start (0) \
 	, _transient_analysis_start (0) \
 	, _transient_analysis_end (0) \
@@ -216,11 +215,10 @@ Region::register_properties ()
 	, _start(Properties::start, other->_start)		\
 	, _length(Properties::length, other->_length)		\
 	, _position(Properties::position, other->_position)	\
-	, _beat (Properties::beat, other->_beat)		\
+	, _quarter_note (Properties::quarter_note, other->_quarter_note)		\
 	, _start_qn(Properties::start_qn, other->_start_qn)	\
 	, _length_qn(Properties::length_qn, other->_length_qn)	\
 	, _sync_position(Properties::sync_position, other->_sync_position) \
-	, _quarter_note (other->_quarter_note)                                \
 	, _user_transients (other->_user_transients) \
 	, _transient_user_start (other->_transient_user_start) \
 	, _transients (other->_transients) \
@@ -311,7 +309,6 @@ Region::Region (boost::shared_ptr<const Region> other)
 	_first_edit = other->_first_edit;
 
 	_start = other->_start;
-	_beat = other->_beat;
 	_quarter_note = other->_quarter_note;
 
 	/* sync pos is relative to start of file. our start-in-file is now zero,
@@ -376,10 +373,9 @@ Region::Region (boost::shared_ptr<const Region> other, AudioMusic offset)
 	/* prevent offset of 0 from altering musical position */
 	if (offset.frames != 0) {
 		_quarter_note = other->_quarter_note + offset.qnotes;
-		_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
 		_start_qn = other->_start_qn + offset.qnotes;
 	} else {
-		_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
+		_quarter_note = other->_quarter_note;
 		_start_qn = other->_start_qn;
 	}
 
@@ -538,9 +534,9 @@ Region::set_length_internal (const AudioMusic& len)
 	_length = len.frames;
 	_length_qn = len.qnotes;
 	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
-		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << std::endl;
+		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << _length_qn << std::endl;
 	} else {
-		std::cout << "region set len internal sanity check ok for " << name() << std::endl;
+		std::cout << "region set len internal sanity check ok for " << name() << " length_qn : " << _length_qn << std::endl;
 	}
 }
 
@@ -654,7 +650,7 @@ Region::update_after_tempo_map_change (bool send)
 	}
 
 	/* prevent movement before 0 */
-	const framepos_t pos = max ((framepos_t) 0, _session.tempo_map().frame_at_beat (_beat));
+	const framepos_t pos = max ((framepos_t) 0, _session.tempo_map().frame_at_quarter_note (_quarter_note));
 	set_position_internal (AudioMusic (pos, _quarter_note));
 
 	/* do this even if the position is the same. this helps out
@@ -710,10 +706,6 @@ Region::set_position_music (double qn)
 	PropertyChange p_and_l;
 
 	p_and_l.add (Properties::position);
-
-	if (!_session.loading()) {
-		_beat = _session.tempo_map().beat_at_quarter_note (qn);
-	}
 
 	/* will set frame accordingly */
 	set_position_internal (pos);
@@ -776,7 +768,6 @@ Region::set_position_internal (const AudioMusic& pos)
 
 	_position = pos.frames;
 	_quarter_note = pos.qnotes;
-	_beat = _session.tempo_map().beat_at_quarter_note (_quarter_note);
 
 	/* in construction from src */
 	if (_length_qn == 0.0) {
@@ -798,9 +789,9 @@ Region::set_position_internal (const AudioMusic& pos)
 	}
 
 	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
-		std::cout << "region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _position - _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << std::endl;
+		std::cout << "region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << " qn : " << _quarter_note << std::endl;
 	} else {
-		std::cout << "region set position internal sanity check ok for " << name() << std::endl;
+		std::cout << "region set position internal sanity check ok for " << name() << " qn : " << _quarter_note << std::endl;
 	}
 }
 
@@ -845,7 +836,6 @@ Region::set_initial_position (MusicFrame pos)
 void
 Region::recompute_position_from_lock_style (const int32_t sub_num)
 {
-	_beat = _session.tempo_map().exact_beat_at_frame (_position, sub_num);
 	_quarter_note = _session.tempo_map().exact_qn_at_frame (_position, sub_num);
 }
 
@@ -1504,6 +1494,7 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 {
 	XMLProperty const * prop;
 	Timecode::BBT_Time bbt_time;
+	double beat;
 	double start_beats;
 	double length_beats;
 
@@ -1520,14 +1511,21 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 				    &bbt_time.beats,
 				    &bbt_time.ticks) != 3) {
 				_position_lock_style = AudioTime;
-				_beat = _session.tempo_map().beat_at_frame (_position);
+				_quarter_note = _session.tempo_map().quarter_note_at_frame (_position);
 			} else {
-				_beat = _session.tempo_map().beat_at_bbt (bbt_time);
+				_quarter_note = _session.tempo_map().quarter_note_at_bbt (bbt_time);
 			}
-			/* no position property change for legacy Property, so we do this here */
-			_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
 		}
 	}
+
+	if ((prop = node.property ("beat")) != 0) {
+		if (sscanf (prop->value().c_str(), "%lf", &beat) != 1) {
+
+		} else {
+			_quarter_note = _session.tempo_map().quarter_note_at_beat (beat);
+		}
+	}
+
 	if ((prop = node.property ("start-beats")) != 0) {
 		if (sscanf (prop->value().c_str(), "%lf", &start_beats) != 1) {
 
@@ -2080,7 +2078,6 @@ Region::is_compound () const
 void
 Region::post_set (const PropertyChange& pc)
 {
-	_quarter_note = _session.tempo_map().quarter_note_at_beat (_beat);
 	if (pc.contains (Properties::length) && !pc.contains (Properties::length_qn)) {
 		/* we're called by Stateful::set_values() which sends a change
 		   only if the value is different from _current.

@@ -768,7 +768,6 @@ Playlist::add_region_internal (boost::shared_ptr<Region> region, const AudioMusi
 	if (!first_set_state) {
 		boost::shared_ptr<Playlist> foo (shared_from_this());
 		region->set_playlist (boost::weak_ptr<Playlist>(foo));
-	} else {
 	}
 
 	region->set_position (position);
@@ -2416,11 +2415,10 @@ Playlist::find_next_region (framepos_t frame, RegionPoint point, int dir)
 
 			 {
 				 RegionWriteLock rlock (this);
-				 add_region_internal (region, AudioMusic (region->position(), _session.qn_at_beat (region->beat())));
+				 add_region_internal (region, region->position_am());
 			 }
 
 			region->resume_property_changes ();
-
 		}
 	}
 
