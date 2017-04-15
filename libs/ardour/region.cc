@@ -635,8 +635,8 @@ Region::update_after_tempo_map_change (bool send)
 	if (_position_lock_style == AudioTime) {
 		recompute_position_from_lock_style (0);
 		/* _length doesn't change for audio regions. update length_qn to match. */
-		_length_qn = _session.tempo_map().quarter_note_at_frame (_position + _length) - _quarter_note;
-		_start_qn =  _quarter_note - _session.tempo_map().quarter_note_at_frame (_position - _start);
+		_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
+		_start_qn = _session.tempo_map().quarter_notes_between_frames (_position - _start, _position);
 
 		/* don't signal position as it has not chnged */
 		what_changed.add (Properties::length_qn);
@@ -991,7 +991,7 @@ void
 Region::set_start_beats_from_start_frames (const int32_t sub_num)
 {
 	if (position_lock_style() == AudioTime) {
-		_start_qn = quarter_note() - _session.tempo_map().exact_qn_at_frame (_position - _start, sub_num);
+		_start_qn = _session.tempo_map().quarter_notes_between_frames (_position - _start, _position);
 	}
 }
 

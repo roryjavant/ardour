@@ -226,7 +226,7 @@ MidiRegion::update_after_tempo_map_change (bool send)
 		_start = _session.tempo_map().frames_between_quarter_notes (quarter_note() - start_qn(), quarter_note());
 
 		/* _length doesn't change for audio-locked regions. update length_qn to match. */
-		_length_qn = _session.tempo_map().quarter_note_at_frame (_position + _length) - quarter_note();
+		_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
 
 		s_and_l.add (Properties::start);
 		s_and_l.add (Properties::length_qn);
