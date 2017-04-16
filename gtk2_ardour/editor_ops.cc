@@ -6931,7 +6931,7 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 
 		/* file start = original start + how far we from the initial position ?  */
 
-		AudioMusic file_start = AudioMusic (r->start(), r->start_qn()) + pos;
+		AudioMusic file_start = r->start_am() + pos;
 
 		/* length = next position - current position */
 
