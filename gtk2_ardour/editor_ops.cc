@@ -450,7 +450,7 @@ Editor::nudge_forward (bool next, bool force_playhead)
 						loc->set_end (_session->audiomusic_at_musicframe (MusicFrame (loc->end().frames + distance, divisions)),
 							      false, true);
 					} else {
-						loc->set_end (_session->audiomusic_at_musicframe (MusicFrame (max_framepos, divisions)),
+						loc->set_end (_session->audiomusic_at_musicframe (max_framepos),
 							      false, true);
 					}
 					if (loc->is_session_range()) {
@@ -3405,7 +3405,7 @@ Editor::crop_region_to (const AudioMusic& start, const AudioMusic& end)
 			if (max_framepos - pos.frames > (*i)->length()) {
 				new_end = pos + (*i)->length_am();
 			} else {
-				new_end = AudioMusic (max_framepos, pos.qnotes + (*i)->length_qn());
+				new_end = _session->audiomusic_at_musicframe (max_framepos);
 			}
 
 			new_end = min (end, new_end);

@@ -2542,8 +2542,7 @@ Playlist::_get_extent () const
 	}
 
 	for (RegionList::const_iterator i = regions.begin(); i != regions.end(); ++i) {
-		pair<AudioMusic, AudioMusic> const e ((*i)->position_am()
-						      , (*i)->position_am() + AudioMusic ((*i)->length(), (*i)->length_qn()));
+		pair<AudioMusic, AudioMusic> const e ((*i)->position_am(), (*i)->position_am() + (*i)->length_am());
 		if (e.first < ext.first) {
 			ext.first = e.first;
 		}
