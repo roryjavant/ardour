@@ -3866,8 +3866,13 @@ Editor::trim_to_region(bool forward)
 		    if (!next_region) {
 			continue;
 		    }
-		    AudioMusic new_end ((framepos_t) ((next_region->first_frame() - 1) * speed), next_region->quarter_note());
+
+		    AudioMusic new_end = next_region->position_am() - min_audiomusic_delta;
+		    if (speed != 1.0) {
+			    new_end = _session->audiomusic_at_musicframe ((framepos_t) ((next_region->first_frame() - 1) * speed));
+		    }
 		    region->trim_end (new_end);
+
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length));
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length_qn));
 		}
@@ -3879,7 +3884,11 @@ Editor::trim_to_region(bool forward)
 			continue;
 		    }
 
-		    region->trim_front((framepos_t) ((next_region->last_frame() + 1) * speed));
+		    if (speed != 1.0) {
+			    region->trim_front((framepos_t) ((next_region->last_frame() + 1) * speed));
+		    } else {
+			    region->trim_front (next_region->end_am() + min_audiomusic_delta);
+		    }
 
 		    arv->region_changed (ARDOUR::bounds_change);
 		}

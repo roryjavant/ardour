@@ -3029,11 +3029,13 @@ TrimDrag::motion (GdkEvent* event, bool first_move)
 		}
 	}
 
+	int32_t const divisions = _editor->get_grid_music_divisions (event->button.state);
+
 	switch (_operation) {
 	case StartTrim:
 		for (list<DraggingView>::iterator i = _views.begin(); i != _views.end(); ++i) {
-			bool changed = i->view->trim_front (i->initial_position + dt, non_overlap_trim
-							    , _editor->get_grid_music_divisions (event->button.state));
+			AudioMusic const front_pos = _editor->session()->audiomusic_at_musicframe (MusicFrame (i->initial_position + dt, divisions));
+			bool changed = i->view->trim_front (front_pos, non_overlap_trim);
 
 			if (changed && _preserve_fade_anchor) {
 				AudioRegionView* arv = dynamic_cast<AudioRegionView*> (i->view);
@@ -3052,7 +3054,8 @@ TrimDrag::motion (GdkEvent* event, bool first_move)
 
 	case EndTrim:
 		for (list<DraggingView>::iterator i = _views.begin(); i != _views.end(); ++i) {
-			bool changed = i->view->trim_end (i->initial_end + dt, non_overlap_trim, _editor->get_grid_music_divisions (event->button.state));
+			AudioMusic const end_pos = _editor->session()->audiomusic_at_musicframe (MusicFrame (i->initial_end + dt, divisions));
+			bool changed = i->view->trim_end (end_pos, non_overlap_trim);
 			if (changed && _preserve_fade_anchor) {
 				AudioRegionView* arv = dynamic_cast<AudioRegionView*> (i->view);
 				if (arv) {
