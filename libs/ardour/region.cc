@@ -952,7 +952,7 @@ Region::move_start (const AudioMusic& distance)
 		if (_start > max_framepos - distance.frames) {
 			new_start.frames = max_framepos; // makes no sense
 		} else {
-			new_start = AudioMusic (_start, _start_qn) + distance;
+			new_start = start_am() + distance;
 		}
 
 		if (!verify_start (new_start.frames)) {
@@ -962,9 +962,9 @@ Region::move_start (const AudioMusic& distance)
 	} else if (distance.frames < 0) {
 
 		if (_start < -distance.frames) {
-			new_start = AudioMusic (0, 0.0);
+			new_start = _session.audiomusic_at_musicframe (0);
 		} else {
-			new_start = AudioMusic (_start, _start_qn) + distance;
+			new_start = start_am() + distance;
 		}
 
 	} else {
@@ -1031,9 +1031,9 @@ Region::modify_front (const AudioMusic& new_pos, bool reset_fade)
 	AudioMusic new_position (new_pos);
 
 	if (_position > _start) {
-		source_zero = position_am() - AudioMusic (_start, _start_qn);
+		source_zero = position_am() - start_am();
 	} else {
-		source_zero = AudioMusic (0, 0.0); // its actually negative, but this will work for us
+		source_zero = _session.audiomusic_at_musicframe (0); // its actually negative, but this will work for us
 	}
 
 	if (new_position < end) { /* can't trim it zero or negative length */
@@ -1046,9 +1046,9 @@ Region::modify_front (const AudioMusic& new_pos, bool reset_fade)
 		}
 
 		if (new_position.frames > _position) {
-			newlen = AudioMusic (_length, _length_qn) - (new_position - position_am());
+			newlen = length_am() - (new_position - position_am());
 		} else {
-			newlen = AudioMusic (_length, _length_qn) + (position_am() - new_position);
+			newlen = length_am() + (position_am() - new_position);
 		}
 
 		trim_to_internal (new_position, newlen);
