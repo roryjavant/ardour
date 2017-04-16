@@ -2202,14 +2202,12 @@ RegionRippleDrag::RegionRippleDrag (Editor* e, ArdourCanvas::Item* i, RegionView
 	: RegionMoveDrag (e, i, p, v, false, false)
 	, _prev_amount (AudioMusic (0, 0.0))
 	, _prev_position (0, 0.0)
-	, _selection_length (0.0)
-	, _selection_length_qn (0.0)
+	, _selection_length (AudioMusic (0, 0.0))
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RegionRippleDrag\n");
 	// compute length of selection
 	RegionSelection selected_regions = _editor->selection->regions;
-	_selection_length = selected_regions.end_frame() - selected_regions.start();
-	_selection_length_qn = selected_regions.end_qn() - selected_regions.start_qn();
+	_selection_length = selected_regions.end_am() - selected_regions.start();
 
 	// we'll only allow dragging to another track in ripple mode if all the regions
 	// being dragged start off on the same track
@@ -2292,7 +2290,7 @@ RegionRippleDrag::motion (GdkEvent* event, bool first_move)
 
 			remove_unselected_from_views (_prev_amount, false);
 			// ripple previous playlist according to the regions that have been removed onto the new playlist
-			prev_tav->playlist()->ripple(_prev_position,AudioMusic (-_selection_length, -_selection_length_qn), exclude);
+			prev_tav->playlist()->ripple(_prev_position,AudioMusic (-_selection_length.frames, -_selection_length.qnotes), exclude);
 
 			_prev_amount = AudioMusic (0, 0.0);
 
@@ -2300,7 +2298,7 @@ RegionRippleDrag::motion (GdkEvent* event, bool first_move)
 			RegionMoveDrag::motion(event, first_move);
 
 			// ensure that the ripple operation on the new playlist inserts selection_length time
-			adjust = AudioMusic (_selection_length, _selection_length_qn);
+			adjust = _selection_length;
 
 			// ripple the new current playlist
 			tv->playlist()->ripple (where, amount + adjust, exclude);

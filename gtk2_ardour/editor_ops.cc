@@ -1069,7 +1069,7 @@ Editor::cursor_to_previous_region_point (EditorCursor* cursor, RegionPoint point
 void
 Editor::cursor_to_selection_start (EditorCursor *cursor)
 {
-	framepos_t pos = 0;
+	AudioMusic pos (0, 0.0);
 
 	switch (mouse_mode) {
 	case MouseObject:
@@ -1080,7 +1080,7 @@ Editor::cursor_to_selection_start (EditorCursor *cursor)
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.start ().frames;
+			pos = selection->time.start ();
 		}
 		break;
 
@@ -1089,9 +1089,9 @@ Editor::cursor_to_selection_start (EditorCursor *cursor)
 	}
 
 	if (cursor == playhead_cursor) {
-		_session->request_locate (pos);
+		_session->request_locate (pos.frames);
 	} else {
-		cursor->set_position (pos);
+		cursor->set_position (pos.frames);
 	}
 }
 
@@ -1271,7 +1271,7 @@ Editor::selected_marker_to_selection_start ()
 	switch (mouse_mode) {
 	case MouseObject:
 		if (!selection->regions.empty()) {
-			pos = selection->regions.start_am();
+			pos = selection->regions.start();
 		}
 		break;
 
@@ -2355,7 +2355,7 @@ Editor::add_location_from_region ()
 	}
 
 	// single range spanning all selected
-	Location *location = new Location (*_session, selection->regions.start(), selection->regions.end_frame(), markername, Location::IsRangeMarker);
+	Location *location = new Location (*_session, selection->regions.start(), selection->regions.end_am(), markername, Location::IsRangeMarker);
 	_session->locations()->add (location, true);
 
 	begin_reversible_command (_("add marker"));
@@ -3433,15 +3433,13 @@ Editor::region_fill_track ()
 	RegionSelection regions = get_regions_from_selection_and_entered ();
 	RegionSelection foo;
 
-	AudioMusic const end = _session->audiomusic_at_musicframe (_session->current_end_frame ());
-
-	if (regions.empty () || regions.end_frame () + 1 >= end.frames) {
+	if (regions.empty () || regions.end_frame () + 1 >= _session->current_end_frame ()) {
 		return;
 	}
 
-	framepos_t const start_frame = regions.start ();
-	framepos_t const end_frame = regions.end_frame ();
-	AudioMusic const gap = _session->audiomusic_at_musicframe (end_frame - start_frame + 1);
+	AudioMusic const start = regions.start ();
+	AudioMusic const end = regions.end_am ();
+	AudioMusic const gap = end - start + min_audiomusic_delta;
 
 	begin_reversible_command (Operations::region_fill);
 
@@ -3456,11 +3454,11 @@ Editor::region_fill_track ()
 		latest_regionviews.clear ();
 		sigc::connection c = rtv->view()->RegionViewAdded.connect (sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
-		framepos_t const position = end_frame + (r->first_frame() - start_frame + 1);
+		AudioMusic const position = end + (r->position_am() - start + min_audiomusic_delta);
 
 		playlist = (*i)->region()->playlist();
 		playlist->clear_changes ();
-		playlist->duplicate_until (r, _session->audiomusic_at_musicframe (position), gap, end);
+		playlist->duplicate_until (r, position, gap, end);
 		_session->add_command(new StatefulDiffCommand (playlist));
 
 		c.disconnect ();
@@ -4884,11 +4882,11 @@ Editor::duplicate_some_regions (RegionSelection& regions, float times)
 	RegionSelection sel = regions; // clear (below) may  clear the argument list if its the current region selection
 	RegionSelection foo;
 
-	AudioMusic const start (regions.start (), regions.start_qn ());
-	AudioMusic const end (regions.end_frame (), regions.end_qn ());
+	AudioMusic const start = regions.start ();
+	AudioMusic const end = regions.end_am ();
 	AudioMusic gap (0, 0.0);
 
-	gap = _session->audiomusic_at_musicframe (end.frames + 1) - start;
+	gap = (end + min_audiomusic_delta) - start;
 
 	begin_reversible_command (Operations::duplicate_region);
 
@@ -4904,7 +4902,7 @@ Editor::duplicate_some_regions (RegionSelection& regions, float times)
 		sigc::connection c = rtv->view()->RegionViewAdded.connect (sigc::mem_fun(*this, &Editor::collect_new_region_view));
 
 		AudioMusic position (0, 0.0);
-		position = _session->audiomusic_at_musicframe (end.frames + (r->first_frame() - start.frames + 1));
+		position = end + (r->position_am() - start + min_audiomusic_delta);
 
 		playlist = (*i)->region()->playlist();
 		playlist->clear_changes ();

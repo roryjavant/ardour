@@ -306,8 +306,8 @@ TimeInfoBox::selection_changed ()
 				selection_length->set (e - s + 1);
 			}
 		} else {
-			s = selection.regions.start();
-			e = selection.regions.end_frame();
+			s = selection.regions.start().frames;
+			e = selection.regions.end_am().frames;
 			selection_start->set_off (false);
 			selection_end->set_off (false);
 			selection_length->set_off (false);
@@ -324,8 +324,8 @@ TimeInfoBox::selection_changed ()
 
 			if (tact && tact->get_active() &&  !selection.regions.empty()) {
 				/* show selected regions */
-				s = selection.regions.start();
-				e = selection.regions.end_frame();
+				s = selection.regions.start().frames;
+				e = selection.regions.end_am().frames;
 				selection_start->set_off (false);
 				selection_end->set_off (false);
 				selection_length->set_off (false);

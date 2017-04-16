@@ -262,7 +262,7 @@ RegionSelection::involves (const TimeAxisView& tv) const
 }
 
 framepos_t
-RegionSelection::start () const
+RegionSelection::start_frame () const
 {
 	framepos_t s = max_framepos;
 	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
@@ -307,7 +307,8 @@ RegionSelection::end_qn () const
 {
 	double e = 0.0;
 	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
-		e = max (e, (*i)->region()->quarter_note() + (*i)->region()->length_qn());
+		/* region end qn is pos_qn + length_qn - DBL_MIN */
+		e = max (e, (*i)->region()->end_qn());
 	}
 
 	return e;

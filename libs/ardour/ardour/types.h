@@ -371,6 +371,8 @@ namespace ARDOUR {
 		}
 	};
 
+	static const AudioMusic min_audiomusic_delta (1, DBL_MIN);
+
 	/* used for translating audio frames to an exact musical position using a note divisor.
 	   an exact musical position almost never falls exactly on an audio frame, but for sub-sample
 	   musical accuracy we need to derive exact musical locations from a frame position

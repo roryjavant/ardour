@@ -52,9 +52,9 @@ class RegionSelection : public std::list<RegionView*>
 
 	void clear_all();
 
-	framepos_t start () const;
+	framepos_t start_frame () const;
 	double     start_qn () const;
-	ARDOUR::AudioMusic start_am () const { return ARDOUR::AudioMusic (start(), start_qn()); }
+	ARDOUR::AudioMusic start () const { return ARDOUR::AudioMusic (start_frame(), start_qn()); }
 
 	/* "end" collides with list<>::end */
 

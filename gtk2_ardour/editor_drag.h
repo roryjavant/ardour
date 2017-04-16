@@ -488,8 +488,7 @@ private:
 	TimeAxisView *orig_tav;		// where drag started
 	ARDOUR::AudioMusic _prev_amount;
 	ARDOUR::AudioMusic _prev_position;
-	ARDOUR::framecnt_t _selection_length;
-	double _selection_length_qn;
+	ARDOUR::AudioMusic _selection_length;
 	bool allow_moves_across_tracks; // only if all selected regions are on one track
 	ARDOUR::RegionList *exclude;
 	void add_all_after_to_views (TimeAxisView *tav, ARDOUR::framepos_t where, const RegionSelection &exclude, bool drag_in_progress);
