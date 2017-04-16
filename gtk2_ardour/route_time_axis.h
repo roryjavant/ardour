@@ -103,7 +103,7 @@ public:
 	LayerDisplay layer_display () const;
 
 	boost::shared_ptr<ARDOUR::Region> find_next_region (framepos_t pos, ARDOUR::RegionPoint, int32_t dir);
-	framepos_t find_next_region_boundary (framepos_t pos, int32_t dir);
+	ARDOUR::AudioMusic find_next_region_boundary (framepos_t pos, int32_t dir);
 
 	/* Editing operations */
 	void cut_copy_clear (Selection&, Editing::CutCopyOp);

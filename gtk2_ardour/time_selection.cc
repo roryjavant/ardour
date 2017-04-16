@@ -86,7 +86,7 @@ TimeSelection::start ()
 }
 
 AudioMusic
-TimeSelection::end_frame ()
+TimeSelection::end_am ()
 {
 	if (empty()) {
 		return AudioMusic (0, 0.0);
@@ -102,12 +102,12 @@ TimeSelection::end_frame ()
 	return last;
 }
 
-framecnt_t
+AudioMusic
 TimeSelection::length()
 {
 	if (empty()) {
-		return 0;
+		return AudioMusic (0, 0.0);
 	}
 
-	return end_frame().frames - start().frames + 1;
+	return end_am() - start() + min_audiomusic_delta;
 }

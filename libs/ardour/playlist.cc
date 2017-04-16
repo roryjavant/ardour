@@ -2203,13 +2203,13 @@ Playlist::find_next_region (framepos_t frame, RegionPoint point, int dir)
 	return ret;
 }
 
- framepos_t
+AudioMusic
  Playlist::find_next_region_boundary (framepos_t frame, int dir)
  {
 	 RegionReadLock rlock (this);
 
 	 framepos_t closest = max_framepos;
-	 framepos_t ret = -1;
+	 AudioMusic ret (-1, -1.0);
 
 	 if (dir > 0) {
 
@@ -2217,25 +2217,25 @@ Playlist::find_next_region (framepos_t frame, RegionPoint point, int dir)
 
 			 boost::shared_ptr<Region> r = (*i);
 			 frameoffset_t distance;
-			 const framepos_t first_frame = r->first_frame();
-			 const framepos_t last_frame = r->last_frame();
+			 const AudioMusic first = r->position_am();
+			 const AudioMusic last = r->end_am();
 
-			 if (first_frame > frame) {
+			 if (first.frames > frame) {
 
-				 distance = first_frame - frame;
+				 distance = first.frames - frame;
 
 				 if (distance < closest) {
-					 ret = first_frame;
+					 ret = first;
 					 closest = distance;
 				 }
 			 }
 
-			 if (last_frame > frame) {
+			 if (last.frames > frame) {
 
-				 distance = last_frame - frame;
+				 distance = last.frames - frame;
 
 				 if (distance < closest) {
-					 ret = last_frame;
+					 ret = last;
 					 closest = distance;
 				 }
 			 }
@@ -2247,25 +2247,25 @@ Playlist::find_next_region (framepos_t frame, RegionPoint point, int dir)
 
 			 boost::shared_ptr<Region> r = (*i);
 			 frameoffset_t distance;
-			 const framepos_t first_frame = r->first_frame();
-			 const framepos_t last_frame = r->last_frame();
+			 const AudioMusic first = r->position_am();
+			 const AudioMusic last = r->end_am();
 
-			 if (last_frame < frame) {
+			 if (last.frames < frame) {
 
-				 distance = frame - last_frame;
+				 distance = frame - last.frames;
 
 				 if (distance < closest) {
-					 ret = last_frame;
+					 ret = last;
 					 closest = distance;
 				 }
 			 }
 
-			 if (first_frame < frame) {
+			 if (first.frames < frame) {
 
-				 distance = frame - first_frame;
+				 distance = frame - first.frames;
 
 				 if (distance < closest) {
-					 ret = first_frame;
+					 ret = first;
 					 closest = distance;
 				 }
 			 }

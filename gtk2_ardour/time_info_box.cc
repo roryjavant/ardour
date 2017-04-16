@@ -283,8 +283,8 @@ TimeInfoBox::selection_changed ()
 					selection_end->set_off (false);
 					selection_length->set_off (false);
 					selection_start->set (selection.time.start().frames);
-					selection_end->set (selection.time.end_frame().frames);
-					selection_length->set (selection.time.length());
+					selection_end->set (selection.time.end_am().frames);
+					selection_length->set (selection.time.length().frames);
 				} else {
 					selection_start->set_off (true);
 					selection_end->set_off (true);
@@ -342,8 +342,8 @@ TimeInfoBox::selection_changed ()
 			selection_end->set_off (false);
 			selection_length->set_off (false);
 			selection_start->set (selection.time.start().frames);
-			selection_end->set (selection.time.end_frame().frames);
-			selection_length->set (selection.time.length());
+			selection_end->set (selection.time.end_am().frames);
+			selection_length->set (selection.time.length().frames);
 		}
 		break;
 

@@ -1279,7 +1279,7 @@ Editor::marker_menu_set_from_selection (bool /*force_regions*/)
 		} else {
 
 			if (!selection->time.empty()) {
-				l->set (selection->time.start(), selection->time.end_frame());
+				l->set (selection->time.start(), selection->time.end_am());
 			} else if (!selection->regions.empty()) {
 				l->set (selection->regions.start(), selection->regions.end_am());
 			}

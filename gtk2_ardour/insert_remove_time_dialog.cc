@@ -72,9 +72,9 @@ InsertRemoveTimeDialog::InsertRemoveTimeDialog (PublicEditor& e, bool remove)
 	table->attach (duration_clock, 1, 2, 1, 2);
 
 	//if a Range is selected, assume the user wants to insert/remove the length of the range
-	if ( _editor.get_selection().time.length() != 0 ) {
+	if ( _editor.get_selection().time.length().frames != 0 ) {
 		position_clock.set ( _editor.get_selection().time.start().frames, true );
-		duration_clock.set ( _editor.get_selection().time.end_frame().frames, true,  _editor.get_selection().time.start().frames );
+		duration_clock.set ( _editor.get_selection().time.end_am().frames, true,  _editor.get_selection().time.start().frames );
 		duration_clock.set_bbt_reference (_editor.get_selection().time.start().frames);
 	} else {
 		framepos_t const pos = _editor.get_preferred_edit_position (EDIT_IGNORE_MOUSE);

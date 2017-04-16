@@ -184,7 +184,7 @@ public:
 	boost::shared_ptr<Region>  top_region_at (framepos_t frame);
 	boost::shared_ptr<Region>  top_unmuted_region_at (framepos_t frame);
 	boost::shared_ptr<Region>  find_next_region (framepos_t frame, RegionPoint point, int dir);
-	framepos_t                 find_next_region_boundary (framepos_t frame, int dir);
+	AudioMusic                 find_next_region_boundary (framepos_t frame, int dir);
 	bool                       region_is_shuffle_constrained (boost::shared_ptr<Region>);
 	bool                       has_region_at (framepos_t const) const;
 

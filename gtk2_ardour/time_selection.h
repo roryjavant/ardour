@@ -33,8 +33,8 @@ public:
 	ARDOUR::AudioMusicRange& operator[](uint32_t);
 
         ARDOUR::AudioMusic start();
-        ARDOUR::AudioMusic end_frame();
-        ARDOUR::framepos_t length();
+        ARDOUR::AudioMusic end_am();
+        ARDOUR::AudioMusic length();
 
 	bool consolidate ();
 };

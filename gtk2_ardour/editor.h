@@ -1033,7 +1033,7 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	EditorCursor* playhead_cursor;
 	framepos_t playhead_cursor_sample () const;
 
-	framepos_t get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, bool only_onscreen);
+	ARDOUR::AudioMusic get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, bool only_onscreen);
 
 	void    cursor_to_region_boundary (bool with_selection, int32_t dir);
 	void    cursor_to_next_region_boundary (bool with_selection);
@@ -1059,9 +1059,9 @@ class Editor : public PublicEditor, public PBD::ScopedConnectionList, public ARD
 	void    select_range_between ();
 
 	boost::shared_ptr<ARDOUR::Region> find_next_region (ARDOUR::framepos_t, ARDOUR::RegionPoint, int32_t dir, TrackViewList&, TimeAxisView ** = 0);
-	ARDOUR::framepos_t find_next_region_boundary (ARDOUR::framepos_t, int32_t dir, const TrackViewList&);
+	ARDOUR::AudioMusic find_next_region_boundary (ARDOUR::framepos_t, int32_t dir, const TrackViewList&);
 
-	std::vector<ARDOUR::framepos_t> region_boundary_cache;
+	std::vector<ARDOUR::AudioMusic> region_boundary_cache;
 	void build_region_boundary_cache ();
 
 	Gtk::HBox           toplevel_hpacker;

@@ -73,7 +73,7 @@ Editor::keyboard_selection_begin (Editing::EditIgnoreOption ign)
 	if (_session) {
 
 		AudioMusic start (0, 0.0);
-		AudioMusic end = selection->time.end_frame();
+		AudioMusic end = selection->time.end_am();
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
 			start.frames = _session->audible_frame();
 		} else {

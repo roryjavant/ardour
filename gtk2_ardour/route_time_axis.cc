@@ -1470,7 +1470,7 @@ RouteTimeAxisView::find_next_region (framepos_t pos, RegionPoint point, int32_t 
 	return boost::shared_ptr<Region> ();
 }
 
-framepos_t
+AudioMusic
 RouteTimeAxisView::find_next_region_boundary (framepos_t pos, int32_t dir)
 {
 	boost::shared_ptr<Playlist> pl = playlist ();
@@ -1479,7 +1479,7 @@ RouteTimeAxisView::find_next_region_boundary (framepos_t pos, int32_t dir)
 		return pl->find_next_region_boundary (pos, dir);
 	}
 
-	return -1;
+	return AudioMusic (-1, -1.0);
 }
 
 void
@@ -1542,7 +1542,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 
         playlist->clear_changes ();
         playlist->clear_owned_changes ();
-	AudioMusic const time_length = time.end_frame() - time.start();
+	AudioMusic const time_length = time.end_am() - time.start();
 
 	switch (op) {
 	case Delete:

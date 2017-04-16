@@ -2965,13 +2965,13 @@ Editor::snap_to_internal (AudioMusic& start, RoundMode direction, bool for_mark,
 	case SnapToRegionBoundary:
 		if (!region_boundary_cache.empty()) {
 
-			vector<framepos_t>::iterator prev = region_boundary_cache.end ();
-			vector<framepos_t>::iterator next = region_boundary_cache.end ();
+			vector<AudioMusic>::iterator prev = region_boundary_cache.end ();
+			vector<AudioMusic>::iterator next = region_boundary_cache.end ();
 
 			if (direction > 0) {
-				next = std::upper_bound (region_boundary_cache.begin(), region_boundary_cache.end(), start.frames);
+				next = std::upper_bound (region_boundary_cache.begin(), region_boundary_cache.end(), start);
 			} else {
-				next = std::lower_bound (region_boundary_cache.begin(), region_boundary_cache.end(), start.frames);
+				next = std::lower_bound (region_boundary_cache.begin(), region_boundary_cache.end(), start);
 			}
 
 			if (next != region_boundary_cache.begin ()) {
@@ -2979,17 +2979,15 @@ Editor::snap_to_internal (AudioMusic& start, RoundMode direction, bool for_mark,
 				prev--;
 			}
 
-			framepos_t const p = (prev == region_boundary_cache.end()) ? region_boundary_cache.front () : *prev;
-			framepos_t const n = (next == region_boundary_cache.end()) ? region_boundary_cache.back () : *next;
+			AudioMusic const p = (prev == region_boundary_cache.end()) ? region_boundary_cache.front () : *prev;
+			AudioMusic const n = (next == region_boundary_cache.end()) ? region_boundary_cache.back () : *next;
 
-			if (start.frames > (p + n) / 2) {
-				start.frames = n;
+			if (start.frames > (p.frames + n.frames) / 2) {
+				start = n;
 			} else {
-				start.frames = p;
+				start = p;
 			}
 		}
-
-		start.qnotes = _session->tempo_map().quarter_note_at_frame (start.frames);
 
 		break;
 	}
@@ -3638,7 +3636,7 @@ Editor::duplicate_range (bool with_dialog)
 
 	RegionSelection rs = get_regions_from_selection_and_entered ();
 
-	if ( selection->time.length() == 0 && rs.empty()) {
+	if ( selection->time.length().frames == 0 && rs.empty()) {
 		return;
 	}
 
@@ -3684,11 +3682,11 @@ Editor::duplicate_range (bool with_dialog)
 	}
 
 	if ((current_mouse_mode() == Editing::MouseRange)) {
-		if (selection->time.length()) {
+		if (selection->time.length().frames) {
 			duplicate_selection (times);
 		}
 	} else if (get_smart_mode()) {
-		if (selection->time.length()) {
+		if (selection->time.length().frames) {
 			duplicate_selection (times);
 		} else {
 			duplicate_some_regions (rs, times);
@@ -4563,9 +4561,9 @@ Editor::set_samples_per_pixel (framecnt_t spp)
 		tempo_lines->tempo_map_changed();
 	}
 
-	bool const showing_time_selection = selection->time.length() > 0;
+	bool const showing_time_selection = selection->time.length().frames > 0;
 
-	if (showing_time_selection && selection->time.start () != selection->time.end_frame ()) {
+	if (showing_time_selection && selection->time.start () != selection->time.end_am ()) {
 		for (TrackViewList::iterator i = selection->tracks.begin(); i != selection->tracks.end(); ++i) {
 			(*i)->reshow_selection (selection->time);
 		}

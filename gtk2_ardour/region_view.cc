@@ -803,14 +803,14 @@ RegionView::update_coverage_frames (LayerDisplay d)
 				cr->set_fill_color (non_playing_color);
 			}
 		}
-		t = pl->find_next_region_boundary (t, 1);
+		t = pl->find_next_region_boundary (t, 1).frames;
 		if (t < 0) {
 			break;
 		}
 		me = new_me;
 	}
 
-	t = pl->find_next_region_boundary (t, 1);
+	t = pl->find_next_region_boundary (t, 1).frames;
 
 	if (cr) {
 		/* finish off the last rectangle */

@@ -5335,7 +5335,7 @@ SelectionDrag::SelectionDrag (Editor* e, ArdourCanvas::Item* i, Operation o)
 
 	if (_time_selection_at_start) {
 		start_at_start = _editor->get_selection().time.start();
-		end_at_start = _editor->get_selection().time.end_frame();
+		end_at_start = _editor->get_selection().time.end_am();
 	}
 }
 
@@ -5633,8 +5633,8 @@ SelectionDrag::finished (GdkEvent* event, bool movement_occurred)
 				}
 			}
 
-			if (_editor->get_selection().time.length() != 0) {
-				s->set_range_selection (_editor->get_selection().time.start(), _editor->get_selection().time.end_frame());
+			if (_editor->get_selection().time.length().frames != 0) {
+				s->set_range_selection (_editor->get_selection().time.start(), _editor->get_selection().time.end_am());
 			} else {
 				s->clear_range_selection ();
 			}

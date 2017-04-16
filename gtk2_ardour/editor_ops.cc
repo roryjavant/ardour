@@ -323,24 +323,24 @@ Editor::split_regions_at (AudioMusic where, RegionSelection& regions, bool snap_
 void
 Editor::move_range_selection_start_or_end_to_region_boundary (bool move_end, bool next)
 {
-	if (selection->time.start() == selection->time.end_frame()) {
+	if (selection->time.start() == selection->time.end_am()) {
 		return;
 	}
 
-	framepos_t start = selection->time.start ().frames;
-	framepos_t end = selection->time.end_frame ().frames;
+	AudioMusic start = selection->time.start ();
+	AudioMusic end = selection->time.end_am ();
 
 	/* the position of the thing we may move */
-	framepos_t pos = move_end ? end : start;
+	AudioMusic pos = move_end ? end : start;
 	int dir = next ? 1 : -1;
 
 	/* so we don't find the current region again */
-	if (dir > 0 || pos > 0) {
-		pos += dir;
+	if (dir > 0 || pos.frames > 0) {
+		pos += min_audiomusic_delta;
 	}
 
-	framepos_t const target = get_region_boundary (pos, dir, true, false);
-	if (target < 0) {
+	AudioMusic const target = get_region_boundary (pos.frames, dir, true, false);
+	if (target.frames < 0) {
 		return;
 	}
 
@@ -355,7 +355,7 @@ Editor::move_range_selection_start_or_end_to_region_boundary (bool move_end, boo
 	}
 
 	begin_reversible_selection_op (_("alter selection"));
-	selection->set_preserving_all_ranges (_session->audiomusic_at_musicframe (start), _session->audiomusic_at_musicframe (end));
+	selection->set_preserving_all_ranges (start, end);
 	commit_reversible_selection_op ();
 }
 
@@ -753,8 +753,8 @@ Editor::build_region_boundary_cache ()
 
 	while (pos < _session->current_end_frame() && !at_end) {
 
-		framepos_t rpos;
-		framepos_t lpos = max_framepos;
+		AudioMusic rpos (0, 0.0);
+		AudioMusic lpos (max_framepos, 0.0);
 
 		for (vector<RegionPoint>::iterator p = interesting_points.begin(); p != interesting_points.end(); ++p) {
 
@@ -768,15 +768,15 @@ Editor::build_region_boundary_cache ()
 
 			switch (*p) {
 			case Start:
-				rpos = r->first_frame();
+				rpos = r->position_am();
 				break;
 
 			case End:
-				rpos = r->last_frame();
+				rpos = r->end_am();
 				break;
 
 			case SyncPoint:
-				rpos = r->sync_position ();
+				rpos = _session->audiomusic_at_musicframe (r->sync_position ());
 				break;
 
 			default:
@@ -792,7 +792,9 @@ Editor::build_region_boundary_cache ()
 				}
 			}
 
-			rpos = track_frame_to_session_frame (rpos, speed);
+			if (speed != 1.0) {
+				rpos = _session->audiomusic_at_musicframe (track_frame_to_session_frame (rpos.frames, speed));
+			}
 
 			if (rpos < lpos) {
 				lpos = rpos;
@@ -802,7 +804,7 @@ Editor::build_region_boundary_cache ()
 			   to sort later.
 			*/
 
-			vector<framepos_t>::iterator ri;
+			vector<AudioMusic>::iterator ri;
 
 			for (ri = region_boundary_cache.begin(); ri != region_boundary_cache.end(); ++ri) {
 				if (*ri == rpos) {
@@ -815,7 +817,7 @@ Editor::build_region_boundary_cache ()
 			}
 		}
 
-		pos = lpos + 1;
+		pos = (lpos + min_audiomusic_delta).frames;
 	}
 
 	/* finally sort to be sure that the order is correct */
@@ -886,14 +888,14 @@ Editor::find_next_region (framepos_t frame, RegionPoint point, int32_t dir, Trac
 	return ret;
 }
 
-framepos_t
+AudioMusic
 Editor::find_next_region_boundary (framepos_t pos, int32_t dir, const TrackViewList& tracks)
 {
 	framecnt_t distance = max_framepos;
-	framepos_t current_nearest = -1;
+	AudioMusic current_nearest (-1, -1.0);
 
 	for (TrackViewList::const_iterator i = tracks.begin(); i != tracks.end(); ++i) {
-		framepos_t contender;
+		AudioMusic contender (0, 0.0);
 		framecnt_t d;
 
 		RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (*i);
@@ -902,11 +904,11 @@ Editor::find_next_region_boundary (framepos_t pos, int32_t dir, const TrackViewL
 			continue;
 		}
 
-		if ((contender = rtv->find_next_region_boundary (pos, dir)) < 0) {
+		if ((contender = rtv->find_next_region_boundary (pos, dir)).frames < 0) {
 			continue;
 		}
 
-		d = ::llabs (pos - contender);
+		d = ::llabs (pos - contender.frames);
 
 		if (d < distance) {
 			current_nearest = contender;
@@ -917,10 +919,10 @@ Editor::find_next_region_boundary (framepos_t pos, int32_t dir, const TrackViewL
 	return current_nearest;
 }
 
-framepos_t
+AudioMusic
 Editor::get_region_boundary (framepos_t pos, int32_t dir, bool with_selection, bool only_onscreen)
 {
-	framepos_t target;
+	AudioMusic target (0, 0.0);
 	TrackViewList tvl;
 
 	if (with_selection && Config->get_region_boundaries_from_selected_tracks()) {
@@ -956,7 +958,7 @@ void
 Editor::cursor_to_region_boundary (bool with_selection, int32_t dir)
 {
 	framepos_t pos = playhead_cursor->current_frame ();
-	framepos_t target;
+	AudioMusic target (0, 0.0);
 
 	if (!_session) {
 		return;
@@ -967,11 +969,11 @@ Editor::cursor_to_region_boundary (bool with_selection, int32_t dir)
 		pos += dir;
 	}
 
-	if ((target = get_region_boundary (pos, dir, with_selection, false)) < 0) {
+	if ((target = get_region_boundary (pos, dir, with_selection, false)).frames < 0) {
 		return;
 	}
 
-	_session->request_locate (target);
+	_session->request_locate (target.frames);
 }
 
 void
@@ -1109,7 +1111,7 @@ Editor::cursor_to_selection_end (EditorCursor *cursor)
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.end_frame ().frames;
+			pos = selection->time.end_am ().frames;
 		}
 		break;
 
@@ -1127,7 +1129,7 @@ Editor::cursor_to_selection_end (EditorCursor *cursor)
 void
 Editor::selected_marker_to_region_boundary (bool with_selection, int32_t dir)
 {
-	framepos_t target;
+	AudioMusic target (0, 0.0);
 	Location* loc;
 	bool ignored;
 
@@ -1157,11 +1159,11 @@ Editor::selected_marker_to_region_boundary (bool with_selection, int32_t dir)
 		pos += dir;
 	}
 
-	if ((target = get_region_boundary (pos, dir, with_selection, false)) < 0) {
+	if ((target = get_region_boundary (pos, dir, with_selection, false)).frames < 0) {
 		return;
 	}
 
-	loc->move_to (_session->audiomusic_at_musicframe (target));
+	loc->move_to (target);
 }
 
 void
@@ -1312,7 +1314,7 @@ Editor::selected_marker_to_selection_end ()
 
 	case MouseRange:
 		if (!selection->time.empty()) {
-			pos = selection->time.end_frame ();
+			pos = selection->time.end_am ();
 		}
 		break;
 
@@ -1954,7 +1956,7 @@ Editor::get_selection_extents (AudioMusic& start, AudioMusic& end) const
 
 	} else if (!selection->time.empty()) {
 		start = selection->time.start();
-		end = selection->time.end_frame();
+		end = selection->time.end_am();
 	} else
 		ret = false;  //no selection found
 
@@ -2987,7 +2989,7 @@ Editor::create_region_from_selection (vector<boost::shared_ptr<Region> >& new_re
 		end = selection->time[clicked_selection].end.frames;
 	} else {
 		start = selection->time.start().frames;
-		end = selection->time.end_frame().frames;
+		end = selection->time.end_am().frames;
 	}
 
 	TrackViewList ts = selection->tracks.filter_to_unique_playlists ();
@@ -3325,7 +3327,7 @@ Editor::crop_region_to_selection ()
 {
 	if (!selection->time.empty()) {
 
-		crop_region_to (selection->time.start(), selection->time.end_frame());
+		crop_region_to (selection->time.start(), selection->time.end_am());
 
 	} else {
 
@@ -4972,7 +4974,7 @@ Editor::duplicate_selection (float times)
 				distance =
 				    selection->time[clicked_selection].end - selection->time[clicked_selection].start;
 			} else {
-				distance = selection->time.end_frame () - selection->time.start ();
+				distance = selection->time.end_am () - selection->time.start ();
 			}
 
 			selection->move_time (distance);

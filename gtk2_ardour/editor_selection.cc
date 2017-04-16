@@ -1112,8 +1112,8 @@ Editor::time_selection_changed ()
 	 */
 
 	if (_session && !_drags->active()) {
-		if (selection->time.length() != 0) {
-			_session->set_range_selection (selection->time.start(), selection->time.end_frame());
+		if (selection->time.length().frames != 0) {
+			_session->set_range_selection (selection->time.start(), selection->time.end_am());
 		} else {
 			_session->clear_range_selection ();
 		}
@@ -2037,7 +2037,7 @@ Editor::get_edit_op_range (AudioMusic& start, AudioMusic& end) const
 	if ( (mouse_mode == MouseRange || get_smart_mode() ) &&  !selection->time.empty()) {
 		/* we know that these are ordered */
 		start = selection->time.start();
-		end = selection->time.end_frame();
+		end = selection->time.end_am();
 		return true;
 	} else {
 		start = AudioMusic (0, 0.0);
