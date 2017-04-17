@@ -36,7 +36,7 @@ PlaylistLayeringTest::basicsTest ()
 	CPPUNIT_ASSERT_EQUAL (layer_t (1), _r[1]->layer ());
 	CPPUNIT_ASSERT_EQUAL (layer_t (2), _r[2]->layer ());
 
-	_r[0]->set_position (5);
+	_r[0]->set_position_frame (5);
 
 	/* region move should have no effect */
 	CPPUNIT_ASSERT_EQUAL (layer_t (0), _r[0]->layer ());

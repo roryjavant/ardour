@@ -545,7 +545,7 @@ SoundFileBox::audition ()
 			audition_position = PublicEditor::instance().get_preferred_edit_position();
 			break;
 	}
-	r->set_position(audition_position);
+	r->set_position_frame(audition_position);
 
 	_session->audition_region(r);
 }

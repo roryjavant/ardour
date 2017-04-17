@@ -502,7 +502,7 @@ MidiStreamView::setup_rec_box ()
 				if (region) {
 					region->set_start (_trackview.track()->current_capture_start()
 					                   - _trackview.track()->get_capture_start_frame (0));
-					region->set_position (_trackview.session()->transport_frame());
+					region->set_position_frame (_trackview.session()->transport_frame());
 
 					RegionView* rv = add_region_view_internal (region, false, true);
 					MidiRegionView* mrv = dynamic_cast<MidiRegionView*> (rv);

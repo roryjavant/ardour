@@ -408,7 +408,7 @@ Editor::nudge_forward (bool next, bool force_playhead)
 			}
 
 			r->clear_changes ();
-			r->set_position (r->position() + distance);
+			r->set_position_frame (r->position() + distance);
 			_session->add_command (new StatefulDiffCommand (r));
 		}
 
@@ -503,9 +503,9 @@ Editor::nudge_backward (bool next, bool force_playhead)
 			r->clear_changes ();
 
 			if (r->position() > distance) {
-				r->set_position (r->position() - distance);
+				r->set_position_frame (r->position() - distance);
 			} else {
-				r->set_position (0);
+				r->set_position_frame (0);
 			}
 			_session->add_command (new StatefulDiffCommand (r));
 		}
@@ -594,7 +594,7 @@ Editor::nudge_forward_capture_offset ()
 		boost::shared_ptr<Region> r ((*i)->region());
 
 		r->clear_changes ();
-		r->set_position (r->position() + distance);
+		r->set_position_frame (r->position() + distance);
 		_session->add_command(new StatefulDiffCommand (r));
 	}
 
@@ -620,9 +620,9 @@ Editor::nudge_backward_capture_offset ()
 		r->clear_changes ();
 
 		if (r->position() > distance) {
-			r->set_position (r->position() - distance);
+			r->set_position_frame (r->position() - distance);
 		} else {
-			r->set_position (0);
+			r->set_position_frame (0);
 		}
 		_session->add_command(new StatefulDiffCommand (r));
 	}
@@ -671,7 +671,7 @@ Editor::sequence_regions ()
 			if(iCount>0)
 			{
 				r_end_prev=r_end;
-				r->set_position(r_end_prev);
+				r->set_position_frame(r_end_prev);
 			}
 
 			if (!in_command) {
@@ -3643,7 +3643,7 @@ Editor::align_regions_relative (RegionPoint point)
 	/* move first one specially */
 
 	r->clear_changes ();
-	r->set_position (pos);
+	r->set_position_frame (pos);
 	_session->add_command(new StatefulDiffCommand (r));
 
 	/* move rest by the same amount */
@@ -3657,9 +3657,9 @@ Editor::align_regions_relative (RegionPoint point)
 		region->clear_changes ();
 
 		if (dir > 0) {
-			region->set_position (region->position() + distance);
+			region->set_position_frame (region->position() + distance);
 		} else {
-			region->set_position (region->position() - distance);
+			region->set_position_frame (region->position() - distance);
 		}
 
 		_session->add_command(new StatefulDiffCommand (region));
@@ -3684,17 +3684,17 @@ Editor::align_region_internal (boost::shared_ptr<Region> region, RegionPoint poi
 
 	switch (point) {
 	case SyncPoint:
-		region->set_position (region->adjust_to_sync (position));
+		region->set_position_frame (region->adjust_to_sync (position));
 		break;
 
 	case End:
 		if (position > region->length()) {
-			region->set_position (position - region->length());
+			region->set_position_frame (position - region->length());
 		}
 		break;
 
 	case Start:
-		region->set_position (position);
+		region->set_position_frame (position);
 		break;
 	}
 

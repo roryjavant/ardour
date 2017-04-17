@@ -61,7 +61,7 @@ PlaylistEquivalentRegionsTest::basicsTest ()
 	CPPUNIT_ASSERT_EQUAL (e.front(), _r[1]);
 
 	/* Move _r[1] */
-	_r[1]->set_position (66);
+	_r[1]->set_position_frame (66);
 
 	/* Look again for the equivalents to _r[0] on _playlist_b */
 	e.clear ();

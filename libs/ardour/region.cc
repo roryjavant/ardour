@@ -534,9 +534,9 @@ Region::set_length_internal (const AudioMusic& len)
 	_length = len.frames;
 	_length_qn = len.qnotes;
 	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
-		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << _length_qn << std::endl;
+		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << std::setprecision (17) << _length_qn << std::endl;
 	} else {
-		std::cout << "region set len internal sanity check ok for " << name() << " length_qn : " << _length_qn << std::endl;
+		std::cout << "region set len internal sanity check ok for " << name() << std::setprecision (17) << " length_qn : " << _length_qn << std::endl;
 	}
 }
 
@@ -594,7 +594,7 @@ Region::move_to_natural_position ()
 	boost::shared_ptr<Region> whole_file_region = get_parent();
 
 	if (whole_file_region) {
-		set_position (whole_file_region->position() + _start);
+		set_position_frame (whole_file_region->position() + _start);
 	}
 }
 
@@ -657,15 +657,19 @@ Region::update_after_tempo_map_change (bool send)
 	   a GUI that has moved its representation already.
 	*/
 
+	what_changed.add (Properties::start_qn);
+	what_changed.add (Properties::length_qn);
 	what_changed.add (Properties::position);
 
 	if (send) {
 		send_change (what_changed);
 	}
+	std::cout << "region update after tmap change post musictime " << name()  << " qn : " << _quarter_note << std::endl;
+
 }
 
 void
-Region::set_position (const MusicFrame& mf)
+Region::set_position_frame (const MusicFrame& mf)
 {
 	if (!can_move()) {
 		return;
@@ -692,7 +696,7 @@ Region::set_position (const MusicFrame& mf)
 }
 
 void
-Region::set_position_music (double qn)
+Region::set_position_qnote (double qn)
 {
 	if (!can_move()) {
 		return;

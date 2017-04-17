@@ -1217,7 +1217,7 @@ Playlist::cut (const AudioMusic& start, const AudioMusic& end, bool result_is_hi
 	}
 
 	{
-		AudioMusic new_end = _session.audiomusic_at_musicframe (end.frames - 1);
+		AudioMusic new_end = end - min_audiomusic_delta;
 		RegionWriteLock rlock (this);
 		partition_internal (start, new_end, true, thawlist);
 	}
@@ -1267,7 +1267,13 @@ Playlist::paste (boost::shared_ptr<Playlist> other, const AudioMusic& position, 
 					/* put these new regions on top of all existing ones, but preserve
 					   the ordering they had in the original playlist.
 					*/
-					add_region_internal (copy_of_region, (*i)->position_am() + pos);
+
+					if ((*i)->position_lock_style() == AudioTime) {
+						add_region_internal (copy_of_region, _session.audiomusic_at_musicframe ((*i)->position() + pos.frames));
+					} else {
+						add_region_internal (copy_of_region, _session.audiomusic_at_qn ((*i)->quarter_note() + pos.qnotes));
+					}
+
 					set_layer (copy_of_region, copy_of_region->layer() + top);
 				}
 				pos += shift;
@@ -1301,10 +1307,9 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 	while (itimes--) {
 		if (region->position_lock_style() == AudioTime) {
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, true);
-			add_region_internal (copy, position);
+			add_region_internal (copy, _session.audiomusic_at_musicframe (position.frames));
 			set_layer (copy, DBL_MAX);
 
-			position = position + gap;
 		} else {
 			RegionFactory::region_name (name, region->name(), false);
 			PropertyList plist;
@@ -1317,11 +1322,11 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, plist);
 
-			add_region_internal (copy, position);
+			add_region_internal (copy, _session.audiomusic_at_qn (position.qnotes));
 			set_layer (copy, DBL_MAX);
-
-			position = position + gap;
 		}
+
+		position = position + gap;
 	}
 
 	if (floor (times) != times) {
@@ -1338,7 +1343,13 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 			plist.add (Properties::name, name);
 
 			boost::shared_ptr<Region> sub = RegionFactory::create (region, plist);
-			add_region_internal (sub, position);
+
+			if (region->position_lock_style() == AudioTime) {
+				add_region_internal (sub, _session.audiomusic_at_musicframe (position.frames));
+			} else {
+				add_region_internal (sub, _session.audiomusic_at_qn (position.qnotes));
+			}
+
 			set_layer (sub, DBL_MAX);
 		}
 	}
@@ -1355,13 +1366,12 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 
 	RegionWriteLock rl (this);
 
-	while (position.frames + region->length() - 1 < end.frames) {
+	while (position + region->length_am() - min_audiomusic_delta < end) {
 		if (region->position_lock_style() == AudioTime) {
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, true);
-			add_region_internal (copy, position);
+			add_region_internal (copy, _session.audiomusic_at_musicframe (position.frames));
 			set_layer (copy, DBL_MAX);
 
-			position = position + gap;
 		} else {
 			RegionFactory::region_name (name, region->name(), false);
 			PropertyList plist;
@@ -1374,11 +1384,12 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, plist);
 
-			add_region_internal (copy, position);
-			set_layer (copy, DBL_MAX);
+			add_region_internal (copy, _session.audiomusic_at_qn (position.qnotes));
 
-			position = position + gap;
+			set_layer (copy, DBL_MAX);
 		}
+
+		position = position + gap;
 	}
 
 	if (position < end) {
@@ -1395,7 +1406,13 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 			plist.add (Properties::name, name);
 
 			boost::shared_ptr<Region> sub = RegionFactory::create (region, plist);
-			add_region_internal (sub, position);
+
+			if (region->position_lock_style() == AudioTime) {
+				add_region_internal (sub, _session.audiomusic_at_musicframe (position.frames));
+			} else {
+				add_region_internal (sub, _session.audiomusic_at_qn (position.qnotes));
+			}
+
 			set_layer (sub, DBL_MAX);
 		}
 	}
@@ -1472,7 +1489,7 @@ Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 			 //continue;
 		 }
 
-		 (*r)->set_position ((*r)->position() + distance);
+		 (*r)->set_position_frame ((*r)->position() + distance);
 	 }
 
 	 /* XXX: may not be necessary; Region::post_set should do this, I think */
@@ -1680,10 +1697,10 @@ Playlist::core_ripple (const AudioMusic& at, AudioMusic distance, RegionList *ex
 					new_pos = limit;
 				}
 
-				(*i)->set_position (new_pos);
+				(*i)->set_position_frame (new_pos);
 			} else {
 				double new_pos_qn = (*i)->quarter_note() + distance.qnotes;
-				(*i)->set_position_music (new_pos_qn);
+				(*i)->set_position_qnote (new_pos_qn);
 			}
 		}
 	}
@@ -2827,7 +2844,7 @@ Playlist::nudge_after (framepos_t start, framecnt_t distance, bool forwards)
 					}
 				}
 
-				(*i)->set_position (new_pos);
+				(*i)->set_position_frame (new_pos);
 				moved = true;
 			}
 		}
@@ -3001,8 +3018,8 @@ Playlist::shuffle (boost::shared_ptr<Region> region, int dir)
 							new_pos = region->position() + (*next)->length();
 						}
 
-						(*next)->set_position (region->position());
-						region->set_position (new_pos);
+						(*next)->set_position_frame (region->position());
+						region->set_position_frame (new_pos);
 
 						/* avoid a full sort */
 
@@ -3042,8 +3059,8 @@ Playlist::shuffle (boost::shared_ptr<Region> region, int dir)
 							new_pos = (*prev)->position() + region->length();
 						}
 
-						region->set_position ((*prev)->position());
-						(*prev)->set_position (new_pos);
+						region->set_position_frame ((*prev)->position());
+						(*prev)->set_position_frame (new_pos);
 
 						/* avoid a full sort */
 
@@ -3312,7 +3329,7 @@ Playlist::uncombine (boost::shared_ptr<Region> target)
 
 	const RegionList& rl (pl->region_list_property().rlist());
 	RegionFactory::CompoundAssociations& cassocs (RegionFactory::compound_associations());
-	frameoffset_t move_offset = 0;
+	AudioMusic move_offset (0, 0.0);
 
 	/* there are two possibilities here:
 	   1) the playlist that the playlist source was based on
@@ -3341,13 +3358,13 @@ Playlist::uncombine (boost::shared_ptr<Region> target)
 		bool modified_region;
 
 		if (i == rl.begin()) {
-			move_offset = (target->position() - original->position()) - target->start();
-			adjusted_start = original->position_am() + AudioMusic (target->start(), target->start_qn());
-			adjusted_end = adjusted_start + AudioMusic (target->length(), target->length_qn());
+			move_offset = (target->position_am() - original->position_am()) - target->start_am();
+			adjusted_start = original->position_am() + target->start_am();
+			adjusted_end = adjusted_start + target->length_am();
 		}
 
 		if (!same_playlist) {
-			framepos_t pos = original->position();
+			AudioMusic pos = original->position_am();
 			/* make a copy, but don't announce it */
 			original = RegionFactory::create (original, false);
 			/* the pure copy constructor resets position() to zero,
@@ -3403,10 +3420,10 @@ Playlist::uncombine (boost::shared_ptr<Region> target)
 			break;
 		}
 
-		if (move_offset) {
+		if (move_offset.frames) {
 			/* fix the position to match any movement of the compound region.
 			 */
-			original->set_position (original->position() + move_offset);
+			original->set_position (original->position_am() + move_offset);
 			modified_region = true;
 		}
 

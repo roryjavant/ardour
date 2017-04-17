@@ -241,7 +241,7 @@ Editor::do_ptimport (std::string ptpath,
 			plist.add (ARDOUR::Properties::name, PBD::basename_nosuffix(src->name()));
 			boost::shared_ptr<Region> region = (RegionFactory::create (src, plist));
 			/* sets beat position */
-			region->set_position (f);
+			region->set_position_frame (f);
 			midi_track->playlist()->add_region (region, pos);
 
 			boost::shared_ptr<MidiRegion> mr = boost::dynamic_pointer_cast<MidiRegion>(region);

@@ -1720,10 +1720,10 @@ RegionMoveDrag::finished_no_copy (
 			} else {
 				if (rv->region()->position_lock_style() == AudioTime) {
 					/* move by frame offset */
-					rv->region()->set_position (where.frames);
+					rv->region()->set_position_frame (where.frames);
 				} else {
 					/* move by music offset */
-					rv->region()->set_position_music (where.qnotes);
+					rv->region()->set_position_qnote (where.qnotes);
 				}
 			}
 			_editor->session()->add_command (new StatefulDiffCommand (rv->region()));
@@ -2170,9 +2170,9 @@ RegionRippleDrag::remove_unselected_from_views(const AudioMusic& amount, bool mo
 			if (move_regions) {
 				// move the underlying region to match the view
 				if (rv->region()->position_lock_style() == AudioTime) {
-					rv->region()->set_position (rv->region()->position() + amount.frames);
+					rv->region()->set_position_frame (rv->region()->position() + amount.frames);
 				} else {
-					rv->region()->set_position_music (rv->region()->quarter_note() + amount.qnotes);
+					rv->region()->set_position_qnote (rv->region()->quarter_note() + amount.qnotes);
 				}
 			} else {
 				// restore the view to match the underlying region's original position
@@ -2766,7 +2766,7 @@ VideoTimeLineDrag::motion (GdkEvent* event, bool first_move)
 			rv->region()->clear_changes ();
 			rv->region()->suspend_property_changes();
 		}
-		rv->region()->set_position(i->initial_position + dt);
+		rv->region()->set_position_frame(i->initial_position + dt);
 		rv->region_changed(ARDOUR::Properties::position);
 	}
 
@@ -2837,7 +2837,7 @@ VideoTimeLineDrag::aborted (bool)
 
 	for (list<AVDraggingView>::iterator i = _views.begin(); i != _views.end(); ++i) {
 		i->view->region()->resume_property_changes ();
-		i->view->region()->set_position(i->initial_position);
+		i->view->region()->set_position_frame(i->initial_position);
 	}
 }
 
@@ -3120,7 +3120,7 @@ TrimDrag::finished (GdkEvent* event, bool movement_occurred)
 					}
 				}
 				if (_jump_position_when_done) {
-					i->view->region()->set_position (i->initial_position);
+					i->view->region()->set_position_frame (i->initial_position);
 				}
 			}
 		} else if (_operation == EndTrim) {
@@ -3135,7 +3135,7 @@ TrimDrag::finished (GdkEvent* event, bool movement_occurred)
 					}
 				}
 				if (_jump_position_when_done) {
-					i->view->region()->set_position (i->initial_end - i->view->region()->length());
+					i->view->region()->set_position_frame (i->initial_end - i->view->region()->length());
 				}
 			}
 		}

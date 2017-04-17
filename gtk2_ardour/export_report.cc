@@ -988,7 +988,7 @@ ExportReport::audition (std::string path, unsigned n_chn, int page)
 
 	r = boost::dynamic_pointer_cast<AudioRegion> (RegionFactory::create (srclist, plist, false));
 
-	r->set_position(0);
+	r->set_position_frame(0);
 	_session->audition_region(r);
 	_audition_num = page;
 }

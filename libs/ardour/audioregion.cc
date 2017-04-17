@@ -1592,7 +1592,7 @@ AudioRegion::source_offset_changed ()
 
 	if (afs && afs->destructive()) {
 		// set_start (source()->natural_position(), this);
-		set_position (source()->natural_position());
+		set_position_frame (source()->natural_position());
 	}
 }
 

@@ -280,7 +280,7 @@ RegionEditor::position_clock_changed ()
 		in_command = true;
 
 		_region->clear_changes ();
-		_region->set_position (position_clock.current_time());
+		_region->set_position_frame (position_clock.current_time());
 		_session->add_command(new StatefulDiffCommand (_region));
 	}
 
