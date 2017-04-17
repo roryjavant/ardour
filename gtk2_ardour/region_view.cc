@@ -842,20 +842,14 @@ RegionView::trim_front (const AudioMusic& new_bound, bool no_overlap)
 	}
 
 	RouteTimeAxisView& rtv = dynamic_cast<RouteTimeAxisView&> (trackview);
-	double const speed = rtv.track()->speed ();
 
 	framepos_t const pre_trim_first_frame = _region->first_frame();
-	AudioMusic speed_bound = new_bound;
 
-	if (speed != 1.0) {
-		speed_bound = trackview.session()->audiomusic_at_musicframe (new_bound.frames * speed);
-	}
-
-	if (_region->position() == speed_bound.frames) {
+	if (_region->position_am() == new_bound) {
 		return false;
 	}
 
-	_region->trim_front (speed_bound);
+	_region->trim_front (new_bound);
 
 	if (no_overlap) {
 		// Get the next region on the left of this region and shrink/expand it.
@@ -870,8 +864,7 @@ RegionView::trim_front (const AudioMusic& new_bound, bool no_overlap)
 
 		// Only trim region on the left if the first frame has gone beyond the left region's last frame.
 		if (region_left != 0 &&	(region_left->last_frame() > _region->first_frame() || regions_touching)) {
-			AudioMusic new_end = _region->position_am() - min_audiomusic_delta;
-			region_left->trim_end (new_end);
+			region_left->trim_end (_region->position_am() - min_audiomusic_delta);
 		}
 	}
 
@@ -888,15 +881,10 @@ RegionView::trim_end (const AudioMusic& new_bound, bool no_overlap)
 	}
 
 	RouteTimeAxisView& rtv = dynamic_cast<RouteTimeAxisView&> (trackview);
-	double const speed = rtv.track()->speed ();
 
 	framepos_t const pre_trim_last_frame = _region->last_frame();
 
-	if (speed != 1.0) {
-		_region->trim_end (trackview.session()->audiomusic_at_musicframe (new_bound.frames * speed));
-	} else {
-		_region->trim_end (new_bound);
-	}
+	_region->trim_end (new_bound);
 
 	if (no_overlap) {
 		// Get the next region on the right of this region and shrink/expand it.

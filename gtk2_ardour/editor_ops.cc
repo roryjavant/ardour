@@ -3304,8 +3304,8 @@ Editor::separate_under_selected_regions ()
 		}
 
 		//Partition on the region bounds
-		AudioMusic const begin = _session->audiomusic_at_musicframe ((*rl)->first_frame() - 1);
-		AudioMusic const end ((*rl)->last_frame() + 1, (*rl)->end_qn());
+		AudioMusic const begin = (*rl)->position_am() - min_audiomusic_delta;
+		AudioMusic const end = (*rl)->end_am() + min_audiomusic_delta;
 		playlist->partition (begin, end, true);
 
 		//Re-add region that was just removed due to the partition operation
@@ -3716,7 +3716,7 @@ Editor::trim_region_back ()
 void
 Editor::trim_region (bool front)
 {
-	AudioMusic where = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
+	AudioMusic where = snap_to (get_preferred_edit_position());
 	RegionSelection rs = get_regions_from_selection_and_edit_point ();
 
 	if (rs.empty()) {
@@ -3789,15 +3789,6 @@ Editor::trim_region_to_location (const Location& loc, const char* str)
 		AudioMusic start = loc.start();
 		AudioMusic end  = loc.end();
 
-		float speed = 1.0;
-
-		if (tav->track() != 0) {
-			speed = tav->track()->speed();
-		}
-		if (speed != 1.0) {
-			start = _session->audiomusic_at_musicframe (session_frame_to_track_frame (loc.start().frames, speed));
-			end = _session->audiomusic_at_musicframe (session_frame_to_track_frame (loc.end().frames, speed));
-		}
 		AudioMusic const len = end - start;
 
 		rv->region()->clear_changes ();
@@ -3849,13 +3840,6 @@ Editor::trim_to_region(bool forward)
 			continue;
 		}
 
-		float speed = 1.0;
-
-		if (atav->track() != 0) {
-			speed = atav->track()->speed();
-		}
-
-
 		boost::shared_ptr<Region> region = arv->region();
 		boost::shared_ptr<Playlist> playlist (region->playlist());
 
@@ -3869,11 +3853,8 @@ Editor::trim_to_region(bool forward)
 			continue;
 		    }
 
-		    AudioMusic new_end = next_region->position_am() - min_audiomusic_delta;
-		    if (speed != 1.0) {
-			    new_end = _session->audiomusic_at_musicframe ((framepos_t) ((next_region->first_frame() - 1) * speed));
-		    }
-		    region->trim_end (new_end);
+
+		    region->trim_end (next_region->position_am() - min_audiomusic_delta);
 
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length));
 		    arv->region_changed (PropertyChange (ARDOUR::Properties::length_qn));
@@ -3886,11 +3867,7 @@ Editor::trim_to_region(bool forward)
 			continue;
 		    }
 
-		    if (speed != 1.0) {
-			    region->trim_front((framepos_t) ((next_region->last_frame() + 1) * speed));
-		    } else {
-			    region->trim_front (next_region->end_am() + min_audiomusic_delta);
-		    }
+		    region->trim_front (next_region->end_am() + min_audiomusic_delta);
 
 		    arv->region_changed (ARDOUR::bounds_change);
 		}
@@ -4748,8 +4725,7 @@ void
 Editor::paste (float times, bool from_context)
 {
         DEBUG_TRACE (DEBUG::CutNPaste, "paste to preferred edit pos\n");
-	MusicFrame where (get_preferred_edit_position (EDIT_IGNORE_NONE, from_context), get_grid_music_divisions (0));
-	paste_internal (_session->audiomusic_at_musicframe (where), times);
+	paste_internal (snap_to (get_preferred_edit_position (EDIT_IGNORE_NONE, from_context)), times);
 }
 
 void
@@ -4776,8 +4752,8 @@ Editor::paste_internal (const AudioMusic& p, float times)
 
 	AudioMusic position (p);
 	if (position.frames == max_framepos) {
-		position = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
-                DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("preferred edit position is %1 qn %2\n", position.frames, position.qnotes));
+		position = snap_to (get_preferred_edit_position());
+		DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("preferred edit position is %1 qn %2\n", position.frames, position.qnotes));
 	}
 
 	if (position == last_paste_pos) {
@@ -6335,15 +6311,13 @@ Editor::split_region ()
 	if (current_mouse_mode() == MouseObject) {  //don't try this for Internal Edit, Stretch, Draw, etc.
 
 		RegionSelection rs = get_regions_from_selection_and_edit_point ();
-		const framepos_t pos = get_preferred_edit_position();
-		const int32_t division = get_grid_music_divisions (0);
-		MusicFrame where (pos, division);
+		AudioMusic const where = snap_to (get_preferred_edit_position());
 
 		if (rs.empty()) {
 			return;
 		}
 
-		split_regions_at (_session->audiomusic_at_musicframe (where), rs);
+		split_regions_at (where, rs);
 
 	}
 }
@@ -6490,11 +6464,9 @@ Editor::set_auto_punch_range ()
 		// Second press - update end range marker and set punch_out
 		if (now < tpl->start().frames) {
 			// playhead has been rewound - move start back  and pretend nothing happened
-			//begin = now;
 			set_punch_range (begin, end, _("Auto Punch In/Out"));
 		} else {
 			// normal case for 2nd press - set the punch out
-			//end = playhead_cursor->current_frame ();
 			set_punch_range (tpl->start(), begin, _("Auto Punch In/Out"));
 			_session->config.set_punch_out(true);
 		}
@@ -6629,7 +6601,7 @@ Editor::set_loop_start_from_edit_point ()
 		}
 
 		//snap the selection start/end
-		AudioMusic start = snap_to (start_frame);
+		AudioMusic const start = snap_to (start_frame);
 
 		//if there's not already a sensible selection endpoint, go "forever"
 		if (start > end) {
@@ -6662,7 +6634,7 @@ Editor::set_loop_end_from_edit_point ()
 		}
 
 		//snap the selection start/end
-		AudioMusic end = snap_to(end_frame);
+		AudioMusic const end = snap_to(end_frame);
 
 		set_loop_range (start, end, _("set loop end from EP"));
 	}
@@ -6917,7 +6889,7 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 	AudioMusic pos (0, 0.0);
 
 	AudioMusic rstart = r->position_am();
-	AudioMusic rend (r->last_frame (), r->end_qn());
+	AudioMusic rend = r->end_am();
 
 	while (x != positions.end()) {
 
@@ -7292,7 +7264,7 @@ Editor::playhead_forward_to_grid ()
 
 	if (pos < max_framepos - 1) {
 		pos += 2;
-		AudioMusic where = snap_to_internal (pos, RoundUpAlways, false);
+		AudioMusic const where = snap_to_internal (pos, RoundUpAlways, false);
 		_session->request_locate (where.frames);
 	}
 }
@@ -7309,7 +7281,7 @@ Editor::playhead_backward_to_grid ()
 
 	if (pos > 2) {
 		pos -= 2;
-		AudioMusic where = snap_to_internal (pos, RoundDownAlways, false);
+		AudioMusic const where = snap_to_internal (pos, RoundDownAlways, false);
 		_session->request_locate (where.frames);
 	}
 }
@@ -7580,7 +7552,7 @@ Editor::insert_time (
 
 			if (opt == SplitIntersected) {
 				/* non musical split */
-				AudioMusic where = _session->audiomusic_at_musicframe (pos);
+				AudioMusic const where = _session->audiomusic_at_musicframe (pos);
 				(*i)->split (where);
 			}
 
@@ -7607,7 +7579,6 @@ Editor::insert_time (
 	/* markers */
 	if (markers_too) {
 		bool moved = false;
-		const int32_t divisions = get_grid_music_divisions (0);
 		XMLNode& before (_session->locations()->get_state());
 		Locations::LocationList copy (_session->locations()->list());
 
@@ -7624,11 +7595,9 @@ Editor::insert_time (
 				if ((*i)->start().frames >= pos) {
 					// move end first, in case we're moving by more than the length of the range
 					if (!(*i)->is_mark()) {
-						(*i)->set_end (_session->audiomusic_at_musicframe (MusicFrame ((*i)->end().frames + frames, divisions)),
-							       false, true);
+						(*i)->set_end (_session->audiomusic_at_musicframe ((*i)->end().frames + frames), false, true);
 					}
-					(*i)->set_start (_session->audiomusic_at_musicframe (MusicFrame ((*i)->start().frames + frames, divisions)),
-							 false, true);
+					(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames + frames), false, true);
 					moved = true;
 				}
 
@@ -7742,7 +7711,6 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 		}
 	}
 
-	const int32_t divisions = get_grid_music_divisions (0);
 	std::list<Location*> loc_kill_list;
 
 	/* markers */
@@ -7771,24 +7739,24 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 						// if we're removing more time than the length of the range
 						if ((*i)->start().frames >= pos && (*i)->start().frames < pos+frames) {
 							// start is within cut
-							(*i)->set_start (_session->audiomusic_at_musicframe (MusicFrame (pos, divisions)),
-									 false, true);  // bring the start marker to the beginning of the cut
+							// bring the start marker to the beginning of the cut
+							(*i)->set_start (_session->audiomusic_at_musicframe (pos),false, true);
 							moved = true;
 						} else if ((*i)->start().frames >= pos+frames) {
 							// start (and thus entire range) lies beyond end of cut
-							(*i)->set_start (_session->audiomusic_at_musicframe (MusicFrame ((*i)->start().frames - frames, divisions)),
-									 false, true); // slip the start marker back
+							// slip the start marker back
+							(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames - frames), false, true);
 							moved = true;
 						}
 						if ((*i)->end().frames >= pos && (*i)->end().frames < pos+frames) {
 							// end is inside cut
-							(*i)->set_end (_session->audiomusic_at_musicframe (MusicFrame (pos, divisions)),
+							(*i)->set_end (_session->audiomusic_at_musicframe (pos),
 								       false, true);  // bring the end to the cut
 							moved = true;
 						} else if ((*i)->end().frames >= pos+frames) {
 							// end is beyond end of cut
-							(*i)->set_end (_session->audiomusic_at_musicframe (MusicFrame ((*i)->end().frames - frames, divisions)),
-								       false, true); // slip the end marker back
+							// slip the end marker back
+							(*i)->set_end (_session->audiomusic_at_musicframe ((*i)->end().frames - frames), false, true);
 							moved = true;
 						}
 
@@ -7797,8 +7765,7 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 					loc_kill_list.push_back(*i);
 					moved = true;
 				} else if ((*i)->start().frames >= pos) {
-					(*i)->set_start (_session->audiomusic_at_musicframe (MusicFrame ((*i)->start().frames - frames, divisions)),
-							 false, true);
+					(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames - frames), false, true);
 					moved = true;
 				}
 

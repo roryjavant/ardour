@@ -1532,13 +1532,6 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 	playlist = tr->playlist();
 
 	TimeSelection time (selection.time);
-	float const speed = tr->speed();
-	if (speed != 1.0f) {
-		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).start.frames, speed));
-			(*i).end   = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).end.frames,   speed));
-		}
-	}
 
         playlist->clear_changes ();
         playlist->clear_owned_changes ();
@@ -1549,9 +1542,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 		if (playlist->cut (time) != 0) {
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(time.start()
-						 , AudioMusic (-time_length.frames, -time_length.qnotes)
-						 , NULL);
+				playlist->ripple(time.start(), AudioMusic (-time_length.frames, -time_length.qnotes), NULL);
 			}
 
                         vector<Command*> cmds;
@@ -1567,9 +1558,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 			_editor.get_cut_buffer().add (what_we_got);
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(time.start()
-						 , AudioMusic (-time_length.frames, -time_length.qnotes)
-						 , NULL);
+				playlist->ripple(time.start(), AudioMusic (-time_length.frames, -time_length.qnotes), NULL);
 			}
                         vector<Command*> cmds;
                         playlist->rdiff (cmds);
@@ -1588,9 +1577,7 @@ RouteTimeAxisView::cut_copy_clear (Selection& selection, CutCopyOp op)
 		if ((what_we_got = playlist->cut (time)) != 0) {
 			if (Config->get_edit_mode() == Ripple) {
 				// no need to exclude any regions from rippling here
-				playlist->ripple(time.start()
-						 , AudioMusic (-time_length.frames, -time_length.qnotes)
-						 , NULL);
+				playlist->ripple(time.start(), AudioMusic (-time_length.frames, -time_length.qnotes), NULL);
 			}
                         vector<Command*> cmds;
                         playlist->rdiff (cmds);
@@ -1621,10 +1608,6 @@ RouteTimeAxisView::paste (const AudioMusic& where, const Selection& selection, P
         DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("paste to %1 qn %2\n", where.frames, where.qnotes));
 
 	AudioMusic pos (where);
-	if (track()->speed() != 1.0f) {
-		pos = _session->audiomusic_at_musicframe (session_frame_to_track_frame (pos.frames, track()->speed()));
-		DEBUG_TRACE (DEBUG::CutNPaste, string_compose ("modified paste to %1\n", pos.frames));
-	}
 
 	/* add multi-paste offset if applicable */
 	std::pair<AudioMusic, AudioMusic> extent = (*p)->get_extent();

@@ -414,8 +414,7 @@ LocationEditRow::to_playhead_button_pressed (LocationPart part)
 		return;
 	}
 
-	const int32_t divisions = PublicEditor::instance().get_grid_music_divisions (0);
-	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (_session->transport_frame (), divisions));
+	AudioMusic const start_am = _session->audiomusic_at_musicframe (_session->transport_frame ());
 
 	switch (part) {
 		case LocStart:
@@ -464,10 +463,9 @@ LocationEditRow::clock_changed (LocationPart part)
 		return;
 	}
 
-	const int32_t divisions = PublicEditor::instance().get_grid_music_divisions (0);
-	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (start_clock.current_time(), divisions));
-	AudioMusic const end_am = _session->audiomusic_at_musicframe (MusicFrame (end_clock.current_time(), divisions));
-	AudioMusic const loc_start_am = _session->audiomusic_at_musicframe (MusicFrame (location->start().frames + length_clock.current_duration(), divisions));
+	AudioMusic const start_am = _session->audiomusic_at_musicframe (start_clock.current_time());
+	AudioMusic const end_am = _session->audiomusic_at_musicframe (end_clock.current_time());
+	AudioMusic const loc_start_am = _session->audiomusic_at_musicframe (location->start().frames + length_clock.current_duration());
 
 	switch (part) {
 		case LocStart:

@@ -2516,8 +2516,7 @@ Editor::start_selection_grab (ArdourCanvas::Item* /*item*/, GdkEvent* event)
 
 	playlist->clear_changes ();
 
-	AudioMusic selection_start = selection->time[clicked_selection].start;
-	clicked_routeview->playlist()->add_region (region, selection_start);
+	clicked_routeview->playlist()->add_region (region, selection->time[clicked_selection].start);
 	_session->add_command(new StatefulDiffCommand (playlist));
 
 	c.disconnect ();
