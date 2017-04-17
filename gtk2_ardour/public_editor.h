@@ -148,10 +148,10 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	 * Snap a value according to the current snap setting.
 	 * ensure_snap overrides SnapOff and magnetic snap
 	 */
-	virtual void snap_to (ARDOUR::AudioMusic& first,
-	                      ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	                      bool                for_mark  = false,
-			      bool                ensure_snap = false) = 0;
+	virtual ARDOUR::AudioMusic snap_to (framepos_t        first,
+					    ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+					    bool              for_mark  = false,
+					    bool              ensure_snap = false) = 0;
 
 	/** Undo some transactions.
 	 * @param n Number of transactions to undo.
@@ -455,10 +455,10 @@ class PublicEditor : public Gtkmm2ext::Tabbable {
 	virtual ARDOUR::Location* find_location_from_marker (ArdourMarker *, bool &) const = 0;
 	virtual ArdourMarker* find_marker_from_location_id (PBD::ID const &, bool) const = 0;
 
-	virtual void snap_to_with_modifier (ARDOUR::AudioMusic& first,
-	                                    GdkEvent const *    ev,
-	                                    ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	                                    bool                for_mark  = false) = 0;
+	virtual ARDOUR::AudioMusic snap_to_with_modifier (framepos_t        first,
+							  GdkEvent const *  ev,
+							  ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+							  bool              for_mark  = false) = 0;
 
 	virtual void get_regions_at (RegionSelection &, framepos_t where, TrackViewList const &) const = 0;
 	virtual void get_regions_after (RegionSelection&, framepos_t where, const TrackViewList& ts) const = 0;

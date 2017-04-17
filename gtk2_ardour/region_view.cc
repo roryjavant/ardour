@@ -960,13 +960,11 @@ RegionView::snap_frame_to_frame (frameoffset_t x, bool ensure_snap) const
 	framepos_t const session_frame = x + _region->position();
 
 	/* try a snap in either direction */
-	AudioMusic frame (session_frame, 0.0);
-	editor.snap_to (frame, RoundNearest, false, ensure_snap);
+	AudioMusic frame = editor.snap_to (session_frame, RoundNearest, false, ensure_snap);
 
 	/* if we went off the beginning of the region, snap forwards */
-	if (frame.frames < _region->position ()) {
-		frame.frames = session_frame;
-		editor.snap_to (frame, RoundUpAlways, false, ensure_snap);
+	if (frame < _region->position_am()) {
+		frame = editor.snap_to (session_frame, RoundUpAlways, false, ensure_snap);
 	}
 
 	/* back to region relative, keeping the relevant divisor */

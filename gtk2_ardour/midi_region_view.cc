@@ -3488,20 +3488,20 @@ MidiRegionView::nudge_notes (bool forward, bool fine)
 
 		/* use grid */
 
-		AudioMusic next_pos (ref_point, 0);
+		framepos_t next_pos = ref_point;
 		if (forward) {
-			if (max_framepos - 1 < next_pos.frames) {
-				next_pos.frames += 1;
+			if (max_framepos - 1 < next_pos) {
+				next_pos += 1;
 			}
 		} else {
-			if (next_pos.frames == 0) {
+			if (next_pos == 0) {
 				return;
 			}
-			next_pos.frames -= 1;
+			next_pos -= 1;
 		}
 
-		trackview.editor().snap_to (next_pos, (forward ? RoundUpAlways : RoundDownAlways), false);
-		const framecnt_t distance = ref_point - next_pos.frames;
+		AudioMusic const next_pos_snap = trackview.editor().snap_to (next_pos, (forward ? RoundUpAlways : RoundDownAlways), false);
+		framecnt_t const distance = ref_point - next_pos_snap.frames;
 		delta = region_frames_to_region_beats (fabs ((double)distance));
 	}
 

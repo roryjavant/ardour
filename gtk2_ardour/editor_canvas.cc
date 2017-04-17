@@ -461,8 +461,7 @@ Editor::drop_paths (const RefPtr<Gdk::DragContext>& context,
 		ev.button.x = x;
 		ev.button.y = y;
 
-		AudioMusic when (window_event_sample (&ev, 0, &cy), 0.0);
-		snap_to (when);
+		AudioMusic when = snap_to (window_event_sample (&ev, 0, &cy));
 
 		bool copy = ((context->get_actions() & (Gdk::ACTION_COPY | Gdk::ACTION_LINK | Gdk::ACTION_MOVE)) == Gdk::ACTION_COPY);
 #ifdef __APPLE__

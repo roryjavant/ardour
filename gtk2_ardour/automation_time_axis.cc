@@ -632,8 +632,7 @@ AutomationTimeAxisView::add_automation_event (GdkEvent* event, framepos_t frame,
 
 	_line->view_to_model_coord (x, y);
 
-	AudioMusic when (frame, 0.0);
-	_editor.snap_to_with_modifier (when, event);
+	AudioMusic when = _editor.snap_to_with_modifier (frame, event);
 
 	XMLNode& before = list->get_state();
 	std::list<Selectable*> results;

@@ -43,7 +43,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 {
 	if (_session) {
 
-		AudioMusic start = selection->time.start();
+		framepos_t start_frame = selection->time.start().frames;
 		framepos_t end;
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
 			end = _session->audible_frame();
@@ -52,7 +52,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 		}
 
 		//snap the selection start/end
-		snap_to (start);
+		AudioMusic start = snap_to (start_frame);
 
 		//if no tracks are selected and we're working from the keyboard, enable all tracks (_something_ has to be selected for any range selection)
 		if ( (_edit_point == EditAtPlayhead) && selection->tracks.empty() )
@@ -72,16 +72,16 @@ Editor::keyboard_selection_begin (Editing::EditIgnoreOption ign)
 {
 	if (_session) {
 
-		AudioMusic start (0, 0.0);
+		framepos_t start_frame;
 		AudioMusic end = selection->time.end_am();
 		if ((_edit_point == EditAtPlayhead) && _session->transport_rolling()) {
-			start.frames = _session->audible_frame();
+			start_frame = _session->audible_frame();
 		} else {
-			start.frames = get_preferred_edit_position(ign);
+			start_frame = get_preferred_edit_position(ign);
 		}
 
 		//snap the selection start/end
-		snap_to(start);
+		AudioMusic start = snap_to(start_frame);
 
 		//if there's not already a sensible selection endpoint, go "forever"
 		if (start > end) {

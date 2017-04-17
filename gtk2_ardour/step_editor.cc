@@ -121,8 +121,7 @@ StepEditor::prepare_step_edit_region ()
 		framecnt_t const next_bar_pos = tmap.frame_at_beat (next_bar_in_beats);
 		double const next_bar_qn = tmap.quarter_note_at_beat (next_bar_in_beats);
 		AudioMusic len (next_bar_pos - step_edit_insert_position, next_bar_qn - tmap.quarter_note_at_frame (step_edit_insert_position));
-		AudioMusic snap = AudioMusic (step_edit_insert_position, 0.0);
-		_editor.snap_to (snap);
+		AudioMusic snap = _editor.snap_to (step_edit_insert_position);
 
 		step_edit_region = _mtv.add_region (snap, len, true);
 

@@ -329,17 +329,20 @@ Drag::end_grab (GdkEvent* event)
 AudioMusic
 Drag::adjusted_frame (framepos_t f, GdkEvent const * event, bool snap) const
 {
-	AudioMusic pos (0, 0.0);
+	framepos_t pos = f;
 
 	if (f > _pointer_frame_offset) {
-		pos = _editor->session()->audiomusic_at_musicframe (f - _pointer_frame_offset);
+		pos = f - _pointer_frame_offset;
 	}
 
+	AudioMusic ret (0, 0.0);
 	if (snap) {
-		_editor->snap_to_with_modifier (pos, event);
+		ret = _editor->snap_to_with_modifier (pos, event);
+	} else {
+		ret = _editor->session()->audiomusic_at_musicframe (pos);
 	}
 
-	return pos;
+	return ret;
 }
 
 AudioMusic
@@ -386,8 +389,7 @@ Drag::current_pointer_y () const
 void
 Drag::setup_snap_delta (AudioMusic pos)
 {
-	AudioMusic snap (pos.frames, 0.0);
-	_editor->snap_to (snap, ARDOUR::RoundNearest, false, true);
+	AudioMusic snap = _editor->snap_to (pos.frames, ARDOUR::RoundNearest, false, true);
 	_snap_delta = snap.frames - pos.frames;
 
 	_snap_delta_music = 0.0;
@@ -534,8 +536,7 @@ Drag::add_midi_region (MidiTimeAxisView* view, bool commit)
 {
 	if (_editor->session()) {
 		const TempoMap& tmap (_editor->session()->tempo_map());
-		AudioMusic pos = grab_frame();
-		_editor->snap_to (pos);
+		AudioMusic pos = _editor->snap_to (grab_frame().frames);
 		/* not that the frame rate used here can be affected by pull up/down which
 		   might be wrong.
 		*/
@@ -682,8 +683,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, AudioMusic* pending_r
 	 */
 	if (sync_dir >= 0 || (sync_dir < 0 && pending_region_position->frames >= sync_offset)) {
 		framecnt_t const sd = snap_delta (event->button.state);
-		AudioMusic sync_snap (pending_region_position->frames + (sync_dir * sync_offset) + sd, 0.0);
-		_editor->snap_to_with_modifier (sync_snap, event);
+		AudioMusic sync_snap = _editor->snap_to_with_modifier (pending_region_position->frames + (sync_dir * sync_offset) + sd, event);
 
 		if (sync_offset == 0 && sd == 0) {
 			*pending_region_position = sync_snap;
@@ -3923,9 +3923,7 @@ CursorDrag::start_grab (GdkEvent* event, Gdk::Cursor* c)
 
 	_grab_zoom = _editor->samples_per_pixel;
 
-	AudioMusic where (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
-
-	_editor->snap_to_with_modifier (where, event);
+	AudioMusic where = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 	_editor->_dragging_playhead = true;
 	_editor->_control_scroll_target = where.frames;
 
@@ -3967,9 +3965,7 @@ CursorDrag::start_grab (GdkEvent* event, Gdk::Cursor* c)
 void
 CursorDrag::motion (GdkEvent* event, bool)
 {
-	AudioMusic where (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
-
-	_editor->snap_to_with_modifier (where, event);
+	AudioMusic where = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 
 	if (where != last_pointer_frame()) {
 		fake_locate (where.frames - snap_delta (event->button.state));
@@ -4041,8 +4037,7 @@ FadeInDrag::motion (GdkEvent* event, bool)
 {
 	framecnt_t fade_length;
 
-	AudioMusic pos (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 
 	framecnt_t const s_delta = snap_delta (event->button.state);
 	if (s_delta != 0) {
@@ -4081,9 +4076,8 @@ FadeInDrag::finished (GdkEvent* event, bool movement_occurred)
 	}
 
 	framecnt_t fade_length;
-	AudioMusic pos (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0);
 
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 
 	framecnt_t const s_delta = snap_delta (event->button.state);
 	if (s_delta != 0) {
@@ -4173,9 +4167,8 @@ void
 FadeOutDrag::motion (GdkEvent* event, bool)
 {
 	framecnt_t fade_length;
-	AudioMusic pos (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
 
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 	pos.frames -= snap_delta (event->button.state);
 
 	boost::shared_ptr<AudioRegion> region = boost::dynamic_pointer_cast<AudioRegion> (_primary->region ());
@@ -4210,9 +4203,8 @@ FadeOutDrag::finished (GdkEvent* event, bool movement_occurred)
 	}
 
 	framecnt_t fade_length;
-	AudioMusic pos (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
 
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 	pos.frames -= snap_delta (event->button.state);
 
 	boost::shared_ptr<AudioRegion> region = boost::dynamic_pointer_cast<AudioRegion> (_primary->region ());
@@ -4764,7 +4756,7 @@ ControlPointDrag::motion (GdkEvent* event, bool first_motion)
 	AudioMusic cx_mf (_editor->pixel_to_sample (cx) + snap_delta (event->button.state), 0.0);
 
 	if (!_x_constrained && need_snap) {
-		_editor->snap_to_with_modifier (cx_mf, event);
+		cx_mf = _editor->snap_to_with_modifier (_editor->pixel_to_sample (cx) + snap_delta (event->button.state), event);
 	}
 
 	cx_mf.frames -= snap_delta (event->button.state);
@@ -5045,7 +5037,7 @@ RubberbandSelectDrag::motion (GdkEvent* event, bool)
 	AudioMusic grab (grab_frame ());
 
 	if (UIConfiguration::instance().get_rubberbanding_snaps_to_grid ()) {
-		_editor->snap_to_with_modifier (grab, event);
+		grab = _editor->snap_to_with_modifier (grab.frames, event);
 	}
 
 	/* base start and end on initial click position */
@@ -5218,9 +5210,8 @@ TimeFXDrag::motion (GdkEvent* event, bool)
 	pair<TimeAxisView*, double> const tv = _editor->trackview_by_y_position (grab_y());
 	int layer = tv.first->layer_display() == Overlaid ? 0 : tv.second;
 	int layers = tv.first->layer_display() == Overlaid ? 1 : cv->layers();
-	AudioMusic pf (_editor->canvas_event_sample (event) + snap_delta (event->button.state), 0.0);
 
-	_editor->snap_to_with_modifier (pf, event);
+	AudioMusic pf = _editor->snap_to_with_modifier (_editor->canvas_event_sample (event) + snap_delta (event->button.state), event);
 
 	framecnt_t const s_delta = snap_delta (event->button.state);
 	if (s_delta != 0) {
@@ -5581,7 +5572,7 @@ SelectionDrag::motion (GdkEvent* event, bool first_move)
 		length = end - start;
 		distance = pending_position - start;
 
-		_editor->snap_to (start_snap);
+		start_snap = _editor->snap_to (start_snap.frames);
 
 		end = start_snap + length;
 
@@ -5778,8 +5769,7 @@ RangeMarkerBarDrag::motion (GdkEvent* event, bool first_move)
 	AudioMusic const pf = adjusted_current_frame (event);
 
 	if (_operation == CreateSkipMarker || _operation == CreateRangeMarker || _operation == CreateTransportMarker || _operation == CreateCDMarker) {
-		AudioMusic grab (grab_frame ());
-		_editor->snap_to (grab);
+		AudioMusic grab = _editor->snap_to (grab_frame().frames);
 
 		if (pf < grab_frame()) {
 			start = pf;
@@ -6022,8 +6012,7 @@ NoteDrag::total_dx (GdkEvent * event) const
 	frameoffset_t st = n + dx + snap_delta (event->button.state);
 
 	/* possibly snap and return corresponding delta in quarter notes */
-	AudioMusic snap (st, 0.0);
-	_editor->snap_to_with_modifier (snap, event);
+	AudioMusic snap = _editor->snap_to_with_modifier (st, event);
 	double ret = snap.qnotes - n_qn - snap_delta_music (event->button.state);
 
 	/* prevent the earliest note being dragged earlier than the region's start position */
@@ -6936,8 +6925,7 @@ RegionCutDrag::start_grab (GdkEvent* event, Gdk::Cursor* c)
 void
 RegionCutDrag::motion (GdkEvent* event, bool)
 {
-	AudioMusic pos (_drags->current_pointer_frame(), 0.0);
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_drags->current_pointer_frame(), event);
 
 	line->set_position (pos.frames);
 }
@@ -6947,9 +6935,7 @@ RegionCutDrag::finished (GdkEvent* event, bool)
 {
 	_editor->get_track_canvas()->canvas()->re_enter();
 
-
-	AudioMusic pos (_drags->current_pointer_frame(), 0.0);
-	_editor->snap_to_with_modifier (pos, event);
+	AudioMusic pos = _editor->snap_to_with_modifier (_drags->current_pointer_frame(), event);
 	line->hide ();
 
 	RegionSelection rs = _editor->get_regions_from_selection_and_mouse (pos.frames);
