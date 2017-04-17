@@ -702,7 +702,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, AudioMusic* pending_r
 
 	bool const x_move_allowed = !_x_constrained;
 
-	if ((pending_region_position->frames != _last_position.frames) && x_move_allowed) {
+	if ((*pending_region_position != _last_position) && x_move_allowed) {
 
 		/* x movement since last time (in pixels) */
 		dx = _editor->sample_to_pixel_unrounded (pending_region_position->frames - _last_position.frames);
