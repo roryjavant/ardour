@@ -1934,13 +1934,7 @@ RegionMoveDrag::RegionMoveDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p,
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RegionMoveDrag\n");
 
-	double speed = 1;
-	RouteTimeAxisView* rtv = dynamic_cast<RouteTimeAxisView*> (&_primary->get_time_axis_view ());
-	if (rtv && rtv->is_track()) {
-		speed = rtv->track()->speed ();
-	}
-
-	_last_position = AudioMusic (static_cast<framepos_t> (_primary->region()->position() / speed), _primary->region()->quarter_note());
+	_last_position = _primary->region()->position_am();
 }
 
 void
@@ -2853,17 +2847,10 @@ TrimDrag::TrimDrag (Editor* e, ArdourCanvas::Item* i, RegionView* p, list<Region
 void
 TrimDrag::start_grab (GdkEvent* event, Gdk::Cursor*)
 {
-	double speed = 1.0;
-	TimeAxisView* tvp = &_primary->get_time_axis_view ();
-	RouteTimeAxisView* tv = dynamic_cast<RouteTimeAxisView*>(tvp);
 
-	if (tv && tv->is_track()) {
-		speed = tv->track()->speed();
-	}
-
-	framepos_t const region_start = (framepos_t) (_primary->region()->position() / speed);
-	framepos_t const region_end = (framepos_t) (_primary->region()->last_frame() / speed);
-	framecnt_t const region_length = (framecnt_t) (_primary->region()->length() / speed);
+	framepos_t const region_start = (framepos_t) (_primary->region()->position());
+	framepos_t const region_end = (framepos_t) (_primary->region()->last_frame());
+	framecnt_t const region_length = (framecnt_t) (_primary->region()->length());
 
 	framepos_t const pf = adjusted_current_frame (event).frames;
 	setup_snap_delta (AudioMusic (region_start, 0.0));
@@ -2920,15 +2907,9 @@ TrimDrag::motion (GdkEvent* event, bool first_move)
 {
 	RegionView* rv = _primary;
 
-	double speed = 1.0;
-	TimeAxisView* tvp = &_primary->get_time_axis_view ();
-	RouteTimeAxisView* tv = dynamic_cast<RouteTimeAxisView*>(tvp);
 	pair<set<boost::shared_ptr<Playlist> >::iterator,bool> insert_result;
 	AudioMusic frame_delta (0, 0.0);
 
-	if (tv && tv->is_track()) {
-		speed = tv->track()->speed();
-	}
 	AudioMusic s_delta (snap_delta (event->button.state), snap_delta_music (event->button.state));
 	AudioMusic adj_frame = adjusted_frame (_drags->current_pointer_frame () + s_delta.frames, event, true);
 	framecnt_t dt = adj_frame.frames - raw_grab_frame () + _pointer_frame_offset - s_delta.frames;
@@ -3084,10 +3065,10 @@ TrimDrag::motion (GdkEvent* event, bool first_move)
 
 	switch (_operation) {
 	case StartTrim:
-		show_verbose_cursor_time ((framepos_t) (rv->region()->position() / speed));
+		show_verbose_cursor_time (rv->region()->position());
 		break;
 	case EndTrim:
-		show_verbose_cursor_duration ((framepos_t)  rv->region()->position() / speed, (framepos_t) rv->region()->last_frame() / speed);
+		show_verbose_cursor_duration (rv->region()->position(), rv->region()->last_frame());
 		break;
 	case ContentsTrim:
 		// show_verbose_cursor_time (frame_delta);
