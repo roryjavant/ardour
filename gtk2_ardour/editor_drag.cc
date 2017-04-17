@@ -1949,7 +1949,7 @@ RegionMoveDrag::setup_pointer_frame_offset ()
 	_pointer_frame_offset = raw_grab_frame() - _last_position.frames;
 }
 
-RegionInsertDrag::RegionInsertDrag (Editor* e, boost::shared_ptr<Region> r, RouteTimeAxisView* v, const MusicFrame& pos)
+RegionInsertDrag::RegionInsertDrag (Editor* e, boost::shared_ptr<Region> r, RouteTimeAxisView* v, const AudioMusic& pos)
 	: RegionMotionDrag (e, 0, 0, list<RegionView*> (), false)
 {
 	DEBUG_TRACE (DEBUG::Drags, "New RegionInsertDrag\n");
@@ -1960,10 +1960,10 @@ RegionInsertDrag::RegionInsertDrag (Editor* e, boost::shared_ptr<Region> r, Rout
 	_primary = v->view()->create_region_view (r, false, false);
 
 	_primary->get_canvas_group()->show ();
-	_primary->set_position (pos.frame, 0);
+	_primary->set_position (pos.frames, 0);
 	_views.push_back (DraggingView (_primary, this, v));
 
-	_last_position = _editor->session()->tempo_map().audiomusic_at_musicframe (pos);
+	_last_position = pos;
 
 	_item = _primary->get_canvas_group ();
 }

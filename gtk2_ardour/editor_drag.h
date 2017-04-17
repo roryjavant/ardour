@@ -448,7 +448,7 @@ private:
 class RegionInsertDrag : public RegionMotionDrag
 {
 public:
-	RegionInsertDrag (Editor *, boost::shared_ptr<ARDOUR::Region>, RouteTimeAxisView*, const ARDOUR::MusicFrame&);
+	RegionInsertDrag (Editor *, boost::shared_ptr<ARDOUR::Region>, RouteTimeAxisView*, const ARDOUR::AudioMusic&);
 
 	void finished (GdkEvent *, bool);
 	void aborted (bool);
