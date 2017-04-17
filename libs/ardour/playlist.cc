@@ -694,7 +694,7 @@ Playlist::add_region (boost::shared_ptr<Region> region, const AudioMusic& positi
 	if (itimes >= 1) {
 		add_region_internal (region, position);
 		set_layer (region, DBL_MAX);
-		new_position += AudioMusic (region->length(), region->length_qn());
+		new_position += region->length_am();
 		--itimes;
 	}
 
@@ -706,7 +706,7 @@ Playlist::add_region (boost::shared_ptr<Region> region, const AudioMusic& positi
 		boost::shared_ptr<Region> copy = RegionFactory::create (region, true);
 		add_region_internal (copy, new_position);
 		set_layer (copy, DBL_MAX);
-		new_position += AudioMusic (region->length(), region->length_qn());
+		new_position += region->length_am();
 	}
 
 	framecnt_t length = 0;
@@ -1445,17 +1445,15 @@ Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 
 	AudioMusic offset = max_pos - min_pos;
 
-	int count = 1;
 	int itimes = (int) floor (times);
 	while (itimes--) {
 		for (list<AudioMusicRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
 			AudioMusic length = (*i).length();
 			boost::shared_ptr<Playlist> pl = copy ((*i).start, length, true);
-			paste (pl
-			       , _session.audiomusic_at_musicframe ((*i).start.frames + (offset.frames * count))
-			       , 1.0f);
+			paste (pl, (*i).start + offset, 1.0f);
 		}
-		++count;
+
+		offset += offset;
 	}
 }
 
