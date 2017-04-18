@@ -199,7 +199,7 @@ Playlist::Playlist (boost::shared_ptr<const Playlist> other, const AudioMusic& s
 {
 	RegionReadLock rlock2 (const_cast<Playlist*> (other.get()));
 
-	AudioMusic end = AudioMusic (start.frames + cnt.frames - 1, start.qnotes + cnt.qnotes);
+	AudioMusic end = start + cnt - min_audiomusic_delta;
 
 	init (hide);
 
@@ -1217,9 +1217,8 @@ Playlist::cut (const AudioMusic& start, const AudioMusic& end, bool result_is_hi
 	}
 
 	{
-		AudioMusic new_end = end - min_audiomusic_delta;
 		RegionWriteLock rlock (this);
-		partition_internal (start, new_end, true, thawlist);
+		partition_internal (start, end - min_audiomusic_delta, true, thawlist);
 	}
 
 	for (RegionList::iterator i = thawlist.begin(); i != thawlist.end(); ++i) {
@@ -1288,8 +1287,7 @@ Playlist::paste (boost::shared_ptr<Playlist> other, const AudioMusic& position, 
 void
 Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& position, float times)
 {
-	AudioMusic len (region->length(), region->length_qn());
-	duplicate(region, position, len, times);
+	duplicate(region, position, region->length_am(), times);
 }
 
 /** @param gap from the beginning of the region to the next beginning */
@@ -1421,8 +1419,7 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 void
 Playlist::duplicate_range (AudioMusicRange& range, float times)
 {
-	AudioMusic length = range.length();
-	boost::shared_ptr<Playlist> pl = copy (range.start, length, true);
+	boost::shared_ptr<Playlist> pl = copy (range.start, range.length(), true);
 	paste (pl, range.end, times);
 }
 
@@ -1433,7 +1430,7 @@ Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 		return;
 	}
 
-	AudioMusic min_pos = _session.audiomusic_at_musicframe (max_framepos);
+	AudioMusic min_pos (max_framepos, DBL_MAX);
 	AudioMusic max_pos (0, 0.0);
 
 	for (std::list<AudioMusicRange>::const_iterator i = ranges.begin();
@@ -1448,8 +1445,7 @@ Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 	int itimes = (int) floor (times);
 	while (itimes--) {
 		for (list<AudioMusicRange>::iterator i = ranges.begin (); i != ranges.end (); ++i) {
-			AudioMusic length = (*i).length();
-			boost::shared_ptr<Playlist> pl = copy ((*i).start, length, true);
+			boost::shared_ptr<Playlist> pl = copy ((*i).start, (*i).length(), true);
 			paste (pl, (*i).start + offset, 1.0f);
 		}
 
@@ -3554,7 +3550,6 @@ Playlist::coalesce_and_check_crossfades (list<Evoral::Range<framepos_t> > ranges
 	*/
 
 	/* XXX: xfade: this is implemented in Evoral::RangeList */
-/*
 restart:
 	for (list<Evoral::Range<framepos_t> >::iterator i = ranges.begin(); i != ranges.end(); ++i) {
 		for (list<Evoral::Range<framepos_t> >::iterator j = ranges.begin(); j != ranges.end(); ++j) {
@@ -3572,7 +3567,6 @@ restart:
 			}
 		}
 	}
-*/
 }
 
 void
