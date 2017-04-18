@@ -2971,11 +2971,12 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 
 			vector<AudioMusic>::iterator prev = region_boundary_cache.end ();
 			vector<AudioMusic>::iterator next = region_boundary_cache.end ();
+			AudioMusic const where = _session->audiomusic_at_musicframe (start);
 
 			if (direction > 0) {
-				next = std::upper_bound (region_boundary_cache.begin(), region_boundary_cache.end(), AudioMusic (start, 0.0));
+				next = std::upper_bound (region_boundary_cache.begin(), region_boundary_cache.end(), where);
 			} else {
-				next = std::lower_bound (region_boundary_cache.begin(), region_boundary_cache.end(), AudioMusic (start, 0.0));
+				next = std::lower_bound (region_boundary_cache.begin(), region_boundary_cache.end(), where);
 			}
 
 			if (next != region_boundary_cache.begin ()) {
