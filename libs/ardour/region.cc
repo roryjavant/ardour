@@ -636,6 +636,7 @@ Region::update_after_tempo_map_change (bool send)
 		/* don't signal position as it has not chnged */
 		what_changed.add (Properties::length_qn);
 		what_changed.add (Properties::start_qn);
+		what_changed.add (Properties::quarter_note);
 
 		if (send) {
 			send_change (what_changed);
@@ -678,6 +679,7 @@ Region::set_position_frame (framepos_t f)
 	PropertyChange p_and_l;
 
 	p_and_l.add (Properties::position);
+	p_and_l.add (Properties::quarter_note);
 
 	set_position_internal (pos);
 
@@ -705,6 +707,7 @@ Region::set_position_qnote (double qn)
 	PropertyChange p_and_l;
 
 	p_and_l.add (Properties::position);
+	p_and_l.add (Properties::quarter_note);
 
 	/* will set frame accordingly */
 	set_position_internal (pos);
@@ -731,6 +734,7 @@ Region::set_position (const AudioMusic& pos)
 	PropertyChange p_and_l;
 
 	p_and_l.add (Properties::position);
+	p_and_l.add (Properties::quarter_note);
 
 	set_position_internal (pos);
 
@@ -1159,6 +1163,7 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 		}
 		set_position_internal (position);
 		what_changed.add (Properties::position);
+		what_changed.add (Properties::quarter_note);
 	}
 
 	if (_length != new_length.frames) {
