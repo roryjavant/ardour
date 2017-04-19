@@ -1478,7 +1478,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 			case SamplesRulerItem:
 			case MinsecRulerItem:
 			case BBTRulerItem:
-				popup_ruler_menu (_session->audiomusic_at_musicframe (where), item_type);
+				popup_ruler_menu (_session->audiomusic_at_frame (where), item_type);
 				break;
 
 			case MarkerItem:
@@ -1588,7 +1588,7 @@ Editor::button_release_handler (ArdourCanvas::Item* item, GdkEvent* event, ItemT
 
 		case MeterBarItem:
 			if (!_dragging_playhead) {
-				mouse_add_new_meter_event (_session->audiomusic_at_musicframe (pixel_to_sample (event->button.x)));
+				mouse_add_new_meter_event (_session->audiomusic_at_frame (pixel_to_sample (event->button.x)));
 			}
 			return true;
 			break;

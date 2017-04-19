@@ -116,7 +116,7 @@ BasicUI::loop_location (framepos_t start, framepos_t end)
 		session->set_auto_loop_location (loc);
 	} else {
 		tll->set_hidden (false, this);
-		tll->set (session->audiomusic_at_musicframe (start), session->audiomusic_at_musicframe (end));
+		tll->set (session->audiomusic_at_frame (start), session->audiomusic_at_frame (end));
 	}
 }
 

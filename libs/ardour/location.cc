@@ -743,13 +743,13 @@ Location::set_state (const XMLNode& node, int version)
 
 		if ((prop = node.property ("start-beat")) != 0) {
 			sscanf (prop->value().c_str(), "%lf", &start_qn);
-			_end_qn = _session.qn_at_beat (start_qn);
+			_end_qn = _session.qnote_at_beat (start_qn);
 			has_beat = true;
 		}
 
 		if ((prop = node.property ("end-beat")) != 0) {
 			sscanf (prop->value().c_str(), "%lf", &end_qn);
-			_end_qn = _session.qn_at_beat (end_qn);
+			_end_qn = _session.qnote_at_beat (end_qn);
 			has_beat = true;
 		}
 
@@ -814,7 +814,7 @@ Location::recompute_frames_from_qnote ()
 		return;
 	}
 
-	set (_session.audiomusic_at_qn (_start_qn), _session.audiomusic_at_qn (_end_qn), false);
+	set (_session.audiomusic_at_qnote (_start_qn), _session.audiomusic_at_qnote (_end_qn), false);
 }
 
 void
@@ -1387,7 +1387,7 @@ Locations::first_mark_after (framepos_t frame, bool include_special_ranges)
 void
 Locations::marks_either_side (framepos_t const frame, AudioMusic& before, AudioMusic& after) const
 {
-	before = after = _session.audiomusic_at_musicframe (max_framepos);
+	before = after = _session.audiomusic_at_frame (max_framepos);
 
 	LocationList locs;
 

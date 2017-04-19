@@ -741,7 +741,7 @@ Playlist::add_region (boost::shared_ptr<Region> region, const AudioMusic& positi
 void
 Playlist::add_region (boost::shared_ptr<Region> region, framepos_t frame_position, bool auto_partition)
 {
-	add_region (region, _session.audiomusic_at_musicframe (frame_position), 1.0, auto_partition);
+	add_region (region, _session.audiomusic_at_frame (frame_position), 1.0, auto_partition);
 }
 
 void
@@ -1030,7 +1030,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 				current->clear_changes ();
 				current->suspend_property_changes ();
 				thawlist.push_back (current);
-				current->cut_end (_session.audiomusic_at_musicframe (pos2.frames - 1));
+				current->cut_end (_session.audiomusic_at_frame (pos2.frames - 1));
 
 			} else if (overlap == Evoral::OverlapEnd) {
 
@@ -1073,7 +1073,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 				current->clear_changes ();
 				current->suspend_property_changes ();
 				thawlist.push_back (current);
-				current->cut_end (_session.audiomusic_at_musicframe (pos2.frames - 1));
+				current->cut_end (_session.audiomusic_at_frame (pos2.frames - 1));
 
 			} else if (overlap == Evoral::OverlapStart) {
 
@@ -1268,9 +1268,9 @@ Playlist::paste (boost::shared_ptr<Playlist> other, const AudioMusic& position, 
 					*/
 
 					if ((*i)->position_lock_style() == AudioTime) {
-						add_region_internal (copy_of_region, _session.audiomusic_at_musicframe ((*i)->position() + pos.frames));
+						add_region_internal (copy_of_region, _session.audiomusic_at_frame ((*i)->position() + pos.frames));
 					} else {
-						add_region_internal (copy_of_region, _session.audiomusic_at_qn ((*i)->quarter_note() + pos.qnotes));
+						add_region_internal (copy_of_region, _session.audiomusic_at_qnote ((*i)->quarter_note() + pos.qnotes));
 					}
 
 					set_layer (copy_of_region, copy_of_region->layer() + top);
@@ -1305,7 +1305,7 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 	while (itimes--) {
 		if (region->position_lock_style() == AudioTime) {
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, true);
-			add_region_internal (copy, _session.audiomusic_at_musicframe (position.frames));
+			add_region_internal (copy, _session.audiomusic_at_frame (position.frames));
 			set_layer (copy, DBL_MAX);
 
 		} else {
@@ -1320,7 +1320,7 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, plist);
 
-			add_region_internal (copy, _session.audiomusic_at_qn (position.qnotes));
+			add_region_internal (copy, _session.audiomusic_at_qnote (position.qnotes));
 			set_layer (copy, DBL_MAX);
 		}
 
@@ -1343,9 +1343,9 @@ Playlist::duplicate (boost::shared_ptr<Region> region, const AudioMusic& pos, co
 			boost::shared_ptr<Region> sub = RegionFactory::create (region, plist);
 
 			if (region->position_lock_style() == AudioTime) {
-				add_region_internal (sub, _session.audiomusic_at_musicframe (position.frames));
+				add_region_internal (sub, _session.audiomusic_at_frame (position.frames));
 			} else {
-				add_region_internal (sub, _session.audiomusic_at_qn (position.qnotes));
+				add_region_internal (sub, _session.audiomusic_at_qnote (position.qnotes));
 			}
 
 			set_layer (sub, DBL_MAX);
@@ -1367,7 +1367,7 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 	while (position + region->length_am() - min_audiomusic_delta < end) {
 		if (region->position_lock_style() == AudioTime) {
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, true);
-			add_region_internal (copy, _session.audiomusic_at_musicframe (position.frames));
+			add_region_internal (copy, _session.audiomusic_at_frame (position.frames));
 			set_layer (copy, DBL_MAX);
 
 		} else {
@@ -1382,7 +1382,7 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 
 			boost::shared_ptr<Region> copy = RegionFactory::create (region, plist);
 
-			add_region_internal (copy, _session.audiomusic_at_qn (position.qnotes));
+			add_region_internal (copy, _session.audiomusic_at_qnote (position.qnotes));
 
 			set_layer (copy, DBL_MAX);
 		}
@@ -1406,9 +1406,9 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 			boost::shared_ptr<Region> sub = RegionFactory::create (region, plist);
 
 			if (region->position_lock_style() == AudioTime) {
-				add_region_internal (sub, _session.audiomusic_at_musicframe (position.frames));
+				add_region_internal (sub, _session.audiomusic_at_frame (position.frames));
 			} else {
-				add_region_internal (sub, _session.audiomusic_at_qn (position.qnotes));
+				add_region_internal (sub, _session.audiomusic_at_qnote (position.qnotes));
 			}
 
 			set_layer (sub, DBL_MAX);
@@ -3164,7 +3164,7 @@ Playlist::combine (const RegionList& r)
 	PropertyList plist;
 	uint32_t channels = 0;
 	uint32_t layer = 0;
-	AudioMusic earliest_position = _session.audiomusic_at_musicframe (max_framepos);
+	AudioMusic earliest_position = _session.audiomusic_at_frame (max_framepos);
 	vector<TwoRegions> old_and_new_regions;
 	vector<boost::shared_ptr<Region> > originals;
 	vector<boost::shared_ptr<Region> > copies;

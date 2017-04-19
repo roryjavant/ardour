@@ -300,7 +300,7 @@ RegionEditor::end_clock_changed ()
 		in_command = true;
 
                 _region->clear_changes ();
-		_region->trim_end (_session->audiomusic_at_musicframe (end_clock.current_time()));
+		_region->trim_end (_session->audiomusic_at_frame (end_clock.current_time()));
 		_session->add_command(new StatefulDiffCommand (_region));
 	}
 
@@ -323,7 +323,7 @@ RegionEditor::length_clock_changed ()
 		in_command = true;
 
 		_region->clear_changes ();
-		_region->trim_end (_session->audiomusic_at_musicframe (_region->position() + frames - 1));
+		_region->trim_end (_session->audiomusic_at_frame (_region->position() + frames - 1));
 		_session->add_command(new StatefulDiffCommand (_region));
 	}
 

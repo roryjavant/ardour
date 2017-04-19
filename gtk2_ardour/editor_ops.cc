@@ -434,10 +434,10 @@ Editor::nudge_forward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (max_framepos - distance > loc->start().frames + loc->length().frames) {
-						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->start().frames + distance);
+						AudioMusic const new_start = _session->audiomusic_at_frame (loc->start().frames + distance);
 						loc->set_start (new_start, false, true);
 					} else {
-						AudioMusic const new_start = _session->audiomusic_at_musicframe (max_framepos - loc->length().frames);
+						AudioMusic const new_start = _session->audiomusic_at_frame (max_framepos - loc->length().frames);
 						loc->set_start (new_start, false, true);
 					}
 				} else {
@@ -446,10 +446,10 @@ Editor::nudge_forward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (max_framepos - distance > loc->end().frames) {
-						AudioMusic const new_end = _session->audiomusic_at_musicframe (loc->end().frames + distance);
+						AudioMusic const new_end = _session->audiomusic_at_frame (loc->end().frames + distance);
 						loc->set_end (new_end, false, true);
 					} else {
-						loc->set_end (_session->audiomusic_at_musicframe (max_framepos), false, true);
+						loc->set_end (_session->audiomusic_at_frame (max_framepos), false, true);
 					}
 					if (loc->is_session_range()) {
 						_session->set_end_is_free (false);
@@ -529,10 +529,10 @@ Editor::nudge_backward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (distance < loc->start().frames) {
-						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->start().frames - distance);
+						AudioMusic const new_start = _session->audiomusic_at_frame (loc->start().frames - distance);
 						loc->set_start (new_start, false, true);
 					} else {
-						loc->set_start (_session->audiomusic_at_musicframe (0), false, true);
+						loc->set_start (_session->audiomusic_at_frame (0), false, true);
 					}
 				} else {
 					distance = get_nudge_distance (loc->end().frames, next_distance);
@@ -542,7 +542,7 @@ Editor::nudge_backward (bool next, bool force_playhead)
 					}
 
 					if (distance < loc->end().frames - loc->length().frames) {
-						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->end().frames - distance);
+						AudioMusic const new_start = _session->audiomusic_at_frame (loc->end().frames - distance);
 						loc->set_end (new_start, false, true);
 					} else {
 						loc->set_end (loc->length(), false, true);
@@ -774,7 +774,7 @@ Editor::build_region_boundary_cache ()
 				break;
 
 			case SyncPoint:
-				rpos = _session->audiomusic_at_musicframe (r->sync_position ());
+				rpos = _session->audiomusic_at_frame (r->sync_position ());
 				break;
 
 			default:
@@ -791,7 +791,7 @@ Editor::build_region_boundary_cache ()
 			}
 
 			if (speed != 1.0) {
-				rpos = _session->audiomusic_at_musicframe (track_frame_to_session_frame (rpos.frames, speed));
+				rpos = _session->audiomusic_at_frame (track_frame_to_session_frame (rpos.frames, speed));
 			}
 
 			if (rpos < lpos) {
@@ -1238,7 +1238,7 @@ Editor::selected_marker_to_region_point (RegionPoint point, int32_t dir)
 
 	pos = track_frame_to_session_frame(pos, speed);
 
-	loc->move_to (_session->audiomusic_at_musicframe (pos));
+	loc->move_to (_session->audiomusic_at_frame (pos));
 }
 
 void
@@ -1378,7 +1378,7 @@ Editor::cursor_align (bool playhead_to_edit)
 			bool ignored;
 
 			Location* loc = find_location_from_marker (*i, ignored);
-			AudioMusic const playhead_pos = _session->audiomusic_at_musicframe (playhead_cursor->current_frame ());
+			AudioMusic const playhead_pos = _session->audiomusic_at_frame (playhead_cursor->current_frame ());
 
 			if (loc->is_mark()) {
 				loc->set_start (playhead_pos, false, true);
@@ -2195,7 +2195,7 @@ Editor::set_session_start_from_playhead ()
 		return;
 
 	Location* loc;
-	AudioMusic const audible_where = _session->audiomusic_at_musicframe (_session->audible_frame());
+	AudioMusic const audible_where = _session->audiomusic_at_frame (_session->audible_frame());
 
 	if ((loc = _session->locations()->session_range_location()) == 0) {  //should never happen
 		_session->set_session_extents (audible_where, audible_where);
@@ -2221,7 +2221,7 @@ Editor::set_session_end_from_playhead ()
 		return;
 
 	Location* loc;
-	AudioMusic const audible_where = _session->audiomusic_at_musicframe (_session->audible_frame());
+	AudioMusic const audible_where = _session->audiomusic_at_frame (_session->audible_frame());
 
 	if ((loc = _session->locations()->session_range_location()) == 0) {  //should never happen
 		_session->set_session_extents (audible_where, audible_where);
@@ -2659,7 +2659,7 @@ Editor::play_with_preroll ()
 
 		new_end = end.frames + preroll;  //"post-roll"
 
-		AudioMusicRange ar (_session->audiomusic_at_musicframe (new_start), _session->audiomusic_at_musicframe (new_end), 0);
+		AudioMusicRange ar (_session->audiomusic_at_frame (new_start), _session->audiomusic_at_frame (new_end), 0);
 		list<AudioMusicRange> lar;
 		lar.push_back (ar);
 
@@ -3401,7 +3401,7 @@ Editor::crop_region_to (const AudioMusic& start, const AudioMusic& end)
 			if (max_framepos - pos.frames > (*i)->length()) {
 				new_end = pos + (*i)->length_am();
 			} else {
-				new_end = _session->audiomusic_at_musicframe (max_framepos);
+				new_end = _session->audiomusic_at_frame (max_framepos);
 			}
 
 			new_end = min (end, new_end);
@@ -6447,8 +6447,8 @@ Editor::set_auto_punch_range ()
 
 	Location* tpl = transport_punch_location();
 	framepos_t now = playhead_cursor->current_frame();
-	AudioMusic begin = _session->audiomusic_at_musicframe (now);
-	AudioMusic end = _session->audiomusic_at_musicframe (_session->current_end_frame());
+	AudioMusic begin = _session->audiomusic_at_frame (now);
+	AudioMusic end = _session->audiomusic_at_frame (_session->current_end_frame());
 
 	if (!_session->config.get_punch_in()) {
 		// First Press - set punch in and create range from here to eternity
@@ -6519,7 +6519,7 @@ Editor::set_punch_start_from_edit_point ()
 	if (_session) {
 
 		framepos_t start_frame = 0;
-		AudioMusic end = _session->audiomusic_at_musicframe (max_framepos);
+		AudioMusic end = _session->audiomusic_at_frame (max_framepos);
 
 		//use the existing punch end, if any
 		Location* tpl = transport_punch_location();
@@ -6538,7 +6538,7 @@ Editor::set_punch_start_from_edit_point ()
 
 		//if there's not already a sensible selection endpoint, go "forever"
 		if (start > end) {
-			end = _session->audiomusic_at_musicframe (max_framepos);
+			end = _session->audiomusic_at_frame (max_framepos);
 		}
 
 		set_punch_range (start, end, _("set punch start from EP"));
@@ -6580,7 +6580,7 @@ Editor::set_loop_start_from_edit_point ()
 	if (_session) {
 
 		framepos_t start_frame = 0;
-		AudioMusic end = _session->audiomusic_at_musicframe (max_framepos);
+		AudioMusic end = _session->audiomusic_at_frame (max_framepos);
 
 		//use the existing loop end, if any
 		Location* tpl = transport_loop_location();
@@ -6599,7 +6599,7 @@ Editor::set_loop_start_from_edit_point ()
 
 		//if there's not already a sensible selection endpoint, go "forever"
 		if (start > end) {
-			end = _session->audiomusic_at_musicframe (max_framepos);
+			end = _session->audiomusic_at_frame (max_framepos);
 		}
 
 		set_loop_range (start, end, _("set loop start from EP"));
@@ -6899,7 +6899,7 @@ Editor::split_region_at_points (boost::shared_ptr<Region> r, AnalysisFeatureList
 
 		/* length = next position - current position */
 
-		AudioMusic len = _session->audiomusic_at_musicframe (*x) - pos - rstart;
+		AudioMusic len = _session->audiomusic_at_frame (*x) - pos - rstart;
 
 		/* XXX we do we really want to allow even single-sample regions?
 		 * shouldn't we have some kind of lower limit on region size?
@@ -7146,10 +7146,10 @@ Editor::close_region_gaps ()
 		}
 
 		(*r)->region()->clear_changes ();
-		(*r)->region()->trim_front (_session->audiomusic_at_musicframe (position.frames - pull_back_frames));
+		(*r)->region()->trim_front (_session->audiomusic_at_frame (position.frames - pull_back_frames));
 
 		last_region->clear_changes ();
-		last_region->trim_end (_session->audiomusic_at_musicframe (position.frames - pull_back_frames + crossfade_len));
+		last_region->trim_end (_session->audiomusic_at_frame (position.frames - pull_back_frames + crossfade_len));
 
 		_session->add_command (new StatefulDiffCommand ((*r)->region()));
 		_session->add_command (new StatefulDiffCommand (last_region));
@@ -7546,7 +7546,7 @@ Editor::insert_time (
 
 			if (opt == SplitIntersected) {
 				/* non musical split */
-				AudioMusic const where = _session->audiomusic_at_musicframe (pos);
+				AudioMusic const where = _session->audiomusic_at_frame (pos);
 				(*i)->split (where);
 			}
 
@@ -7589,9 +7589,9 @@ Editor::insert_time (
 				if ((*i)->start().frames >= pos) {
 					// move end first, in case we're moving by more than the length of the range
 					if (!(*i)->is_mark()) {
-						(*i)->set_end (_session->audiomusic_at_musicframe ((*i)->end().frames + frames), false, true);
+						(*i)->set_end (_session->audiomusic_at_frame ((*i)->end().frames + frames), false, true);
 					}
-					(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames + frames), false, true);
+					(*i)->set_start (_session->audiomusic_at_frame ((*i)->start().frames + frames), false, true);
 					moved = true;
 				}
 
@@ -7684,7 +7684,7 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 			}
 
 			std::list<AudioMusicRange> rl;
-			AudioMusicRange ar(_session->audiomusic_at_musicframe (pos), _session->audiomusic_at_musicframe (pos+frames), 0);
+			AudioMusicRange ar(_session->audiomusic_at_frame (pos), _session->audiomusic_at_frame (pos+frames), 0);
 			rl.push_back(ar);
 			pl->cut (rl);
 			pl->shift (pos, -frames, true, ignore_music_glue);
@@ -7734,23 +7734,23 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 						if ((*i)->start().frames >= pos && (*i)->start().frames < pos+frames) {
 							// start is within cut
 							// bring the start marker to the beginning of the cut
-							(*i)->set_start (_session->audiomusic_at_musicframe (pos),false, true);
+							(*i)->set_start (_session->audiomusic_at_frame (pos),false, true);
 							moved = true;
 						} else if ((*i)->start().frames >= pos+frames) {
 							// start (and thus entire range) lies beyond end of cut
 							// slip the start marker back
-							(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames - frames), false, true);
+							(*i)->set_start (_session->audiomusic_at_frame ((*i)->start().frames - frames), false, true);
 							moved = true;
 						}
 						if ((*i)->end().frames >= pos && (*i)->end().frames < pos+frames) {
 							// end is inside cut
-							(*i)->set_end (_session->audiomusic_at_musicframe (pos),
+							(*i)->set_end (_session->audiomusic_at_frame (pos),
 								       false, true);  // bring the end to the cut
 							moved = true;
 						} else if ((*i)->end().frames >= pos+frames) {
 							// end is beyond end of cut
 							// slip the end marker back
-							(*i)->set_end (_session->audiomusic_at_musicframe ((*i)->end().frames - frames), false, true);
+							(*i)->set_end (_session->audiomusic_at_frame ((*i)->end().frames - frames), false, true);
 							moved = true;
 						}
 
@@ -7759,7 +7759,7 @@ Editor::remove_time (framepos_t pos, framecnt_t frames, InsertTimeOption opt,
 					loc_kill_list.push_back(*i);
 					moved = true;
 				} else if ((*i)->start().frames >= pos) {
-					(*i)->set_start (_session->audiomusic_at_musicframe ((*i)->start().frames - frames), false, true);
+					(*i)->set_start (_session->audiomusic_at_frame ((*i)->start().frames - frames), false, true);
 					moved = true;
 				}
 

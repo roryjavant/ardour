@@ -1006,7 +1006,7 @@ Editor::finish_bringing_in_material (boost::shared_ptr<Region> region,
 		playlist->add_region (copy, pos);
 
 		if (Config->get_edit_mode() == Ripple) {
-			playlist->ripple (_session->audiomusic_at_musicframe (pos), copy->length_am(), copy);
+			playlist->ripple (_session->audiomusic_at_frame (pos), copy->length_am(), copy);
 		}
 
 		_session->add_command (new StatefulDiffCommand (playlist));

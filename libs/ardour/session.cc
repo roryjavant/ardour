@@ -4519,11 +4519,11 @@ Session::maybe_update_session_range (framepos_t a, framepos_t b)
 	} else {
 
 		if (a < _session_range_location->start().frames) {
-			_session_range_location->set_start (audiomusic_at_musicframe (a));
+			_session_range_location->set_start (audiomusic_at_frame (a));
 		}
 
 		if (_session_range_end_is_free && (b > _session_range_location->end().frames)) {
-			_session_range_location->set_end (audiomusic_at_musicframe (b));
+			_session_range_location->set_end (audiomusic_at_frame (b));
 		}
 	}
 }

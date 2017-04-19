@@ -1298,7 +1298,7 @@ Session::state (bool full_state)
 		// for a template, just create a new Locations, populate it
 		// with the default start and end, and get the state for that.
 		Location* range = new Location (*this, 0, 0, _("session"), Location::IsSessionRange);
-		range->set (audiomusic_at_musicframe (max_framepos), audiomusic_at_musicframe (0));
+		range->set (audiomusic_at_frame (max_framepos), audiomusic_at_frame (0));
 		loc.add (range);
 		XMLNode& locations_state = loc.get_state();
 

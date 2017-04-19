@@ -1500,8 +1500,8 @@ RouteTimeAxisView::fade_range (TimeSelection& selection)
 	float const speed = tr->speed();
 	if (speed != 1.0f) {
 		for (TimeSelection::iterator i = time.begin(); i != time.end(); ++i) {
-			(*i).start = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).start.frames, speed));
-			(*i).end   = _session->audiomusic_at_musicframe (session_frame_to_track_frame((*i).end.frames,   speed));
+			(*i).start = _session->audiomusic_at_frame (session_frame_to_track_frame((*i).start.frames, speed));
+			(*i).end   = _session->audiomusic_at_frame (session_frame_to_track_frame((*i).end.frames,   speed));
 		}
 	}
 

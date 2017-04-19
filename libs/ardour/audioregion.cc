@@ -970,13 +970,13 @@ AudioRegion::fade_range (framepos_t start, framepos_t end)
 	switch (coverage (start, end)) {
 	case Evoral::OverlapStart:
 		/* why do we change the region bounds here? */
-		trim_front (_session.audiomusic_at_musicframe (start));
+		trim_front (_session.audiomusic_at_frame (start));
 		s = _position;
 		e = end;
 		set_fade_in (FadeConstantPower, e - s);
 		break;
 	case Evoral::OverlapEnd:
-		trim_end (_session.audiomusic_at_musicframe (end));
+		trim_end (_session.audiomusic_at_frame (end));
 		s = start;
 		e = _position + _length;
 		set_fade_out (FadeConstantPower, e - s);
@@ -1921,11 +1921,11 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, framecnt_t f
 			if (silence && !in_silence) {
 				/* non-silence to silence */
 				in_silence = true;
-				silence_start = _session.audiomusic_at_musicframe (pos.frames + i + fade_length);
+				silence_start = _session.audiomusic_at_frame (pos.frames + i + fade_length);
 			} else if (!silence && in_silence) {
 				/* silence to non-silence */
 				in_silence = false;
-				AudioMusic silence_end = _session.audiomusic_at_musicframe (pos.frames + i - 1 - fade_length);
+				AudioMusic silence_end = _session.audiomusic_at_frame (pos.frames + i - 1 - fade_length);
 
 				if (silence_end.frames - silence_start.frames >= min_length) {
 					silent_periods.push_back (std::make_pair (silence_start, silence_end));
@@ -1933,7 +1933,7 @@ AudioRegion::find_silence (Sample threshold, framecnt_t min_length, framecnt_t f
 			}
 		}
 
-		pos = _session.audiomusic_at_musicframe (pos.frames + cur_samples);
+		pos = _session.audiomusic_at_frame (pos.frames + cur_samples);
 		itt.progress = (end.frames - pos.frames) / (double)_length;
 
 		if (cur_samples == 0) {

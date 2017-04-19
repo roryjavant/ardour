@@ -373,60 +373,6 @@ namespace ARDOUR {
 
 	static const AudioMusic min_audiomusic_delta (1, DBL_MIN);
 
-	/* used for translating audio frames to an exact musical position using a note divisor.
-	   an exact musical position almost never falls exactly on an audio frame, but for sub-sample
-	   musical accuracy we need to derive exact musical locations from a frame position
-	   the division follows TempoMap::exact_beat_at_frame().
-	   division
-	   -1       musical location is the bar closest to frame
-	    0       musical location is the musical position of the frame
-	    1       musical location is the BBT beat closest to frame
-	    n       musical location is the quarter-note division n closest to frame
-	*/
-	struct MusicFrame {
-		framepos_t frame;
-		int32_t    division;
-
-		MusicFrame (framepos_t f) : frame (f), division (0) {}
-		MusicFrame (framepos_t f, int32_t d) : frame (f), division (d) {}
-
-		bool operator== (const MusicFrame& other) const {
-			return frame == other.frame && division == other.division;
-		}
-		bool operator!= (const MusicFrame& other) const {
-			return !(*this == other);
-		}
-		bool operator< (const MusicFrame& other) const {
-			return frame < other.frame;
-		}
-		bool operator<= (const MusicFrame& other) const {
-			return frame < other.frame || frame == other.frame;
-		}
-
-		MusicFrame & operator+= (const MusicFrame &other) {
-			frame += other.frame;
-			(other.division == 0 || division == 0) ? division = 0 : division = std::max (division, other.division);
-			return *this;
-		}
-		MusicFrame & operator-= (const MusicFrame &other) {
-			frame -= other.frame;
-			(other.division == 0 || division == 0) ? division = 0 : division = std::max (division, other.division);
-			return *this;
-		}
-
-		MusicFrame operator- (const MusicFrame &other) const {
-			MusicFrame ret = *this;
-			ret -= other;
-			return ret;
-		}
-		MusicFrame operator+ (const MusicFrame &other) const {
-			MusicFrame ret = *this;
-			ret += other;
-			return ret;
-		}
-
-	};
-
 	// a set of (time) intervals: first of pair is the offset of the start within the region, second is the offset of the end
 	typedef std::list<std::pair<AudioMusic, AudioMusic> > AudioIntervalResult;
 	// associate a set of intervals with regions (e.g. for silence detection)

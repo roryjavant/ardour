@@ -669,13 +669,13 @@ Region::update_after_tempo_map_change (bool send)
 }
 
 void
-Region::set_position_frame (const MusicFrame& mf)
+Region::set_position_frame (framepos_t f)
 {
 	if (!can_move()) {
 		return;
 	}
 
-	AudioMusic const pos = _session.audiomusic_at_musicframe (mf);
+	AudioMusic const pos = _session.audiomusic_at_frame (f);
 
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
@@ -702,7 +702,7 @@ Region::set_position_qnote (double qn)
 		return;
 	}
 
-	AudioMusic const pos = _session.audiomusic_at_qn (qn);
+	AudioMusic const pos = _session.audiomusic_at_qnote (qn);
 
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
@@ -788,7 +788,7 @@ Region::set_position_internal (const AudioMusic& pos)
 	   XXX is this the right thing to do?
 	*/
 	if (max_framepos - _length < _position) {
-		AudioMusic const new_len = _session.audiomusic_at_musicframe (max_framepos) - position_am();
+		AudioMusic const new_len = _session.audiomusic_at_frame (max_framepos) - position_am();
 		set_length_internal (new_len);
 	}
 
@@ -805,14 +805,15 @@ Region::set_position_internal (const AudioMusic& pos)
  *  _last_position to prevent an implied move.
  */
 void
-Region::set_initial_position (MusicFrame pos)
+Region::set_initial_position (const AudioMusic& pos)
 {
 	if (!can_move()) {
 		return;
 	}
 
-	if (_position != pos.frame) {
-		_position = pos.frame;
+	if (_position != pos.frames) {
+		_position = pos.frames;
+		_quarter_note = pos.qnotes;
 
 		/* check that the new _position wouldn't make the current
 		   length impossible - if so, change the length.
@@ -825,7 +826,6 @@ Region::set_initial_position (MusicFrame pos)
 			_length = max_framepos - _position;
 		}
 
-		recompute_position_from_lock_style (pos.division);
 		/* ensure that this move doesn't cause a range move */
 		update_last_position();
 	}
@@ -870,7 +870,7 @@ Region::nudge_position (frameoffset_t n)
 		}
 	}
 	/* assumes non-musical nudge */
-	set_position_internal (_session.audiomusic_at_musicframe (new_position));
+	set_position_internal (_session.audiomusic_at_frame (new_position));
 
 	send_change (Properties::position);
 }
@@ -901,7 +901,7 @@ Region::set_start (framepos_t pos)
 			return;
 		}
 
-		set_start_internal (_session.audiomusic_at_musicframe (_position - pos) - position_am());
+		set_start_internal (_session.audiomusic_at_frame (_position - pos) - position_am());
 		_whole_file = false;
 		first_edit ();
 		maybe_invalidate_transients ();
@@ -966,7 +966,7 @@ Region::move_start (const AudioMusic& distance)
 	} else if (distance.frames < 0) {
 
 		if (_start < -distance.frames) {
-			new_start = _session.audiomusic_at_musicframe (0);
+			new_start = _session.audiomusic_at_frame (0);
 		} else {
 			new_start = start_am() + distance;
 		}
@@ -1008,7 +1008,7 @@ Region::trim_front (const AudioMusic& new_position)
 void
 Region::trim_front (framepos_t new_position)
 {
-	modify_front (_session.audiomusic_at_musicframe (new_position), false);
+	modify_front (_session.audiomusic_at_frame (new_position), false);
 }
 
 void
@@ -1037,7 +1037,7 @@ Region::modify_front (const AudioMusic& new_pos, bool reset_fade)
 	if (_position > _start) {
 		source_zero = position_am() - start_am();
 	} else {
-		source_zero = _session.audiomusic_at_musicframe (0); // its actually negative, but this will work for us
+		source_zero = _session.audiomusic_at_frame (0); // its actually negative, but this will work for us
 	}
 
 	if (new_position < end) { /* can't trim it zero or negative length */
@@ -1125,7 +1125,7 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 	if (start_shift.frames > 0) {
 
 		if (_start > max_framepos - start_shift.frames) {
-			new_start = _session.audiomusic_at_musicframe (max_framepos);
+			new_start = _session.audiomusic_at_frame (max_framepos);
 		} else {
 			new_start = start_am() + start_shift;
 		}
@@ -1133,7 +1133,7 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 	} else if (start_shift.frames < 0) {
 
 		if (_start < -(start_shift.frames) && !can_trim_start_before_source_start ()) {
-			new_start = _session.audiomusic_at_musicframe (0);
+			new_start = _session.audiomusic_at_frame (0);
 		} else {
 			new_start = start_am() + start_shift;
 		}
@@ -1859,7 +1859,7 @@ Region::verify_length (AudioMusic& len)
 	}
 
 	if (len.frames != min (len.frames, maxlen)) {
-		len = _session.audiomusic_at_musicframe (min (len.frames, maxlen));
+		len = _session.audiomusic_at_frame (min (len.frames, maxlen));
 	}
 
 	return true;
@@ -1879,7 +1879,7 @@ Region::verify_start_and_length (const AudioMusic& new_start, AudioMusic& new_le
 	}
 
 	if (new_length.frames  != min (new_length.frames, maxlen)) {
-		new_length = _session.audiomusic_at_musicframe (min (new_length.frames, maxlen));
+		new_length = _session.audiomusic_at_frame (min (new_length.frames, maxlen));
 	}
 
 	return true;

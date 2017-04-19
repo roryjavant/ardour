@@ -2040,7 +2040,7 @@ Session::set_play_range (list<AudioMusicRange>& range, bool leave_rolling)
 void
 Session::request_bounded_roll (framepos_t start, framepos_t end)
 {
-	AudioMusicRange ar (audiomusic_at_musicframe (start), audiomusic_at_musicframe (end), 0);
+	AudioMusicRange ar (audiomusic_at_frame (start), audiomusic_at_frame (end), 0);
 	list<AudioMusicRange> lar;
 
 	lar.push_back (ar);

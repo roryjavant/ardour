@@ -1545,7 +1545,7 @@ Selection::set_state (XMLNode const & node, int)
 				set_preserving_all_ranges (AudioMusic (s, atof (prop_start_qn->value ().c_str()))
 							   , AudioMusic (e, atof (prop_end_qn->value ().c_str())));
 			} else {
-				set_preserving_all_ranges (editor->session()->audiomusic_at_musicframe(s), editor->session()->audiomusic_at_musicframe(e));
+				set_preserving_all_ranges (editor->session()->audiomusic_at_frame(s), editor->session()->audiomusic_at_frame(e));
 			}
 
 		} else if ((*i)->name() == X_("AutomationView")) {

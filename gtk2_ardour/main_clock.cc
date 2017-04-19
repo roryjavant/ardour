@@ -116,11 +116,11 @@ MainClock::edit_current_meter ()
 void
 MainClock::insert_new_tempo ()
 {
-	PublicEditor::instance().mouse_add_new_tempo_event (PublicEditor::instance().session()->audiomusic_at_musicframe (absolute_time ()));
+	PublicEditor::instance().mouse_add_new_tempo_event (PublicEditor::instance().session()->audiomusic_at_frame (absolute_time ()));
 }
 
 void
 MainClock::insert_new_meter ()
 {
-	PublicEditor::instance().mouse_add_new_meter_event (PublicEditor::instance().session()->audiomusic_at_musicframe (absolute_time ()));
+	PublicEditor::instance().mouse_add_new_meter_event (PublicEditor::instance().session()->audiomusic_at_frame (absolute_time ()));
 }

@@ -58,7 +58,7 @@ Editor::keyboard_selection_finish (bool /*add*/, Editing::EditIgnoreOption ign)
 		if ( (_edit_point == EditAtPlayhead) && selection->tracks.empty() )
 			select_all_tracks();
 
-		selection->set (start, _session->audiomusic_at_musicframe (end));
+		selection->set (start, _session->audiomusic_at_frame (end));
 
 		//if session is playing a range, cancel that
 		if (_session->get_play_range())

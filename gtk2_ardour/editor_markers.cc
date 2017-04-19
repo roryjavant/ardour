@@ -678,7 +678,7 @@ Editor::mouse_add_new_loop (const AudioMusic& where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	AudioMusic const end = _session->audiomusic_at_musicframe (where.frames + current_page_samples() / 8);
+	AudioMusic const end = _session->audiomusic_at_frame (where.frames + current_page_samples() / 8);
 
 	set_loop_range (where, end,  _("set loop range"));
 }
@@ -694,7 +694,7 @@ Editor::mouse_add_new_punch (const AudioMusic& where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	AudioMusic const end = _session->audiomusic_at_musicframe (where.frames + current_page_samples() / 8);
+	AudioMusic const end = _session->audiomusic_at_frame (where.frames + current_page_samples() / 8);
 
 	set_punch_range (where, end,  _("set punch range"));
 }
@@ -710,7 +710,7 @@ Editor::mouse_add_new_range (const AudioMusic& where)
 	   it's reasonably easy to manipulate after creation.
 	*/
 
-	AudioMusic const end = _session->audiomusic_at_musicframe (where.frames + current_page_samples() / 8);
+	AudioMusic const end = _session->audiomusic_at_frame (where.frames + current_page_samples() / 8);
 
 	string name;
 	_session->locations()->next_available_name (name, _("range"));

@@ -235,7 +235,7 @@ MidiRegion::update_after_tempo_map_change (bool send)
 		return;
 	}
 
-	set_position_internal (_session.audiomusic_at_qn (_quarter_note));
+	set_position_internal (_session.audiomusic_at_qnote (_quarter_note));
 
 	_length = max ((framecnt_t) 1, _session.tempo_map().frames_between_quarter_notes (quarter_note(), quarter_note() + _length_qn));
 
@@ -294,7 +294,7 @@ MidiRegion::set_position_internal (const AudioMusic& pos)
 	*/
 	if (max_framepos - _length < _position) {
 		update_last_length ();
-		AudioMusic const new_len = _session.audiomusic_at_musicframe (max_framepos) - position_am();
+		AudioMusic const new_len = _session.audiomusic_at_frame (max_framepos) - position_am();
 		set_length_internal (new_len);
 	}
 

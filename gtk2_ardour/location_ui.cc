@@ -414,7 +414,7 @@ LocationEditRow::to_playhead_button_pressed (LocationPart part)
 		return;
 	}
 
-	AudioMusic const start_am = _session->audiomusic_at_musicframe (_session->transport_frame ());
+	AudioMusic const start_am = _session->audiomusic_at_frame (_session->transport_frame ());
 
 	switch (part) {
 		case LocStart:
@@ -463,9 +463,9 @@ LocationEditRow::clock_changed (LocationPart part)
 		return;
 	}
 
-	AudioMusic const start_am = _session->audiomusic_at_musicframe (start_clock.current_time());
-	AudioMusic const end_am = _session->audiomusic_at_musicframe (end_clock.current_time());
-	AudioMusic const loc_start_am = _session->audiomusic_at_musicframe (location->start().frames + length_clock.current_duration());
+	AudioMusic const start_am = _session->audiomusic_at_frame (start_clock.current_time());
+	AudioMusic const end_am = _session->audiomusic_at_frame (end_clock.current_time());
+	AudioMusic const loc_start_am = _session->audiomusic_at_frame (location->start().frames + length_clock.current_duration());
 
 	switch (part) {
 		case LocStart:

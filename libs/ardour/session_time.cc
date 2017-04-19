@@ -290,25 +290,25 @@ Session::any_duration_to_frames (framepos_t position, AnyTime const & duration)
 }
 
 ARDOUR::AudioMusic
-Session::audiomusic_at_musicframe (const MusicFrame& pos) const
+Session::audiomusic_at_frame (framepos_t pos) const
 {
-	return _tempo_map->audiomusic_at_musicframe (pos);
+	return AudioMusic (pos, _tempo_map->quarter_note_at_frame (pos));
 }
 
 ARDOUR::AudioMusic
-Session::audiomusic_at_qn (const double quarter_note) const
+Session::audiomusic_at_qnote (const double quarter_note) const
 {
 	return AudioMusic (_tempo_map->frame_at_quarter_note (quarter_note), quarter_note);
 }
 
 double
-Session::qn_at_beat (const double beat)
+Session::qnote_at_beat (const double beat)
 {
 	return _tempo_map->quarter_note_at_beat (beat);
 }
 
 double
-Session::beat_at_qn (const double qn)
+Session::beat_at_qnote (const double qn)
 {
 	return _tempo_map->beat_at_quarter_note (qn);
 }

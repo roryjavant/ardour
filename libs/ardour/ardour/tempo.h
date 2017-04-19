@@ -504,8 +504,6 @@ class LIBARDOUR_API TempoMap : public PBD::StatefulDestructible
 	Tempo tempo_at_quarter_note (const double& beat) const;
 	double quarter_note_at_tempo (const Tempo& tempo) const;
 
-	AudioMusic audiomusic_at_musicframe (const MusicFrame& mf) const;
-
 	void gui_set_tempo_position (TempoSection*, const framepos_t& frame, const int& sub_num);
 	void gui_set_meter_position (MeterSection*, const framepos_t& frame);
 	bool gui_change_tempo (TempoSection*, const Tempo& bpm);
