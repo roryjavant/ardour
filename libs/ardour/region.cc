@@ -533,11 +533,6 @@ Region::set_length_internal (const AudioMusic& len)
 
 	_length = len.frames;
 	_length_qn = len.qnotes;
-	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
-		std::cout << "region set len internal  ****** length frames error " << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << std::setprecision (17) << _length_qn << std::endl;
-	} else {
-		std::cout << "region set len internal sanity check ok for " << name() << std::setprecision (17) << " length_qn : " << _length_qn << std::endl;
-	}
 }
 
 void
@@ -790,12 +785,6 @@ Region::set_position_internal (const AudioMusic& pos)
 	if (max_framepos - _length < _position) {
 		AudioMusic const new_len = _session.audiomusic_at_frame (max_framepos) - position_am();
 		set_length_internal (new_len);
-	}
-
-	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
-		std::cout << "region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << " qn : " << _quarter_note << std::endl;
-	} else {
-		std::cout << "region set position internal sanity check ok for " << name() << " qn : " << _quarter_note << std::endl;
 	}
 }
 
@@ -2095,6 +2084,16 @@ Region::post_set (const PropertyChange& pc)
 
 	if (pc.contains (Properties::start) && !pc.contains (Properties::start_qn)) {
 		set_start_beats_from_start_frames ();
+	}
+	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
+		std::cout << "region post set  ****** length frames error . this is expected sometimes :)" << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << std::setprecision (17) << _length_qn << std::endl;
+	} else {
+		std::cout << "region post set sanity check ok for " << name() << std::setprecision (17) << " length_qn : " << _length_qn << std::endl;
+	}
+	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
+		std::cout << "region post set ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << " qn : " << _quarter_note << std::endl;
+	} else {
+		std::cout << "region post set sanity check ok for " << name() << " qn : " << _quarter_note << std::endl;
 	}
 }
 
