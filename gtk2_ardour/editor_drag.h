@@ -208,7 +208,7 @@ public:
 
 	/** Set up the _pointer_frame_offset */
 	virtual void setup_pointer_frame_offset () {
-		_pointer_frame_offset = 0;
+		_pointer_frame_offset = ARDOUR::AudioMusic (0, 0.0);
 	}
 
 protected:
@@ -221,7 +221,7 @@ protected:
 		return _grab_y;
 	}
 
-	ARDOUR::framepos_t raw_grab_frame () const {
+	ARDOUR::AudioMusic raw_grab_frame () const {
 		return _raw_grab_frame;
 	}
 
@@ -260,7 +260,7 @@ protected:
 	DragManager* _drags;
 	ArdourCanvas::Item* _item; ///< our item
 	/** Offset from the mouse's position for the drag to the start of the thing that is being dragged */
-	ARDOUR::framecnt_t _pointer_frame_offset;
+	ARDOUR::AudioMusic _pointer_frame_offset;
 	bool _x_constrained; ///< true if x motion is constrained, otherwise false
 	bool _y_constrained; ///< true if y motion is constrained, otherwise false
 	bool _was_rolling; ///< true if the session was rolling before the drag started, otherwise false
@@ -275,7 +275,7 @@ private:
 	double _grab_y; ///< y of the grab start position, possibly adjusted if _trackview_only is true
 	double _last_pointer_x; ///< trackview x of the pointer last time a motion occurred
 	double _last_pointer_y; ///< trackview y of the pointer last time a motion occurred
-	ARDOUR::framepos_t _raw_grab_frame; ///< unsnapped frame that the mouse was at when start_grab was called, or 0
+	ARDOUR::AudioMusic _raw_grab_frame; ///< unsnapped frame that the mouse was at when start_grab was called, or 0
 	ARDOUR::AudioMusic _grab_frame; ///< adjusted_frame that the mouse was at when start_grab was called, or 0
 	ARDOUR::AudioMusic _last_pointer_frame; ///< adjusted_frame the last time a motion occurred
 
@@ -307,8 +307,8 @@ public:
 	*/
 	double layer;
 	double initial_y; ///< the initial y position of the view before any reparenting
-	framepos_t initial_position; ///< initial position of the region
-	framepos_t initial_end; ///< initial end position of the region
+	ARDOUR::AudioMusic initial_position; ///< initial position of the region
+	ARDOUR::AudioMusic initial_end; ///< initial end position of the region
 	framepos_t anchored_fade_length; ///< fade_length when anchored during drag
 	boost::shared_ptr<ARDOUR::Playlist> initial_playlist;
 	TimeAxisView* initial_time_axis_view;
