@@ -1240,8 +1240,9 @@ Editor::marker_menu_set_from_playhead ()
 
 	Location* l;
 	bool is_start;
-	const int32_t divisions = get_grid_music_divisions (0);
-	AudioMusic const start_am = _session->audiomusic_at_musicframe (MusicFrame (_session->audible_frame (), divisions));
+	/* feature or bug? */
+	AudioMusic const start_am = snap_to (_session->audible_frame ());
+
 	if ((l = find_location_from_marker (marker, is_start)) != 0) {
 
 		if (l->is_mark()) {

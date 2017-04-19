@@ -419,7 +419,6 @@ Editor::nudge_forward (bool next, bool force_playhead)
 
 		bool is_start;
 		bool in_command = false;
-		const int32_t divisions = get_grid_music_divisions (0);
 
 		for (MarkerSelection::iterator i = selection->markers.begin(); i != selection->markers.end(); ++i) {
 
@@ -435,11 +434,11 @@ Editor::nudge_forward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (max_framepos - distance > loc->start().frames + loc->length().frames) {
-						loc->set_start (_session->audiomusic_at_musicframe (MusicFrame (loc->start().frames + distance, divisions)),
-								false, true);
+						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->start().frames + distance);
+						loc->set_start (new_start, false, true);
 					} else {
-						loc->set_start (_session->audiomusic_at_musicframe (MusicFrame (max_framepos - loc->length().frames, divisions)),
-								false, true);
+						AudioMusic const new_start = _session->audiomusic_at_musicframe (max_framepos - loc->length().frames);
+						loc->set_start (new_start, false, true);
 					}
 				} else {
 					distance = get_nudge_distance (loc->end().frames, next_distance);
@@ -447,11 +446,10 @@ Editor::nudge_forward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (max_framepos - distance > loc->end().frames) {
-						loc->set_end (_session->audiomusic_at_musicframe (MusicFrame (loc->end().frames + distance, divisions)),
-							      false, true);
+						AudioMusic const new_end = _session->audiomusic_at_musicframe (loc->end().frames + distance);
+						loc->set_end (new_end, false, true);
 					} else {
-						loc->set_end (_session->audiomusic_at_musicframe (max_framepos),
-							      false, true);
+						loc->set_end (_session->audiomusic_at_musicframe (max_framepos), false, true);
 					}
 					if (loc->is_session_range()) {
 						_session->set_end_is_free (false);
@@ -531,10 +529,10 @@ Editor::nudge_backward (bool next, bool force_playhead)
 						distance = next_distance;
 					}
 					if (distance < loc->start().frames) {
-						loc->set_start (_session->audiomusic_at_musicframe (MusicFrame (loc->start().frames - distance, get_grid_music_divisions(0))),
-								false, true);
+						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->start().frames - distance);
+						loc->set_start (new_start, false, true);
 					} else {
-						loc->set_start (AudioMusic (0, 0.0), false, true);
+						loc->set_start (_session->audiomusic_at_musicframe (0), false, true);
 					}
 				} else {
 					distance = get_nudge_distance (loc->end().frames, next_distance);
@@ -544,8 +542,8 @@ Editor::nudge_backward (bool next, bool force_playhead)
 					}
 
 					if (distance < loc->end().frames - loc->length().frames) {
-						loc->set_end (_session->audiomusic_at_musicframe (MusicFrame (loc->end().frames - distance, get_grid_music_divisions(0))),
-							      false, true);
+						AudioMusic const new_start = _session->audiomusic_at_musicframe (loc->end().frames - distance);
+						loc->set_end (new_start, false, true);
 					} else {
 						loc->set_end (loc->length(), false, true);
 					}
@@ -1374,21 +1372,18 @@ Editor::cursor_align (bool playhead_to_edit)
 		_session->request_locate (selection->markers.front()->position(), _session->transport_rolling());
 
 	} else {
-		const int32_t divisions = get_grid_music_divisions (0);
 		/* move selected markers to playhead */
 
 		for (MarkerSelection::iterator i = selection->markers.begin(); i != selection->markers.end(); ++i) {
 			bool ignored;
 
 			Location* loc = find_location_from_marker (*i, ignored);
+			AudioMusic const playhead_pos = _session->audiomusic_at_musicframe (playhead_cursor->current_frame ());
 
 			if (loc->is_mark()) {
-				loc->set_start (_session->audiomusic_at_musicframe (MusicFrame (playhead_cursor->current_frame (), divisions)),
-						false, true);
+				loc->set_start (playhead_pos, false, true);
 			} else {
-				loc->set (_session->audiomusic_at_musicframe (MusicFrame (playhead_cursor->current_frame (), divisions)),
-					  _session->audiomusic_at_musicframe (MusicFrame (playhead_cursor->current_frame () + loc->length().frames, divisions)),
-					  true);
+				loc->set (playhead_pos, playhead_pos + loc->length(), true);
 			}
 		}
 	}
@@ -1932,7 +1927,7 @@ Editor::calc_extra_zoom_edges(framepos_t &start, framepos_t &end)
 bool
 Editor::get_selection_extents (AudioMusic& start, AudioMusic& end) const
 {
-	start = _session->audiomusic_at_musicframe (max_framepos);
+	start = AudioMusic (max_framepos, DBL_MAX);
 	end = AudioMusic (0, 0.0);
 	bool ret = true;
 
@@ -2169,7 +2164,7 @@ Editor::add_location_from_selection ()
 }
 
 void
-Editor::add_location_mark (framepos_t where)
+Editor::add_location_mark (framepos_t frame)
 {
 	string markername;
 
@@ -2179,12 +2174,9 @@ Editor::add_location_mark (framepos_t where)
 	if (!choose_new_marker_name(markername)) {
 		return;
 	}
-	int32_t const division = get_grid_music_divisions (0);
-	Location *location = new Location (*_session,
-					   _session->audiomusic_at_musicframe (MusicFrame (where, division)),
-					   _session->audiomusic_at_musicframe (MusicFrame (where, division)),
-					   markername,
-					   Location::IsMark);
+
+	AudioMusic const where = snap_to (frame);
+	Location *location = new Location (*_session, where, where, markername, Location::IsMark);
 
 	begin_reversible_command (_("add marker"));
 
@@ -2203,13 +2195,14 @@ Editor::set_session_start_from_playhead ()
 		return;
 
 	Location* loc;
+	AudioMusic const audible_where = _session->audiomusic_at_musicframe (_session->audible_frame());
+
 	if ((loc = _session->locations()->session_range_location()) == 0) {  //should never happen
-		_session->set_session_extents ( _session->audiomusic_at_musicframe (_session->audible_frame()),
-						_session->audiomusic_at_musicframe (_session->audible_frame()) );
+		_session->set_session_extents (audible_where, audible_where);
 	} else {
 		XMLNode &before = loc->get_state();
 
-		_session->set_session_extents ( _session->audiomusic_at_musicframe (_session->audible_frame()), loc->end() );
+		_session->set_session_extents (audible_where, loc->end() );
 
 		XMLNode &after = loc->get_state();
 
@@ -2228,13 +2221,14 @@ Editor::set_session_end_from_playhead ()
 		return;
 
 	Location* loc;
+	AudioMusic const audible_where = _session->audiomusic_at_musicframe (_session->audible_frame());
+
 	if ((loc = _session->locations()->session_range_location()) == 0) {  //should never happen
-		_session->set_session_extents ( _session->audiomusic_at_musicframe (_session->audible_frame()),
-						_session->audiomusic_at_musicframe (_session->audible_frame()) );
+		_session->set_session_extents (audible_where, audible_where);
 	} else {
 		XMLNode &before = loc->get_state();
 
-		_session->set_session_extents ( loc->start(), _session->audiomusic_at_musicframe (_session->audible_frame()) );
+		_session->set_session_extents (loc->start(), audible_where);
 
 		XMLNode &after = loc->get_state();
 
@@ -2523,11 +2517,11 @@ Editor::insert_region_list_selection (float times)
 
 	begin_reversible_command (_("insert region"));
 	playlist->clear_changes ();
-	playlist->add_region ((RegionFactory::create (region, true)), get_preferred_edit_position(), times);
+	AudioMusic const where = snap_to (get_preferred_edit_position());
+	playlist->add_region ((RegionFactory::create (region, true)), where, times);
 
 	if (Config->get_edit_mode() == Ripple) {
-		AudioMusic const ripple_at = _session->audiomusic_at_musicframe (MusicFrame (get_preferred_edit_position(), get_grid_music_divisions (0)));
-		playlist->ripple (ripple_at, AudioMusic (region->length() * times, region->length_qn() * times), boost::shared_ptr<Region>());
+		playlist->ripple (where, AudioMusic (region->length() * times, region->length_qn() * times), boost::shared_ptr<Region>());
 	}
 
 	_session->add_command(new StatefulDiffCommand (playlist));
@@ -3049,7 +3043,7 @@ static void
 add_if_covered (RegionView* rv, const AudioMusicRange* ar, RegionSelection* rs)
 {
 	switch (rv->region()->coverage (ar->start.frames, ar->end.frames - 1)) {
-	// n.b. -1 because MusicFrameRange::end is one past the end, but coverage expects inclusive ranges
+	// n.b. -1 because AudioMusicRange::end is one past the end, but coverage expects inclusive ranges
 	case Evoral::OverlapNone:
 		break;
 	default:
