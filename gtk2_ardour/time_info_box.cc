@@ -30,11 +30,12 @@
 #include "ardour/profile.h"
 #include "ardour/session.h"
 
-#include "time_info_box.h"
 #include "audio_clock.h"
-#include "editor.h"
-#include "control_point.h"
 #include "automation_line.h"
+#include "control_point.h"
+#include "editor.h"
+#include "region_view.h"
+#include "time_info_box.h"
 
 #include "pbd/i18n.h"
 
@@ -138,7 +139,6 @@ TimeInfoBox::TimeInfoBox (std::string state_node_name, bool with_punch)
 	Editor::instance().get_selection().TimeChanged.connect (sigc::mem_fun (*this, &TimeInfoBox::selection_changed));
 	Editor::instance().get_selection().RegionsChanged.connect (sigc::mem_fun (*this, &TimeInfoBox::selection_changed));
 
-	//Region::RegionPropertyChanged.connect (region_property_connections, invalidator (*this), boost::bind (&TimeInfoBox::region_property_change, this, _1, _2), gui_context());
 	Editor::instance().MouseModeChanged.connect (editor_connections, invalidator(*this), boost::bind (&TimeInfoBox::track_mouse_mode, this), gui_context());
 }
 
@@ -159,8 +159,9 @@ TimeInfoBox::track_mouse_mode ()
 }
 
 void
-TimeInfoBox::region_property_change (boost::shared_ptr<ARDOUR::Region> r, const PBD::PropertyChange& what_changed)
+TimeInfoBox::region_property_change (const PBD::PropertyChange& what_changed)
 {
+	/* we don't care what region this is */
 	Selection& selection (Editor::instance().get_selection());
 
 	if (selection.regions.empty()) {
@@ -177,9 +178,7 @@ TimeInfoBox::region_property_change (boost::shared_ptr<ARDOUR::Region> r, const 
 		return;
 	}
 
-	if (selection.regions.contains (r)) {
-		selection_changed ();
-	}
+	selection_changed ();
 }
 
 bool
@@ -262,6 +261,8 @@ TimeInfoBox::selection_changed ()
 	framepos_t s, e;
 	Selection& selection (Editor::instance().get_selection());
 
+	region_property_connections.drop_connections();
+
 	switch (Editor::instance().current_mouse_mode()) {
 
 	case Editing::MouseContent:
@@ -314,6 +315,10 @@ TimeInfoBox::selection_changed ()
 			selection_start->set (s);
 			selection_end->set (e);
 			selection_length->set (e - s + 1);
+			for (RegionSelection::iterator s = selection.regions.begin(); s != selection.regions.end(); ++s) {
+				(*s)->region()->PropertyChanged.connect (region_property_connections, invalidator (*this),
+									 boost::bind (&TimeInfoBox::region_property_change, this, _1), gui_context());
+			}
 		}
 		break;
 

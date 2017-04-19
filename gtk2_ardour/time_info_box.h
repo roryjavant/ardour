@@ -78,7 +78,7 @@ private:
 
 	bool clock_button_release_event (GdkEventButton* ev, AudioClock* src);
 	void track_mouse_mode ();
-	void region_property_change (boost::shared_ptr<ARDOUR::Region> r, const PBD::PropertyChange& what_changed);
+	void region_property_change (const PBD::PropertyChange& what_changed);
 };
 
 #endif /* __time_info_box_h__ */
