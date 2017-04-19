@@ -963,7 +963,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 			pos1 = current->position_am();
 			pos2 = start;
 			pos3 = end;
-			pos4 = AudioMusic (current->last_frame(), current->end_qn());
+			pos4 = current->end_am();
 
 			if (overlap == Evoral::OverlapInternal) {
 				/* split: we need 3 new regions, the front, middle and end.
@@ -1030,7 +1030,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 				current->clear_changes ();
 				current->suspend_property_changes ();
 				thawlist.push_back (current);
-				current->cut_end (_session.audiomusic_at_frame (pos2.frames - 1));
+				current->cut_end (pos2 - min_audiomusic_delta);
 
 			} else if (overlap == Evoral::OverlapEnd) {
 
@@ -1073,7 +1073,7 @@ Playlist::partition_internal (const AudioMusic& start, const AudioMusic& end, bo
 				current->clear_changes ();
 				current->suspend_property_changes ();
 				thawlist.push_back (current);
-				current->cut_end (_session.audiomusic_at_frame (pos2.frames - 1));
+				current->cut_end (pos2 - min_audiomusic_delta);
 
 			} else if (overlap == Evoral::OverlapStart) {
 
@@ -3164,7 +3164,7 @@ Playlist::combine (const RegionList& r)
 	PropertyList plist;
 	uint32_t channels = 0;
 	uint32_t layer = 0;
-	AudioMusic earliest_position = _session.audiomusic_at_frame (max_framepos);
+	AudioMusic earliest_position (max_framepos, DBL_MAX);
 	vector<TwoRegions> old_and_new_regions;
 	vector<boost::shared_ptr<Region> > originals;
 	vector<boost::shared_ptr<Region> > copies;
