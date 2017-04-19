@@ -297,12 +297,6 @@ MidiRegion::set_position_internal (const AudioMusic& pos)
 		AudioMusic const new_len = _session.audiomusic_at_frame (max_framepos) - position_am();
 		set_length_internal (new_len);
 	}
-
-	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
-		std::cout << "midi region set position internal ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << std::endl;
-	} else {
-		std::cout << "midi region set position internal sanity check ok for " << name() << std::endl;
-	}
 }
 
 framecnt_t
