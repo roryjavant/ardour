@@ -181,7 +181,8 @@ Editor::tempo_map_changed (const PropertyChange& /*ignored*/)
 	ENSURE_GUI_THREAD (*this, &Editor::tempo_map_changed, ignored);
 
 	if (tempo_lines) {
-		tempo_lines->tempo_map_changed (_session->tempo_map().music_origin());
+		_tempo_lines_bfc->set_origin_b (_session->tempo_map().music_origin());
+		tempo_lines->tempo_map_changed ();
 	}
 
 	compute_bbt_ruler_scale (leftmost_frame, leftmost_frame + current_page_samples());
@@ -204,7 +205,8 @@ Editor::tempometric_position_changed (const PropertyChange& /*ignored*/)
 	ENSURE_GUI_THREAD (*this, &Editor::tempo_map_changed);
 
 	if (tempo_lines) {
-		tempo_lines->tempo_map_changed (_session->tempo_map().music_origin());
+		_tempo_lines_bfc->set_origin_b (_session->tempo_map().music_origin());
+		tempo_lines->tempo_map_changed ();
 	}
 
 	TempoSection* prev_ts = 0;

@@ -37,9 +37,8 @@ TempoLines::TempoLines (ArdourCanvas::Container* group, double, ARDOUR::BeatsFra
 }
 
 void
-TempoLines::tempo_map_changed (framepos_t music_origin)
+TempoLines::tempo_map_changed ()
 {
-	_bfc->set_origin_b (music_origin);
 	lines.clear ();
 }
 
