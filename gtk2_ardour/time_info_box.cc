@@ -178,7 +178,7 @@ TimeInfoBox::region_property_change (const PBD::PropertyChange& what_changed)
 		return;
 	}
 
-	selection_changed ();
+	region_selection_changed ();
 }
 
 bool
@@ -254,6 +254,20 @@ TimeInfoBox::set_session (Session* s)
 				boost::bind (&TimeInfoBox::punch_location_changed, this, _1), gui_context());
 	}
 }
+void
+TimeInfoBox::region_selection_changed ()
+{
+	framepos_t s, e;
+	Selection& selection (Editor::instance().get_selection());
+	s = selection.regions.start().frames;
+	e = selection.regions.end_am().frames;
+	selection_start->set_off (false);
+	selection_end->set_off (false);
+	selection_length->set_off (false);
+	selection_start->set (s);
+	selection_end->set (e);
+	selection_length->set (e - s + 1);
+}
 
 void
 TimeInfoBox::selection_changed ()
@@ -307,18 +321,11 @@ TimeInfoBox::selection_changed ()
 				selection_length->set (e - s + 1);
 			}
 		} else {
-			s = selection.regions.start().frames;
-			e = selection.regions.end_am().frames;
-			selection_start->set_off (false);
-			selection_end->set_off (false);
-			selection_length->set_off (false);
-			selection_start->set (s);
-			selection_end->set (e);
-			selection_length->set (e - s + 1);
 			for (RegionSelection::iterator s = selection.regions.begin(); s != selection.regions.end(); ++s) {
 				(*s)->region()->PropertyChanged.connect (region_property_connections, invalidator (*this),
 									 boost::bind (&TimeInfoBox::region_property_change, this, _1), gui_context());
 			}
+			region_selection_changed ();
 		}
 		break;
 

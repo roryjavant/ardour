@@ -72,6 +72,7 @@ private:
 	PBD::ScopedConnectionList region_property_connections;
 
 	void selection_changed ();
+	void region_selection_changed ();
 
 	void sync_selection_mode (AudioClock*);
 	void sync_punch_mode (AudioClock*);
