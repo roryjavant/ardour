@@ -400,7 +400,7 @@ Editor::draw_measures (std::vector<ARDOUR::TempoMap::BBTPoint>& grid)
 	}
 
 	if (tempo_lines == 0) {
-		_tempo_lines_bfc = new BeatsFramesConverter (_session->tempo_map(), 0);
+		_tempo_lines_bfc = new BeatsFramesConverter (_session->tempo_map(), _session->tempo_map().music_origin());
 		tempo_lines = new TempoLines (time_line_group, ArdourCanvas::LineSet::Vertical, _tempo_lines_bfc);
 	}
 
