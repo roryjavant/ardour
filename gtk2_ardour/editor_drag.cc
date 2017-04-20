@@ -335,14 +335,11 @@ Drag::adjusted_frame (framepos_t f, GdkEvent const * event, bool snap) const
 		pos = f - _pointer_frame_offset.frames;
 	}
 
-	AudioMusic ret (0, 0.0);
 	if (snap) {
-		ret = _editor->snap_to_with_modifier (pos, event);
+		return _editor->snap_to_with_modifier (pos, event);
 	} else {
-		ret = _editor->session()->audiomusic_at_frame (pos);
+		return _editor->session()->audiomusic_at_frame (pos);
 	}
-
-	return ret;
 }
 
 AudioMusic
