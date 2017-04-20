@@ -329,7 +329,7 @@ Drag::end_grab (GdkEvent* event)
 AudioMusic
 Drag::adjusted_frame (framepos_t f, GdkEvent const * event, bool snap) const
 {
-	framepos_t pos = f;
+	framepos_t pos = 0;
 
 	if (f > _pointer_frame_offset.frames) {
 		pos = f - _pointer_frame_offset.frames;
@@ -337,9 +337,9 @@ Drag::adjusted_frame (framepos_t f, GdkEvent const * event, bool snap) const
 
 	if (snap) {
 		return _editor->snap_to_with_modifier (pos, event);
-	} else {
-		return _editor->session()->audiomusic_at_frame (pos);
 	}
+
+	return _editor->session()->audiomusic_at_frame (pos);
 }
 
 AudioMusic
