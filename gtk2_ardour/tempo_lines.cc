@@ -37,8 +37,9 @@ TempoLines::TempoLines (ArdourCanvas::Container* group, double, ARDOUR::BeatsFra
 }
 
 void
-TempoLines::tempo_map_changed()
+TempoLines::tempo_map_changed (framepos_t music_origin)
 {
+	_bfc->set_origin_b (music_origin);
 	lines.clear ();
 }
 
@@ -73,7 +74,7 @@ TempoLines::draw_ticks (std::vector<ARDOUR::TempoMap::BBTPoint>& grid,
 		/* draw line with alpha corresponding to coarsest level */
 		const uint8_t    a = max(8, (int)rint(UINT_RGBA_A(base) / (0.8 * log2(level))));
 		const uint32_t   c = UINT_RGBA_CHANGE_A(base, a);
-		const framepos_t f = _bfc->to (Evoral::Beats (grid.begin()->qn + (l / (double) divisions)));
+		const framepos_t f = _bfc->to (Evoral::Beats (grid.begin()->qn + (l / (double) divisions))) + _bfc->origin_b();
 
 		if (f > leftmost_frame) {
 			lines.add (PublicEditor::instance().sample_to_pixel_unrounded (f), 1.0, c);
@@ -142,7 +143,7 @@ TempoLines::draw (std::vector<ARDOUR::TempoMap::BBTPoint>& grid,
 
 	lines.clear ();
 	if (beat_density <= 0.12 && grid.begin() != grid.end() && grid.begin()->frame > 0 && !all_bars) {
-		/* draw subdivisions of the beat before the first visible beat line XX this shouldn't happen now */
+		/* draw subdivisions of the beat before the first visible beat line */
 		std::vector<ARDOUR::TempoMap::BBTPoint> vec;
 		vec.push_back (*i);
 		draw_ticks (vec, divisions, leftmost_frame, frame_rate);

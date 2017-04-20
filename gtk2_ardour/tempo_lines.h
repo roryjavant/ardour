@@ -28,7 +28,7 @@ class TempoLines {
 public:
 	TempoLines (ArdourCanvas::Container* group, double screen_height, ARDOUR::BeatsFramesConverter* bfc);
 
-	void tempo_map_changed();
+	void tempo_map_changed (ARDOUR::framepos_t music_origin);
 
 	void draw (std::vector<ARDOUR::TempoMap::BBTPoint>& grid,
 		   unsigned                                              divisions,
