@@ -371,6 +371,7 @@ protected:
 	bool _ignore_video_lock;
 	ARDOUR::AudioMusic _last_position; ///< last position of the thing being dragged
 	double _total_x_delta;
+	double _total_qnote_delta;
 	int _last_pointer_time_axis_view;
 	double _last_pointer_layer;
 private:

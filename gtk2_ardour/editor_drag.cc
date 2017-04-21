@@ -621,6 +621,7 @@ RegionMotionDrag::RegionMotionDrag (Editor* e, ArdourCanvas::Item* i, RegionView
 	, _ignore_video_lock (false)
 	, _last_position (0, 0)
 	, _total_x_delta (0)
+	, _total_qnote_delta (0.0)
 	, _last_pointer_time_axis_view (0)
 	, _last_pointer_layer (0)
 	, _ndropzone (0)
@@ -655,7 +656,11 @@ RegionMotionDrag::start_grab (GdkEvent* event, Gdk::Cursor* cursor)
 		_y_constrained = true;
 	}
 }
-
+struct DraggingViewPositionSorter {
+	bool operator() (const DraggingView& a, const DraggingView& b) {
+		return a.view->region()->position() < b.view->region()->position();
+	}
+};
 double
 RegionMotionDrag::compute_x_delta (GdkEvent const * event, AudioMusic* pending_region_position)
 {
@@ -691,25 +696,50 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, AudioMusic* pending_r
 
 	if (pending_region_position->frames > max_framepos - _primary->region()->length()) {
 		*pending_region_position = _last_position;
+		return 0.0;
 	}
 
 	double dx = 0;
 
-	bool const x_move_allowed = !_x_constrained;
-
-	if ((*pending_region_position != _last_position) && x_move_allowed) {
-
+	if (*pending_region_position != _last_position && !_x_constrained) {
+		AudioMusic const am_delta = *pending_region_position - _last_position;
 		/* x movement since last time (in pixels) */
-		dx = _editor->sample_to_pixel_unrounded (pending_region_position->frames - _last_position.frames);
+		dx = _editor->sample_to_pixel_unrounded (am_delta.frames);
 
 		/* total x movement */
-		framecnt_t total_dx = _editor->pixel_to_sample (_total_x_delta + dx);
+		framecnt_t const total_dx = _editor->pixel_to_sample (_total_x_delta) + am_delta.frames;
+		double const total_dqnote = _total_qnote_delta + am_delta.qnotes;
+		AudioMusic const timeline_origin = _editor->session()->audiomusic_at_frame (0);
 
-		for (list<DraggingView>::const_iterator i = _views.begin(); i != _views.end(); ++i) {
-			frameoffset_t const off = i->view->region()->position() + total_dx;
-			if (off < 0) {
-				dx = dx - _editor->sample_to_pixel_unrounded (off);
-				*pending_region_position = _editor->session()->audiomusic_at_frame (pending_region_position->frames - off);
+		list<DraggingView> views_copy = _views;
+		views_copy.sort (DraggingViewPositionSorter());
+
+		for (list<DraggingView>::const_iterator i = views_copy.begin(); i != views_copy.end(); ++i) {
+			framecnt_t const audio_off = i->view->region()->position() + total_dx;
+			double const music_off = i->view->region()->position_am().qnotes + total_dqnote;
+
+			if (i->view->region()->position_lock_style() == AudioTime && audio_off < 0) {
+				framecnt_t const frame_delta = i->view->region()->position() - timeline_origin.frames;
+				if (i->view == _primary) {
+					dx = dx - _editor->sample_to_pixel_unrounded (audio_off);
+					*pending_region_position = _editor->session()->audiomusic_at_frame (pending_region_position->frames - audio_off);
+				} else {
+					*pending_region_position = _editor->session()->audiomusic_at_frame (_primary->region()->position() - frame_delta);
+					dx = _editor->sample_to_pixel_unrounded (pending_region_position->frames - _last_position.frames);
+				}
+
+				break;
+
+			} else if (i->view->region()->position_lock_style() == MusicTime && music_off < timeline_origin.qnotes) {
+				double const qnote_delta = i->view->region()->position_am().qnotes - timeline_origin.qnotes;
+				if (i->view == _primary) {
+					dx =  dx - _editor->sample_to_pixel_unrounded (_editor->session()->audiomusic_at_qnote (music_off).frames);
+					*pending_region_position = _editor->session()->audiomusic_at_qnote (_primary->region()->position_am().qnotes - qnote_delta);
+				} else {
+					*pending_region_position = _editor->session()->audiomusic_at_qnote (_primary->region()->position_am().qnotes - qnote_delta);
+					dx = _editor->sample_to_pixel_unrounded (pending_region_position->frames - _last_position.frames);
+				}
+
 				break;
 			}
 		}
@@ -954,6 +984,7 @@ RegionMotionDrag::motion (GdkEvent* event, bool first_move)
 	double const x_delta = compute_x_delta (event, &pending_region_position);
 
 	double const qn_delta = pending_region_position.qnotes - _last_position.qnotes;
+	_total_qnote_delta += qn_delta;
 	_last_position = pending_region_position;
 
 	/* calculate hidden tracks in current y-axis delta */
