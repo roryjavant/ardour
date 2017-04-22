@@ -841,8 +841,6 @@ RegionView::trim_front (const AudioMusic& new_bound, bool no_overlap)
 		return false;
 	}
 
-	RouteTimeAxisView& rtv = dynamic_cast<RouteTimeAxisView&> (trackview);
-
 	framepos_t const pre_trim_first_frame = _region->first_frame();
 
 	if (_region->position_am() == new_bound) {
@@ -879,8 +877,6 @@ RegionView::trim_end (const AudioMusic& new_bound, bool no_overlap)
 	if (_region->locked()) {
 		return false;
 	}
-
-	RouteTimeAxisView& rtv = dynamic_cast<RouteTimeAxisView&> (trackview);
 
 	framepos_t const pre_trim_last_frame = _region->last_frame();
 
