@@ -1542,10 +1542,10 @@ Selection::set_state (XMLNode const & node, int)
 			XMLProperty const * prop_start_qn = (*i)->property (X_("start-qnotes"));
 			XMLProperty const * prop_end_qn = (*i)->property (X_("end-qnotes"));
 			if (prop_start_qn && prop_end_qn) {
-				set_preserving_all_ranges (AudioMusic (s, atof (prop_start_qn->value ().c_str()))
+				add (AudioMusic (s, atof (prop_start_qn->value ().c_str()))
 							   , AudioMusic (e, atof (prop_end_qn->value ().c_str())));
 			} else {
-				set_preserving_all_ranges (editor->session()->audiomusic_at_frame(s), editor->session()->audiomusic_at_frame(e));
+				add (editor->session()->audiomusic_at_frame(s), editor->session()->audiomusic_at_frame(e));
 			}
 
 		} else if ((*i)->name() == X_("AutomationView")) {
