@@ -1310,9 +1310,12 @@ Selection::get_state () const
 		}
 	}
 
-	for (RegionSelection::const_iterator i = regions.begin(); i != regions.end(); ++i) {
-		XMLNode* r = node->add_child (X_("Region"));
-		r->add_property (X_("id"), atoi ((*i)->region ()->id ().to_s ().c_str()));
+	if (!regions.empty()) {
+		XMLNode* parent = node->add_child (X_("Regions"));
+		for (RegionSelection::const_iterator i = regions.begin(); i != regions.end(); ++i) {
+			XMLNode* r = parent->add_child (X_("Region"));
+			r->add_property (X_("id"), atoi ((*i)->region ()->id ().to_s ().c_str()));
+		}
 	}
 
 	/* midi region views have thir own internal selection. */
@@ -1390,8 +1393,6 @@ Selection::set_state (XMLNode const & node, int)
 		return -1;
 	}
 
-	RegionSelection selected_regions;
-
 	clear_regions ();
 	clear_midi_notes ();
 	clear_points ();
@@ -1411,24 +1412,34 @@ Selection::set_state (XMLNode const & node, int)
 				add (rtv);
 			}
 
-		} else if ((*i)->name() == X_("Region")) {
-			XMLProperty const * prop_id = (*i)->property (X_("id"));
-			assert (prop_id);
-			PBD::ID id (prop_id->value ());
+		} else if ((*i)->name() == X_("Regions")) {
+			RegionSelection selected_regions;
+			XMLNodeList children = (*i)->children ();
 
-			RegionSelection rs;
-			editor->get_regionviews_by_id (id, rs);
+			for (XMLNodeList::const_iterator ci = children.begin(); ci != children.end(); ++ci) {
 
-			if (!rs.empty ()) {
-				for (RegionSelection::const_iterator i = rs.begin(); i != rs.end(); ++i) {
-					selected_regions.push_back (*i);
+				XMLProperty const * prop_id = (*ci)->property (X_("id"));
+				assert (prop_id);
+				PBD::ID id (prop_id->value ());
+
+				RegionSelection rs;
+				editor->get_regionviews_by_id (id, rs);
+
+				if (!rs.empty ()) {
+					for (RegionSelection::const_iterator i = rs.begin(); i != rs.end(); ++i) {
+						selected_regions.push_back (*i);
+					}
+				} else {
+					/*
+					  regionviews haven't been constructed - stash the region IDs
+					  so we can identify them in Editor::region_view_added ()
+					*/
+					regions.pending.push_back (id);
 				}
-			} else {
-				/*
-				  regionviews haven't been constructed - stash the region IDs
-				  so we can identify them in Editor::region_view_added ()
-				*/
-				regions.pending.push_back (id);
+			}
+
+			if (!selected_regions.empty()) {
+				add (selected_regions);
 			}
 
 		} else if ((*i)->name() == X_("MIDINotes")) {
@@ -1591,10 +1602,6 @@ Selection::set_state (XMLNode const & node, int)
 
 		}
 
-	}
-
-	if (!selected_regions.empty()) {
-		add (selected_regions);
 	}
 
 	return 0;
