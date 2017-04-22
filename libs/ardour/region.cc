@@ -660,8 +660,6 @@ Region::update_after_tempo_map_change (bool send)
 	if (send) {
 		send_change (what_changed);
 	}
-	std::cout << "region update after tmap change post musictime " << name()  << " qn : " << _quarter_note << std::endl;
-
 }
 
 void
@@ -2092,13 +2090,9 @@ Region::post_set (const PropertyChange& pc)
 	}
 	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
 		std::cout << "region post set  ****** length frames error . this is expected sometimes :)" << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << std::setprecision (17) << _length_qn << std::endl;
-	} else {
-		std::cout << "region post set sanity check ok for " << name() << std::setprecision (17) << " length_qn : " << _length_qn << std::endl;
 	}
 	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
 		std::cout << "region post set ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << " qn : " << _quarter_note << std::endl;
-	} else {
-		std::cout << "region post set sanity check ok for " << name() << " qn : " << _quarter_note << std::endl;
 	}
 }
 

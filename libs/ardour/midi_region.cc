@@ -86,8 +86,6 @@ MidiRegion::MidiRegion (boost::shared_ptr<const MidiRegion> other, AudioMusic of
 		_length_qn = other->_length_qn - offset.qnotes;
 	}
 
-	std::cout << std::setprecision (17) << "mr copy off music ctor start beats : " << _start_qn << " length beats : " << _length_qn <<  " qn pos : " << _quarter_note << " other qn  : " << other->_quarter_note << " oth start beats  : " << other->_start_qn << " other length beats : " << other->_length_qn << " offset qn : " << offset.qnotes << " start : " << _start << std::endl;
-
 	assert(_name.val().find("/") == string::npos);
 	midi_source(0)->ModelChanged.connect_same_thread (_source_connection, boost::bind (&MidiRegion::model_changed, this));
 	model_changed ();

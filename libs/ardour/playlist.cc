@@ -1360,7 +1360,6 @@ Playlist::duplicate_until (boost::shared_ptr<Region> region, const AudioMusic& p
 {
 	AudioMusic position (pos);
 	string name;
-	std::cout << "Playlist::duplicate_until (boost::shared_ptr<Region> region " << region->name() << " , framepos_t position, : " <<  position.frames << " double pos_qn : " << position.qnotes << " , framecnt_t gap : " << gap.frames << " , framepos_t end : " << end.frames << " )" << std::endl; 
 
 	RegionWriteLock rl (this);
 
