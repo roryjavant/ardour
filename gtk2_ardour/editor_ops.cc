@@ -3137,8 +3137,7 @@ Editor::separate_regions_between (const TimeSelection& ts)
 				AudioMusic start = (*t).start;
 				AudioMusic end = (*t).end;
 
-				playlist->partition (start,
-				                     end, false);
+				playlist->partition (start, end, false);
 
 				c.disconnect ();
 
