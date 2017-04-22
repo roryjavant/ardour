@@ -2088,12 +2088,6 @@ Region::post_set (const PropertyChange& pc)
 	if (pc.contains (Properties::start) && !pc.contains (Properties::start_qn)) {
 		set_start_beats_from_start_frames ();
 	}
-	if (_length != _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn)) {
-		std::cout << "region post set  ****** length frames error . this is expected sometimes :)" << name() << " _length is : " << _length << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note, _quarter_note + _length_qn) << " length_qn : " << std::setprecision (17) << _length_qn << std::endl;
-	}
-	if (_start != _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note)) {
-		std::cout << "region post set ****** start frames error " << name() << " _start is : " << _start << " but calculated is : " << _session.tempo_map().frames_between_quarter_notes (_quarter_note - _start_qn, _quarter_note) << " qn : " << _quarter_note << std::endl;
-	}
 }
 
 void
