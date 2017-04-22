@@ -180,6 +180,8 @@ Editor::tempo_map_changed (const PropertyChange& /*ignored*/)
 
 	ENSURE_GUI_THREAD (*this, &Editor::tempo_map_changed, ignored);
 
+	update_time_selection_after_tempo_map_change();
+
 	if (tempo_lines) {
 		_tempo_lines_bfc->set_origin_b (_session->tempo_map().music_origin());
 		tempo_lines->tempo_map_changed ();
@@ -203,6 +205,8 @@ Editor::tempometric_position_changed (const PropertyChange& /*ignored*/)
 	}
 
 	ENSURE_GUI_THREAD (*this, &Editor::tempo_map_changed);
+
+	update_time_selection_after_tempo_map_change();
 
 	if (tempo_lines) {
 		_tempo_lines_bfc->set_origin_b (_session->tempo_map().music_origin());
