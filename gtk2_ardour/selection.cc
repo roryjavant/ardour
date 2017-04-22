@@ -1419,7 +1419,11 @@ Selection::set_state (XMLNode const & node, int)
 			for (XMLNodeList::const_iterator ci = children.begin(); ci != children.end(); ++ci) {
 
 				XMLProperty const * prop_id = (*ci)->property (X_("id"));
-				assert (prop_id);
+
+				if (!prop_id) {
+					continue;
+				}
+
 				PBD::ID id (prop_id->value ());
 
 				RegionSelection rs;
