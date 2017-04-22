@@ -1390,6 +1390,8 @@ Selection::set_state (XMLNode const & node, int)
 		return -1;
 	}
 
+	RegionSelection selected_regions;
+
 	clear_regions ();
 	clear_midi_notes ();
 	clear_points ();
@@ -1418,7 +1420,9 @@ Selection::set_state (XMLNode const & node, int)
 			editor->get_regionviews_by_id (id, rs);
 
 			if (!rs.empty ()) {
-				add (rs);
+				for (RegionSelection::const_iterator i = rs.begin(); i != rs.end(); ++i) {
+					selected_regions.push_back (*i);
+				}
 			} else {
 				/*
 				  regionviews haven't been constructed - stash the region IDs
@@ -1588,6 +1592,8 @@ Selection::set_state (XMLNode const & node, int)
 		}
 
 	}
+
+	add (selected_regions);
 
 	return 0;
 }
