@@ -1472,6 +1472,10 @@ Editor::sensitize_the_right_region_actions (bool because_canvas_crossing)
 void
 Editor::update_time_selection_after_tempo_map_change ()
 {
+	if (selection->time.empty()) {
+		return;
+	}
+
 	for (std::list<AudioMusicRange>::iterator i = selection->time.begin(); i != selection->time.end(); ++i) {
 		if (snap_musical()) {
 			(*i).start = _session->audiomusic_at_qnote ((*i).start.qnotes);
