@@ -1103,7 +1103,7 @@ Editor::cursor_to_selection_end (EditorCursor *cursor)
 	switch (mouse_mode) {
 	case MouseObject:
 		if (!selection->regions.empty()) {
-			pos = selection->regions.end_frame();
+			pos = selection->regions.end_am().frames;
 		}
 		break;
 
@@ -3428,7 +3428,7 @@ Editor::region_fill_track ()
 	RegionSelection regions = get_regions_from_selection_and_entered ();
 	RegionSelection foo;
 
-	if (regions.empty () || regions.end_frame () + 1 >= _session->current_end_frame ()) {
+	if (regions.empty () || regions.end_am().frames + 1 >= _session->current_end_frame ()) {
 		return;
 	}
 
