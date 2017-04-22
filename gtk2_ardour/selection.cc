@@ -1593,7 +1593,9 @@ Selection::set_state (XMLNode const & node, int)
 
 	}
 
-	add (selected_regions);
+	if (!selected_regions.empty()) {
+		add (selected_regions);
+	}
 
 	return 0;
 }
