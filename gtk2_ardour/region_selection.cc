@@ -261,54 +261,27 @@ RegionSelection::involves (const TimeAxisView& tv) const
 	return false;
 }
 
-framepos_t
-RegionSelection::start_frame () const
+AudioMusic
+RegionSelection::start () const
 {
-	framepos_t s = max_framepos;
+	AudioMusic s (max_framepos, DBL_MAX);
 	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
-		s = min (s, (*i)->region()->position ());
+		s = min (s, (*i)->region()->position_am ());
 	}
 
-	if (s == max_framepos) {
-		return 0;
+	if (s.frames == max_framepos) {
+		return AudioMusic (0, 0.0);
 	}
 
 	return s;
 }
 
-double
-RegionSelection::start_qn () const
+AudioMusic
+RegionSelection::end_am () const
 {
-	double s = DBL_MAX;
+	AudioMusic e (0, 0.0);
 	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
-		s = min (s, (*i)->region()->quarter_note());
-	}
-
-	if (s == DBL_MAX) {
-		return 0.0;
-	}
-
-	return s;
-}
-
-framepos_t
-RegionSelection::end_frame () const
-{
-	framepos_t e = 0;
-	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
-		e = max (e, (*i)->region()->last_frame ());
-	}
-
-	return e;
-}
-
-double
-RegionSelection::end_qn () const
-{
-	double e = 0.0;
-	for (RegionSelection::const_iterator i = begin(); i != end(); ++i) {
-		/* region end qn is pos_qn + length_qn - DBL_MIN */
-		e = max (e, (*i)->region()->end_qn());
+		e = max (e, (*i)->region()->end_am ());
 	}
 
 	return e;

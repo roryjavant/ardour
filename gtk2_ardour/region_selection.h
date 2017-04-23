@@ -52,11 +52,11 @@ class RegionSelection : public std::list<RegionView*>
 
 	void clear_all();
 
-	ARDOUR::AudioMusic start () const { return ARDOUR::AudioMusic (start_frame(), start_qn()); }
+	ARDOUR::AudioMusic start () const;
 
 	/* "end" collides with list<>::end */
 
-	ARDOUR::AudioMusic end_am () const { return ARDOUR::AudioMusic (end_frame(), end_qn()); };
+	ARDOUR::AudioMusic end_am () const;
 
 	const std::list<RegionView *>& by_layer() const { return _bylayer; }
 	void  by_position (std::list<RegionView*>&) const;
@@ -76,11 +76,6 @@ class RegionSelection : public std::list<RegionView*>
 
 	std::list<RegionView *> _bylayer; ///< list of regions sorted by layer
 	PBD::ScopedConnection death_connection;
-
-	framepos_t start_frame () const;
-	double     start_qn () const;
-	framepos_t end_frame () const;
-	double     end_qn () const;
 };
 
 #endif /* __ardour_gtk_region_selection_h__ */
