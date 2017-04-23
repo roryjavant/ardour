@@ -352,7 +352,7 @@ public:
 	virtual bool region_changed (const PBD::PropertyChange&, boost::shared_ptr<Region>);
 
 	void region_bounds_changed (const PBD::PropertyChange&, boost::shared_ptr<Region>);
-	void regions_bounds_changed (std::list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >& regions);
+	void complete_pending_bounds (std::list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >& regions);
 	void region_deleted (boost::shared_ptr<Region>);
 
 	void sort_regions ();

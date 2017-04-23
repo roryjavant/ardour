@@ -616,7 +616,7 @@ Playlist::flush_notifications (bool from_undo)
 		   anyone hears that its been added
 		*/
 	}
-	regions_bounds_changed (pending_bounds);
+	complete_pending_bounds (pending_bounds);
 
 	/* notify about contents/region changes first so that layering changes
 	 * in a UI will take place on the new contents.
@@ -1706,109 +1706,110 @@ Playlist::core_ripple (const AudioMusic& at, AudioMusic distance, RegionList *ex
 void
 Playlist::region_bounds_changed (const PropertyChange& what_changed, boost::shared_ptr<Region> region)
 {
-	 if (in_set_state || _splicing || _rippling || _nudging || _shuffling) {
-		 return;
-	 }
+	if (in_set_state || _splicing || _rippling || _nudging || _shuffling) {
+		return;
+	}
 
-	 if (what_changed.contains (Properties::position)) {
+	if (what_changed.contains (Properties::position)) {
 
-		 /* remove it from the list then add it back in
-		    the right place again.
-		 */
+		/* remove it from the list then add it back in
+		   the right place again.
+		*/
 
-		 RegionSortByPosition cmp;
+		RegionSortByPosition cmp;
 
-		 RegionList::iterator i = find (regions.begin(), regions.end(), region);
+		RegionList::iterator i = find (regions.begin(), regions.end(), region);
 
-		 if (i == regions.end()) {
-			 /* the region bounds are being modified but its not currently
-			    in the region list. we will use its bounds correctly when/if
-			    it is added
-			 */
-			 return;
-		 }
+		if (i == regions.end()) {
+			/* the region bounds are being modified but its not currently
+			   in the region list. we will use its bounds correctly when/if
+			   it is added
+			*/
+			return;
+		}
 
-		 regions.erase (i);
-		 regions.insert (upper_bound (regions.begin(), regions.end(), region, cmp), region);
-	 }
+		regions.erase (i);
+		regions.insert (upper_bound (regions.begin(), regions.end(), region, cmp), region);
+	}
 
-	 if (what_changed.contains (Properties::position) || what_changed.contains (Properties::length)) {
+	if (what_changed.contains (Properties::position) || what_changed.contains (Properties::length)) {
 
-		 AudioMusic delta (0, 0.0);
+		AudioMusic delta (0, 0.0);
 
-		 if (what_changed.contains (Properties::position)) {
-			 delta = region->position_am() - AudioMusic (region->last_position(), region->last_qn());
-		 }
+		if (what_changed.contains (Properties::position)) {
+			delta = region->position_am() - AudioMusic (region->last_position(), region->last_qn());
+		}
 
-		 if (what_changed.contains (Properties::length)) {
-			 delta += AudioMusic (region->length() - region->last_length(), region->length_qn() - region->last_length_qn());
-		 }
+		if (what_changed.contains (Properties::length)) {
+			delta += AudioMusic (region->length() - region->last_length(), region->length_qn() - region->last_length_qn());
+		}
 
-		 if (delta.frames) {
-			 possibly_splice (AudioMusic (region->last_position() + region->last_length(), region->last_qn() + region->last_length_qn()), delta, region);
-		 }
+		if (delta.frames) {
+			possibly_splice (AudioMusic (region->last_position() + region->last_length(), region->last_qn() + region->last_length_qn()), delta, region);
+		}
 
-		 notify_contents_changed ();
-		 relayer ();
-		 list<Evoral::Range<framepos_t> > xf;
-		 xf.push_back (Evoral::Range<framepos_t> (region->last_range()));
-		 xf.push_back (Evoral::Range<framepos_t> (region->range()));
-		 coalesce_and_check_crossfades (xf);
-	 }
- }
+		notify_contents_changed ();
+		relayer ();
+		list<Evoral::Range<framepos_t> > xf;
+		xf.push_back (Evoral::Range<framepos_t> (region->last_range()));
+		xf.push_back (Evoral::Range<framepos_t> (region->range()));
+		coalesce_and_check_crossfades (xf);
+	}
+}
+
 void
-Playlist::regions_bounds_changed (list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >& changed_regions)
+Playlist::complete_pending_bounds (list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >& changed_regions)
 {
-	 if (in_set_state || _splicing || _rippling || _nudging || _shuffling) {
-		 return;
-	 }
+	if (in_set_state || _splicing || _rippling || _nudging || _shuffling) {
+		return;
+	}
 
-	 list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >::iterator i;
-	 for (i = changed_regions.begin(); i != changed_regions.end(); ++i) {
-		 if (i->second.contains (Properties::position)) {
+	list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >::iterator i;
+	for (i = changed_regions.begin(); i != changed_regions.end(); ++i) {
+		if (i->second.contains (Properties::position)) {
 
-			 /* remove it from the list then add it back in
-			    the right place again.
-			 */
+			/* remove it from the list then add it back in
+			   the right place again.
+			*/
 
-			 RegionSortByPosition cmp;
-			 RegionWriteLock rl (this);
+			RegionSortByPosition cmp;
+			RegionWriteLock rl (this);
 
-			 RegionList::iterator f = find (regions.begin(), regions.end(), i->first);
+			RegionList::iterator f = find (regions.begin(), regions.end(), i->first);
 
-			 if (f == regions.end()) {
-				 /* the region bounds are being modified but its not currently
-				    in the region list. we will use its bounds correctly when/if
-				    it is added
-				 */
-				 continue;
-			 }
+			if (f == regions.end()) {
+				/* the region bounds are being modified but its not currently
+				   in the region list. we will use its bounds correctly when/if
+				   it is added
+				*/
+				continue;
+			}
 
-			 regions.erase (f);
-			 regions.insert (upper_bound (regions.begin(), regions.end(), i->first, cmp), i->first);
-		 }
+			regions.erase (f);
+			regions.insert (upper_bound (regions.begin(), regions.end(), i->first, cmp), i->first);
+		}
 
-		 if (i->second.contains (Properties::position) || i->second.contains (Properties::length)) {
+		if (i->second.contains (Properties::position) || i->second.contains (Properties::length)) {
 
-			 AudioMusic delta (0, 0.0);
+			AudioMusic delta (0, 0.0);
 
-			 if (i->second.contains (Properties::position)) {
-				 delta = i->first->position_am() - AudioMusic (i->first->last_position(), i->first->last_qn());
-			 }
+			if (i->second.contains (Properties::position)) {
+				delta = i->first->position_am() - AudioMusic (i->first->last_position(), i->first->last_qn());
+			}
 
-			 if (i->second.contains (Properties::length)) {
-				 delta += AudioMusic (i->first->length() - i->first->last_length(), i->first->length_qn() - i->first->last_length_qn());
-			 }
+			if (i->second.contains (Properties::length)) {
+				delta += i->first->length_am() - AudioMusic (i->first->last_length(), i->first->last_length_qn());
+			}
 
-			 if (delta.frames) {
-				 possibly_splice (
-					 AudioMusic (i->first->last_position() + i->first->last_length(), i->first->last_qn() + i->first->last_length_qn())
-					 , delta
-					 , i->first);
-			 }
-		 }
-	 }
- }
+			if (delta.frames) {
+				possibly_splice (
+					AudioMusic (i->first->last_position() + i->first->last_length(), i->first->last_qn() + i->first->last_length_qn())
+					, delta
+					, i->first);
+			}
+		}
+	}
+}
 
 void
  Playlist::region_changed_proxy (const PropertyChange& what_changed, boost::weak_ptr<Region> weak_region)
