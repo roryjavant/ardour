@@ -158,29 +158,6 @@ TimeInfoBox::track_mouse_mode ()
 	selection_changed ();
 }
 
-void
-TimeInfoBox::region_property_change (const PBD::PropertyChange& what_changed)
-{
-	/* we don't care what region this is */
-	Selection& selection (Editor::instance().get_selection());
-
-	if (selection.regions.empty()) {
-		return;
-	}
-
-	PBD::PropertyChange our_interests;
-
-	our_interests.add (ARDOUR::Properties::position);
-	our_interests.add (ARDOUR::Properties::length);
-	our_interests.add (ARDOUR::Properties::start);
-
-	if (!what_changed.contains (our_interests)) {
-		return;
-	}
-
-	region_selection_changed ();
-}
-
 bool
 TimeInfoBox::clock_button_release_event (GdkEventButton* ev, AudioClock* src)
 {
@@ -321,9 +298,17 @@ TimeInfoBox::selection_changed ()
 				selection_length->set (e - s + 1);
 			}
 		} else {
+			/* this is more efficient than tracking changes per region in large selections */
+			std::set<boost::shared_ptr<ARDOUR::Playlist> > playlists;
 			for (RegionSelection::iterator s = selection.regions.begin(); s != selection.regions.end(); ++s) {
-				(*s)->region()->PropertyChanged.connect (region_property_connections, invalidator (*this),
-									 boost::bind (&TimeInfoBox::region_property_change, this, _1), gui_context());
+				boost::shared_ptr<Playlist> pl = (*s)->region()->playlist();
+				if (pl) {
+					playlists.insert (pl);
+				}
+			}
+			for (std::set<boost::shared_ptr<ARDOUR::Playlist> >::iterator ps = playlists.begin(); ps != playlists.end(); ++ps) {
+				(*ps)->ContentsChanged.connect (region_property_connections, invalidator (*this),
+								boost::bind (&TimeInfoBox::region_selection_changed, this), gui_context());
 			}
 			region_selection_changed ();
 		}
