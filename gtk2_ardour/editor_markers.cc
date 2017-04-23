@@ -164,6 +164,7 @@ Editor::add_new_location_internal (Location* location)
 	}
 
 	location->name_changed.connect (*this, invalidator (*this), boost::bind (&Editor::location_changed, this, _1), gui_context());
+	location->position_lock_style_changed.connect (*this, invalidator (*this), boost::bind (&Editor::location_changed, this, _1), gui_context());
 	location->FlagsChanged.connect (*this, invalidator (*this), boost::bind (&Editor::location_flags_changed, this, location), gui_context());
 
 	pair<Location*,LocationMarkers*> newpair;
@@ -204,7 +205,12 @@ Editor::location_changed (Location *location)
 		return;
 	}
 
-	lam->set_name (location->name ());
+	if (location->position_lock_style() == MusicTime) {
+		lam->set_name ("\u266B" + location->name ()); // BEAMED EIGHTH NOTES
+	} else {
+		lam->set_name (location->name ());
+	}
+
 	lam->set_position (location->start().frames, location->end().frames);
 
 	if (location->is_auto_loop()) {
