@@ -327,7 +327,7 @@ Location::set_end (const AudioMusic& e, bool force, bool allow_qnote_recompute)
 		framepos_t const old = _end;
 
 		_end = e.frames;
-		_end = e.qnotes;
+		_end_qn = e.qnotes;
 		if (allow_qnote_recompute) {
 			recompute_end_qnote_from_frames ();
 		}
