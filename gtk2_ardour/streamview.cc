@@ -240,8 +240,6 @@ StreamView::layer_regions()
 			region_views.erase (i);
 			i = tmp;
 			continue;
-		} else {
-			(*i)->enable_display(true);
 		}
 
 		if (copy.size() == 0) {
