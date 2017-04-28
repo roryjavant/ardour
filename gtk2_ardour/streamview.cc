@@ -232,6 +232,8 @@ StreamView::layer_regions()
 	RegionViewList copy;
 	list<RegionView*>::iterator i, tmp;
 	for (i = region_views.begin(); i != region_views.end(); ) {
+		layer_t const reg_layer = (*i)->region()->layer();
+
 		tmp = i;
 		tmp++;
 
@@ -252,18 +254,18 @@ StreamView::layer_regions()
 		RegionViewList::iterator l = copy.end();
 		l--;
 
-		if ((*i)->region()->layer() <= (*k)->region()->layer()) {
+		if (reg_layer <= (*k)->region()->layer()) {
 			copy.push_front((*i));
 			i = tmp;
 			continue;
-		} else if ((*i)->region()->layer() >= (*l)->region()->layer()) {
+		} else if (reg_layer >= (*l)->region()->layer()) {
 			copy.push_back((*i));
 			i = tmp;
 			continue;
 		}
 
 		for (RegionViewList::iterator j = copy.begin(); j != copy.end(); ++j) {
-			if ((*j)->region()->layer() >= (*i)->region()->layer()) {
+			if ((*j)->region()->layer() >= reg_layer) {
 				copy.insert(j, (*i));
 				break;
 			}
