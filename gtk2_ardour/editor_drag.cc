@@ -703,6 +703,7 @@ RegionMotionDrag::compute_x_delta (GdkEvent const * event, AudioMusic* pending_r
 
 	if (*pending_region_position != _last_position && !_x_constrained) {
 		AudioMusic const am_delta = *pending_region_position - _last_position;
+
 		/* x movement since last time (in pixels) */
 		dx = _editor->sample_to_pixel_unrounded (am_delta.frames);
 
@@ -2836,12 +2837,11 @@ VideoTimeLineDrag::finished (GdkEvent * /*event*/, bool movement_occurred)
 
 		_editor->session()->add_command (new StatefulDiffCommand (i->view->region()));
 	}
+	frameoffset_t const start = std::max(ARDOUR_UI::instance()->video_timeline->get_offset(), (ARDOUR::frameoffset_t) 0);
+	frameoffset_t const end = std::max(ARDOUR_UI::instance()->video_timeline->get_offset() + ARDOUR_UI::instance()->video_timeline->get_duration(), (ARDOUR::frameoffset_t) 0);
 
-	_editor->session()->maybe_update_session_range(
-			std::max(ARDOUR_UI::instance()->video_timeline->get_offset(), (ARDOUR::frameoffset_t) 0),
-			std::max(ARDOUR_UI::instance()->video_timeline->get_offset() + ARDOUR_UI::instance()->video_timeline->get_duration(), (ARDOUR::frameoffset_t) 0)
-			);
-
+	_editor->session()->maybe_update_session_range(_editor->session()->audiomusic_at_frame (start),
+						       _editor->session()->audiomusic_at_frame (end));
 
 	_editor->commit_reversible_command ();
 }

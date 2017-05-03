@@ -207,12 +207,12 @@ public:
 	PBD::Signal0<void>      LayeringChanged;
 
 	/** Emitted when regions have moved (not when regions have only been trimmed) */
-	PBD::Signal2<void,std::list< Evoral::RangeMove<framepos_t> > const &, bool> RangesMoved;
+	PBD::Signal2<void,std::list< Evoral::RangeMove<AudioMusic> > const &, bool> RangesMoved;
 
 	/** Emitted when regions are extended; the ranges passed are the new extra time ranges
 	    that these regions now occupy.
 	*/
-	PBD::Signal1<void,std::list< Evoral::Range<framepos_t> > const &> RegionsExtended;
+	PBD::Signal1<void,std::list< Evoral::Range<AudioMusic> > const &> RegionsExtended;
 
 	static std::string bump_name (std::string old_name, Session&);
 
@@ -299,9 +299,9 @@ public:
 	 *  region trims are not included in this list; it is used to
 	 *  do automation-follows-regions.
 	 */
-	std::list< Evoral::RangeMove<framepos_t> > pending_range_moves;
+	std::list< Evoral::RangeMove<AudioMusic> > pending_range_moves;
 	/** Extra sections added to regions during trims */
-	std::list< Evoral::Range<framepos_t> >     pending_region_extensions;
+	std::list< Evoral::Range<AudioMusic> >     pending_region_extensions;
 	uint32_t         in_set_state;
 	bool             in_undo;
 	bool             first_set_state;

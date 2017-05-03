@@ -550,7 +550,7 @@ Diskstream::set_state (const XMLNode& node, int /*version*/)
 }
 
 void
-Diskstream::playlist_ranges_moved (list< Evoral::RangeMove<framepos_t> > const & movements_frames, bool from_undo)
+Diskstream::playlist_ranges_moved (list< Evoral::RangeMove<AudioMusic> > const & movements_frames, bool from_undo)
 {
 	/* If we're coming from an undo, it will have handled
 	   automation undo (it must, since automation-follows-regions
@@ -567,11 +567,11 @@ Diskstream::playlist_ranges_moved (list< Evoral::RangeMove<framepos_t> > const &
 
 	list< Evoral::RangeMove<double> > movements;
 
-	for (list< Evoral::RangeMove<framepos_t> >::const_iterator i = movements_frames.begin();
+	for (list< Evoral::RangeMove<AudioMusic> >::const_iterator i = movements_frames.begin();
 	     i != movements_frames.end();
 	     ++i) {
 
-		movements.push_back(Evoral::RangeMove<double>(i->from, i->length, i->to));
+		movements.push_back(Evoral::RangeMove<double>(i->from.frames, i->length.frames, i->to.frames));
 	}
 
 	/* move panner automation */
@@ -600,7 +600,7 @@ Diskstream::playlist_ranges_moved (list< Evoral::RangeMove<framepos_t> > const &
 }
 
 void
-Diskstream::move_processor_automation (boost::weak_ptr<Processor> p, list< Evoral::RangeMove<framepos_t> > const & movements_frames)
+Diskstream::move_processor_automation (boost::weak_ptr<Processor> p, list< Evoral::RangeMove<AudioMusic> > const & movements_frames)
 {
 	boost::shared_ptr<Processor> processor (p.lock ());
 	if (!processor) {
@@ -608,8 +608,8 @@ Diskstream::move_processor_automation (boost::weak_ptr<Processor> p, list< Evora
 	}
 
 	list< Evoral::RangeMove<double> > movements;
-	for (list< Evoral::RangeMove<framepos_t> >::const_iterator i = movements_frames.begin(); i != movements_frames.end(); ++i) {
-		movements.push_back(Evoral::RangeMove<double>(i->from, i->length, i->to));
+	for (list< Evoral::RangeMove<AudioMusic> >::const_iterator i = movements_frames.begin(); i != movements_frames.end(); ++i) {
+		movements.push_back(Evoral::RangeMove<double>(i->from.frames, i->length.frames, i->to.frames));
 	}
 
 	set<Evoral::Parameter> const a = processor->what_can_be_automated ();

@@ -1002,7 +1002,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 	void request_cancel_play_range ();
 	bool get_play_range () const { return _play_range; }
 
-	void maybe_update_session_range (framepos_t, framepos_t);
+	void maybe_update_session_range (const AudioMusic&, const AudioMusic&);
 
 	/* preroll */
 	framecnt_t preroll_samples (framepos_t) const;
@@ -1801,8 +1801,8 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 	void remove_playlist (boost::weak_ptr<Playlist>);
 	void track_playlist_changed (boost::weak_ptr<Track>);
 	void playlist_region_added (boost::weak_ptr<Region>);
-	void playlist_ranges_moved (std::list<Evoral::RangeMove<framepos_t> > const &);
-	void playlist_regions_extended (std::list<Evoral::Range<framepos_t> > const &);
+	void playlist_ranges_moved (std::list<Evoral::RangeMove<AudioMusic> > const &);
+	void playlist_regions_extended (std::list<Evoral::Range<AudioMusic> > const &);
 
 	/* CURVES and AUTOMATION LISTS */
 	std::map<PBD::ID, AutomationList*> automation_lists;
@@ -2023,7 +2023,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 	/** temporary list of Diskstreams used only during load of 2.X sessions */
 	std::list<boost::shared_ptr<Diskstream> > _diskstreams_2X;
 
-	void set_session_range_location (framepos_t, framepos_t);
+	void set_session_range_location (const AudioMusic&, const AudioMusic&);
 
 	void setup_midi_machine_control ();
 

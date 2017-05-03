@@ -4557,10 +4557,10 @@ ARDOUR_UI::add_video (Gtk::Window* float_window)
 				video_timeline->set_offset(video_start_offset);
 			}
 		}
-
-		_session->maybe_update_session_range(
-			std::max(video_timeline->get_offset(), (ARDOUR::frameoffset_t) 0),
-			std::max(video_timeline->get_offset() + video_timeline->get_duration(), (ARDOUR::frameoffset_t) 0));
+		frameoffset_t const start = std::max(video_timeline->get_offset(), (ARDOUR::frameoffset_t) 0);
+		frameoffset_t const end = std::max(video_timeline->get_offset() + video_timeline->get_duration(), (ARDOUR::frameoffset_t) 0);
+		_session->maybe_update_session_range(_session->audiomusic_at_frame (start),
+						     _session->audiomusic_at_frame (end));
 
 
 		if (add_video_dialog->launch_xjadeo() && local_file) {

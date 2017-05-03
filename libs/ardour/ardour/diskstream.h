@@ -171,7 +171,7 @@ class LIBARDOUR_API Diskstream : public SessionObject, public PublicDiskstream
 	void handle_input_change (IOChange, void *src);
 
 	void move_processor_automation (boost::weak_ptr<Processor>,
-			std::list<Evoral::RangeMove<framepos_t> > const &);
+			std::list<Evoral::RangeMove<AudioMusic> > const &);
 
 	/** For non-butler contexts (allocates temporary working buffers)
 	 *
@@ -251,7 +251,7 @@ class LIBARDOUR_API Diskstream : public SessionObject, public PublicDiskstream
 
 	virtual void playlist_changed (const PBD::PropertyChange&);
 	virtual void playlist_deleted (boost::weak_ptr<Playlist>);
-	virtual void playlist_ranges_moved (std::list< Evoral::RangeMove<framepos_t> > const &, bool);
+	virtual void playlist_ranges_moved (std::list< Evoral::RangeMove<AudioMusic> > const &, bool);
 
 	virtual void transport_stopped_wallclock (struct tm&, time_t, bool abort) = 0;
 	virtual void transport_looped (framepos_t transport_frame) = 0;

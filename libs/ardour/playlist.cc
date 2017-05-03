@@ -487,7 +487,7 @@ Playlist::notify_region_removed (boost::shared_ptr<Region> r)
 void
 Playlist::notify_region_moved (boost::shared_ptr<Region> r)
 {
-	Evoral::RangeMove<framepos_t> const move (r->last_position (), r->length (), r->position ());
+	Evoral::RangeMove<AudioMusic> const move (AudioMusic (r->last_position (), r->last_qn ()), r->length_am (), r->position_am ());
 
 	if (holding_state ()) {
 
@@ -495,7 +495,7 @@ Playlist::notify_region_moved (boost::shared_ptr<Region> r)
 
 	} else {
 
-		list< Evoral::RangeMove<framepos_t> > m;
+		list< Evoral::RangeMove<AudioMusic> > m;
 		m.push_back (move);
 		RangesMoved (m, false);
 	}
@@ -510,7 +510,7 @@ Playlist::notify_region_start_trimmed (boost::shared_ptr<Region> r)
 		return;
 	}
 
-	Evoral::Range<framepos_t> const extra (r->position(), r->last_position());
+	Evoral::Range<AudioMusic> const extra (r->position_am(), r->end_am());
 
 	if (holding_state ()) {
 
@@ -518,7 +518,7 @@ Playlist::notify_region_start_trimmed (boost::shared_ptr<Region> r)
 
 	} else {
 
-		list<Evoral::Range<framepos_t> > r;
+		list<Evoral::Range<AudioMusic> > r;
 		r.push_back (extra);
 		RegionsExtended (r);
 
@@ -532,7 +532,7 @@ Playlist::notify_region_end_trimmed (boost::shared_ptr<Region> r)
 		/* trimmed shorter */
 	}
 
-	Evoral::Range<framepos_t> const extra (r->position() + r->last_length(), r->position() + r->length());
+	Evoral::Range<AudioMusic> const extra (r->position_am() + AudioMusic (r->last_length(),r->last_length_qn()) , r->position_am() + r->length_am());
 
 	if (holding_state ()) {
 
@@ -540,7 +540,7 @@ Playlist::notify_region_end_trimmed (boost::shared_ptr<Region> r)
 
 	} else {
 
-		list<Evoral::Range<framepos_t> > r;
+		list<Evoral::Range<AudioMusic> > r;
 		r.push_back (extra);
 		RegionsExtended (r);
 	}
@@ -1633,9 +1633,9 @@ Playlist::duplicate_ranges (std::list<AudioMusicRange>& ranges, float times)
 		 if ((*i)->position() >= at.frames) {
 			 AudioMusic new_pos = (*i)->position_am() + distance;
 			 if (new_pos.frames < 0) {
-				 new_pos = AudioMusic (0, 0.0);
+				 new_pos = _session.audiomusic_at_frame (0);
 			 } else if (new_pos.frames >= max_framepos - (*i)->length()) {
-				 new_pos.frames = max_framepos - (*i)->length();
+				 new_pos = _session.audiomusic_at_frame (max_framepos - (*i)->length());
 			 }
 
 			 (*i)->set_position (new_pos);

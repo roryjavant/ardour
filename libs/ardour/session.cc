@@ -4496,7 +4496,7 @@ Session::playlist_region_added (boost::weak_ptr<Region> w)
 
 	/* If so, update the session range markers */
 	if (!in.empty ()) {
-		maybe_update_session_range (r->position (), r->last_frame ());
+		maybe_update_session_range (r->position_am (), r->end_am ());
 	}
 }
 
@@ -4504,7 +4504,7 @@ Session::playlist_region_added (boost::weak_ptr<Region> w)
  *  b is after the current end.
  */
 void
-Session::maybe_update_session_range (framepos_t a, framepos_t b)
+Session::maybe_update_session_range (const AudioMusic& a, const AudioMusic& b)
 {
 	if (_state_of_the_state & Loading) {
 		return;
@@ -4514,16 +4514,16 @@ Session::maybe_update_session_range (framepos_t a, framepos_t b)
 
 	if (_session_range_location == 0) {
 
-		set_session_range_location (a, b + session_end_marker_shift_samples);
+		set_session_range_location (a, audiomusic_at_frame (b.frames + session_end_marker_shift_samples));
 
 	} else {
 
-		if (a < _session_range_location->start().frames) {
-			_session_range_location->set_start (audiomusic_at_frame (a));
+		if (a < _session_range_location->start()) {
+			_session_range_location->set_start (a);
 		}
 
-		if (_session_range_end_is_free && (b > _session_range_location->end().frames)) {
-			_session_range_location->set_end (audiomusic_at_frame (b));
+		if (_session_range_end_is_free && (b > _session_range_location->end())) {
+			_session_range_location->set_end (b);
 		}
 	}
 }
@@ -4535,17 +4535,17 @@ Session::set_end_is_free (bool yn)
 }
 
 void
-Session::playlist_ranges_moved (list<Evoral::RangeMove<framepos_t> > const & ranges)
+Session::playlist_ranges_moved (list<Evoral::RangeMove<AudioMusic> > const & ranges)
 {
-	for (list<Evoral::RangeMove<framepos_t> >::const_iterator i = ranges.begin(); i != ranges.end(); ++i) {
+	for (list<Evoral::RangeMove<AudioMusic> >::const_iterator i = ranges.begin(); i != ranges.end(); ++i) {
 		maybe_update_session_range (i->to, i->to + i->length);
 	}
 }
 
 void
-Session::playlist_regions_extended (list<Evoral::Range<framepos_t> > const & ranges)
+Session::playlist_regions_extended (list<Evoral::Range<AudioMusic> > const & ranges)
 {
-	for (list<Evoral::Range<framepos_t> >::const_iterator i = ranges.begin(); i != ranges.end(); ++i) {
+	for (list<Evoral::Range<AudioMusic> >::const_iterator i = ranges.begin(); i != ranges.end(); ++i) {
 		maybe_update_session_range (i->from, i->to);
 	}
 }
@@ -6435,7 +6435,7 @@ Session::current_end_frame () const
 }
 
 void
-Session::set_session_range_location (framepos_t start, framepos_t end)
+Session::set_session_range_location (const AudioMusic& start, const AudioMusic& end)
 {
 	_session_range_location = new Location (*this, start, end, _("session"), Location::IsSessionRange);
 	_locations->add (_session_range_location);

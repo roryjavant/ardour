@@ -210,9 +210,9 @@ private:
 /** Type to describe the movement of a time range */
 template<typename T>
 struct /*LIBEVORAL_API*/ RangeMove {
-	RangeMove (T f, double l, T t) : from (f), length (l), to (t) {}
+	RangeMove (T f, T l, T t) : from (f), length (l), to (t) {}
 	T         from;   ///< start of the range
-	double    length; ///< length of the range
+	T         length; ///< length of the range
 	T         to;     ///< new start of the range
 };
 

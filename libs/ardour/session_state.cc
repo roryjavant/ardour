@@ -632,7 +632,7 @@ Session::create (const string& session_template, BusProfile* bus_profile)
 		   loaded from saved state will get this range from the saved state.
 		*/
 
-		set_session_range_location (0, 0);
+		set_session_range_location (AudioMusic (0, 0.0), AudioMusic (0, 0.0));
 
 		/* Initial loop location, from absolute zero, length 10 seconds  */
 
