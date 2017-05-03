@@ -4519,7 +4519,7 @@ MarkerDrag::motion (GdkEvent* event, bool)
 		if (copy_location->is_mark()) {
 			AudioMusic const new_start = copy_location->start() + delta;
 			/* now move it */
-			copy_location->set_start (new_start, false, true);
+			copy_location->set_start (new_start, false, false);
 
 		} else {
 
@@ -4529,27 +4529,27 @@ MarkerDrag::motion (GdkEvent* event, bool)
 			if (is_start) { // start-of-range marker
 
 				if (move_both || (*x).move_both) {
-					copy_location->set_start (new_start, false, true);
-					copy_location->set_end (new_end, false, true);
+					copy_location->set_start (new_start, false, false);
+					copy_location->set_end (new_end, false, false);
 				} else	if (new_start < copy_location->end()) {
-					copy_location->set_start (new_start, false, true);
+					copy_location->set_start (new_start, false, false);
 				} else if (newframe.frames > 0) {
 					//_editor->snap_to (next, RoundUpAlways, true);
-					copy_location->set_end (next, false, true);
-					copy_location->set_start (newframe, false, true);
+					copy_location->set_end (next, false, false);
+					copy_location->set_start (newframe, false, false);
 				}
 
 			} else { // end marker
 
 				if (move_both || (*x).move_both) {
-					copy_location->set_end (new_end, false, true);
-					copy_location->set_start (new_start, false, true);
+					copy_location->set_end (new_end, false, false);
+					copy_location->set_start (new_start, false, false);
 				} else if (new_end > copy_location->start()) {
-					copy_location->set_end (new_end, false, true);
+					copy_location->set_end (new_end, false, false);
 				} else if (newframe.frames > 0) {
 					//_editor->snap_to (next, RoundDownAlways, true);
-					copy_location->set_start (next, false, true);
-					copy_location->set_end (newframe, false, true);
+					copy_location->set_start (next, false, false);
+					copy_location->set_end (newframe, false, false);
 				}
 			}
 		}
@@ -4644,9 +4644,9 @@ MarkerDrag::finished (GdkEvent* event, bool movement_occurred)
 				in_command = true;
 			}
 			if (location->is_mark()) {
-				location->set_start (((*x).location)->start(), false, true);
+				location->set_start (((*x).location)->start(), false, false);
 			} else {
-				location->set (((*x).location)->start(), ((*x).location)->end(), true);
+				location->set (((*x).location)->start(), ((*x).location)->end(), false);
 			}
 
 			if (location->is_session_range()) {
