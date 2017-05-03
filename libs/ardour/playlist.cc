@@ -596,26 +596,11 @@ Playlist::flush_notifications (bool from_undo)
 	// RegionSortByLayer cmp;
 	// pending_bounds.sort (cmp);
 
-	list<Evoral::Range<framepos_t> > crossfade_ranges;
-	list<std::pair<boost::shared_ptr<Region>, PBD::PropertyChange> >::iterator r;
-	for (r = pending_bounds.begin(); r != pending_bounds.end(); ++r) {
-		crossfade_ranges.push_back ((*r).first->last_range ());
-		crossfade_ranges.push_back ((*r).first->range ());
-	}
-
 	for (s = pending_removes.begin(); s != pending_removes.end(); ++s) {
-		crossfade_ranges.push_back ((*s)->range ());
 		remove_dependents (*s);
 		RegionRemoved (boost::weak_ptr<Region> (*s)); /* EMIT SIGNAL */
 	}
 
-	for (s = pending_adds.begin(); s != pending_adds.end(); ++s) {
-		crossfade_ranges.push_back ((*s)->range ());
-		/* don't emit RegionAdded signal until relayering is done,
-		   so that the region is fully setup by the time
-		   anyone hears that its been added
-		*/
-	}
 	complete_pending_bounds (pending_bounds);
 
 	/* notify about contents/region changes first so that layering changes
@@ -635,8 +620,6 @@ Playlist::flush_notifications (bool from_undo)
 	if ((regions_changed && !in_set_state) || pending_layering) {
 		relayer ();
 	}
-
-	coalesce_and_check_crossfades (crossfade_ranges);
 
 	if (!pending_range_moves.empty ()) {
 		/* We don't need to check crossfades for these as pending_bounds has
@@ -1750,10 +1733,6 @@ Playlist::region_bounds_changed (const PropertyChange& what_changed, boost::shar
 
 		notify_contents_changed ();
 		relayer ();
-		list<Evoral::Range<framepos_t> > xf;
-		xf.push_back (Evoral::Range<framepos_t> (region->last_range()));
-		xf.push_back (Evoral::Range<framepos_t> (region->range()));
-		coalesce_and_check_crossfades (xf);
 	}
 }
 
@@ -3537,36 +3516,6 @@ void
 Playlist::reset_shares ()
 {
 	_shared_with_ids.clear();
-}
-
-/** Take a list of ranges, coalesce any that can be coalesced, then call
- *  check_crossfades for each one.
- */
-void
-Playlist::coalesce_and_check_crossfades (list<Evoral::Range<framepos_t> > ranges)
-{
-	/* XXX: it's a shame that this coalesce algorithm also exists in
-	   TimeSelection::consolidate().
-	*/
-
-	/* XXX: xfade: this is implemented in Evoral::RangeList */
-restart:
-	for (list<Evoral::Range<framepos_t> >::iterator i = ranges.begin(); i != ranges.end(); ++i) {
-		for (list<Evoral::Range<framepos_t> >::iterator j = ranges.begin(); j != ranges.end(); ++j) {
-
-			if (i == j) {
-				continue;
-			}
-
-			// XXX i->from can be > i->to - is this right? coverage() will return OverlapNone in this case
-			if (Evoral::coverage (i->from, i->to, j->from, j->to) != Evoral::OverlapNone) {
-				i->from = min (i->from, j->from);
-				i->to = max (i->to, j->to);
-				ranges.erase (j);
-				goto restart;
-			}
-		}
-	}
 }
 
 void

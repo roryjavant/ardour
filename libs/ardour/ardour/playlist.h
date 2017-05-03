@@ -413,7 +413,6 @@ public:
 
   private:
 	void setup_layering_indices (RegionList const &);
-	void coalesce_and_check_crossfades (std::list<Evoral::Range<framepos_t> >);
 	boost::shared_ptr<RegionList> find_regions_at (framepos_t);
 
 	AudioMusic _end_space;  //this is used when we are pasting a range with extra space at the end
