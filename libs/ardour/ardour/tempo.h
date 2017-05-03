@@ -58,20 +58,20 @@ class LIBARDOUR_API Tempo {
 	Tempo (double start_npm, double type, double end_npm)
 		: _note_types_per_minute (start_npm), _note_type (type), _end_note_types_per_minute (end_npm) {}
 
-	double note_types_per_minute () const { return _note_types_per_minute; }
-	double note_types_per_minute (double note_type) const { return (_note_types_per_minute / _note_type) * note_type; }
+	inline const double& note_types_per_minute () const { return _note_types_per_minute; }
+	inline double note_types_per_minute (double note_type) const { return (_note_types_per_minute / _note_type) * note_type; }
 	void set_note_types_per_minute (double npm) { _note_types_per_minute = npm; }
-	double note_type () const { return _note_type; }
+	inline const double& note_type () const { return _note_type; }
 
-	double quarter_notes_per_minute () const { return note_types_per_minute (4.0); }
-	double pulses_per_minute () const { return note_types_per_minute (1.0); }
+	inline double quarter_notes_per_minute () const { return note_types_per_minute (4.0); }
+	inline double pulses_per_minute () const { return note_types_per_minute (1.0); }
 
-	double end_note_types_per_minute () const { return _end_note_types_per_minute; }
-	double end_note_types_per_minute (double note_type) const { return (_end_note_types_per_minute / _note_type) * note_type; }
+	inline const double& end_note_types_per_minute () const { return _end_note_types_per_minute; }
+	inline double end_note_types_per_minute (double note_type) const { return (_end_note_types_per_minute / _note_type) * note_type; }
 	void set_end_note_types_per_minute (double npm) { _end_note_types_per_minute = npm; }
 
-	double end_quarter_notes_per_minute () const { return end_note_types_per_minute (4.0); }
-	double end_pulses_per_minute () const { return end_note_types_per_minute (1.0); }
+	inline double end_quarter_notes_per_minute () const { return end_note_types_per_minute (4.0); }
+	inline double end_pulses_per_minute () const { return end_note_types_per_minute (1.0); }
 
 	/** audio samples per note type.
 	 * if you want an instantaneous value for this, use TempoMap::frames_per_quarter_note_at() instead.
@@ -130,10 +130,10 @@ class LIBARDOUR_API MetricSection {
 
 	virtual ~MetricSection() {}
 
-	const double& pulse () const { return _pulse; }
+	inline const double& pulse () const { return _pulse; }
 	void set_pulse (double pulse) { _pulse = pulse; }
 
-	double minute() const { return _minute; }
+	inline const double& minute() const { return _minute; }
 	virtual void set_minute (double m) {
 		_minute = m;
 	}
@@ -141,7 +141,7 @@ class LIBARDOUR_API MetricSection {
 	framepos_t frame () const { return frame_at_minute (_minute); }
 
 	void set_initial (bool yn) { _initial = yn; }
-	bool initial() const { return _initial; }
+	inline bool initial() const { return _initial; }
 
 	/* MeterSections are not stateful in the full sense,
 	   but we do want them to control their own
@@ -212,9 +212,9 @@ class LIBARDOUR_API TempoSection : public MetricSection, public Tempo {
 	double c () const { return _c; }
 	void set_c (double c) { _c = c; }
 
-	Type type () const { if (note_types_per_minute() == end_note_types_per_minute()) { return Constant; } else { return Ramp; } }
+	inline Type type () const { if (note_types_per_minute() == end_note_types_per_minute()) { return Constant; } else { return Ramp; } }
 
-	bool active () const { return _active; }
+	inline bool active () const { return _active; }
 	void set_active (bool yn) { _active = yn; }
 
 	bool locked_to_meter ()  const { return _locked_to_meter; }
@@ -323,7 +323,7 @@ class LIBARDOUR_API TempoMap : public PBD::StatefulDestructible
 {
   public:
 	TempoMap (framecnt_t frame_rate);
-	~TempoMap();
+	~TempoMap ();
 
 	TempoMap& operator= (TempoMap const &);
 
