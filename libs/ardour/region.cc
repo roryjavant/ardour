@@ -1506,10 +1506,8 @@ void
 Region::suspend_property_changes ()
 {
 	Stateful::suspend_property_changes ();
-	_last_length = _length;
-	_last_position = _position;
-	_last_length_qn = _length_qn;
-	_last_qn = _quarter_note;
+	update_last_position();
+	update_last_length();
 }
 
 void
