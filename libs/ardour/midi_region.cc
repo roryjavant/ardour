@@ -198,11 +198,7 @@ MidiRegion::update_after_tempo_map_change (bool send)
 		return;
 	}
 
-	const framepos_t old_pos = _position;
-	const framepos_t old_length = _length;
 	const framepos_t old_start = _start;
-
-	PropertyChange s_and_l;
 
 	if (position_lock_style() == AudioTime) {
 		recompute_position_from_lock_style (0);
@@ -226,10 +222,9 @@ MidiRegion::update_after_tempo_map_change (bool send)
 		/* _length doesn't change for audio-locked regions. update length_qn to match. */
 		_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
 
-		s_and_l.add (Properties::start);
-		s_and_l.add (Properties::length_qn);
-
-		send_change  (s_and_l);
+		if (send) {
+			send_change  (Properties::start);
+		}
 		return;
 	}
 
@@ -237,20 +232,92 @@ MidiRegion::update_after_tempo_map_change (bool send)
 
 	_length = max ((framecnt_t) 1, _session.tempo_map().frames_between_quarter_notes (quarter_note(), quarter_note() + _length_qn));
 
+	PropertyChange s_and_l;
+
 	if (old_start != _start) {
 		s_and_l.add (Properties::start);
-		s_and_l.add (Properties::start_qn);
 	}
-	if (old_length != _length) {
+
+	if (last_length() != _length) {
 		s_and_l.add (Properties::length);
-		s_and_l.add (Properties::length_qn);
 	}
-	if (old_pos != _position) {
+
+	if (last_position() != _position) {
 		s_and_l.add (Properties::position);
 	}
+
 	if (send) {
 		send_change (s_and_l);
 	}
+}
+void
+MidiRegion::set_position_frame (framepos_t f)
+{
+	if (!can_move()) {
+		return;
+	}
+
+	AudioMusic const pos = _session.audiomusic_at_frame (f);
+
+	set_position_internal (pos);
+
+	/* do this even if the position is the same. this helps out
+	   a GUI that has moved its representation already.
+	*/
+	PropertyChange what_changed;
+
+	what_changed.add (Properties::position);
+	if (position_lock_style() == MusicTime) {
+		what_changed.add (Properties::length);
+	}
+
+	send_change (what_changed);
+}
+
+void
+MidiRegion::set_position_qnote (double qn)
+{
+	if (!can_move()) {
+		return;
+	}
+
+	AudioMusic const pos = _session.audiomusic_at_qnote (qn);
+
+	set_position_internal (pos);
+
+	/* do this even if the position is the same. this helps out
+	   a GUI that has moved its representation already.
+	*/
+	PropertyChange what_changed;
+
+	what_changed.add (Properties::position);
+	if (position_lock_style() == MusicTime) {
+		what_changed.add (Properties::length);
+	}
+
+	send_change (what_changed);
+}
+
+void
+MidiRegion::set_position (const AudioMusic& pos)
+{
+	if (!can_move()) {
+		return;
+	}
+
+	set_position_internal (pos);
+
+	/* do this even if the position is the same. this helps out
+	   a GUI that has moved its representation already.
+	*/
+	PropertyChange what_changed;
+
+	what_changed.add (Properties::position);
+	if (position_lock_style() == MusicTime) {
+		what_changed.add (Properties::length);
+	}
+
+	send_change (what_changed);
 }
 
 void

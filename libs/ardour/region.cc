@@ -522,8 +522,10 @@ Region::set_length (AudioMusic& len)
 			recompute_at_end ();
 		}
 
-		send_change (Properties::length);
-		send_change (Properties::length_qn);
+		PropertyChange what_changed;
+		what_changed.add (Properties::length);
+		what_changed.add (Properties::length_qn);
+		send_change (what_changed);
 	}
 }
 void
@@ -609,8 +611,6 @@ Region::set_position_lock_style (PositionLockStyle ps)
 {
 	if (_position_lock_style != ps) {
 
-		boost::shared_ptr<Playlist> pl (playlist());
-
 		_position_lock_style = ps;
 
 		send_change (Properties::position_lock_style);
@@ -671,23 +671,12 @@ Region::set_position_frame (framepos_t f)
 
 	AudioMusic const pos = _session.audiomusic_at_frame (f);
 
+	set_position_internal (pos);
+
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
 	*/
-	PropertyChange p_and_l;
-
-	p_and_l.add (Properties::position);
-	p_and_l.add (Properties::quarter_note);
-
-	set_position_internal (pos);
-
-	if (position_lock_style() == MusicTime) {
-		p_and_l.add (Properties::length);
-	} else {
-		p_and_l.add (Properties::length_qn);
-	}
-
-	send_change (p_and_l);
+	send_change (Properties::position);
 }
 
 void
@@ -699,24 +688,12 @@ Region::set_position_qnote (double qn)
 
 	AudioMusic const pos = _session.audiomusic_at_qnote (qn);
 
+	set_position_internal (pos);
+
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
 	*/
-	PropertyChange p_and_l;
-
-	p_and_l.add (Properties::position);
-	p_and_l.add (Properties::quarter_note);
-
-	/* will set frame accordingly */
-	set_position_internal (pos);
-
-	if (position_lock_style() == MusicTime) {
-		p_and_l.add (Properties::length);
-	} else {
-		p_and_l.add (Properties::length_qn);
-	}
-
-	send_change (p_and_l);
+	send_change (Properties::position);
 }
 
 void
@@ -726,24 +703,14 @@ Region::set_position (const AudioMusic& pos)
 		return;
 	}
 
+	set_position_internal (pos);
+
 	/* do this even if the position is the same. this helps out
 	   a GUI that has moved its representation already.
 	*/
-	PropertyChange p_and_l;
-
-	p_and_l.add (Properties::position);
-	p_and_l.add (Properties::quarter_note);
-
-	set_position_internal (pos);
-
-	if (position_lock_style() == MusicTime) {
-		p_and_l.add (Properties::length);
-	} else {
-		p_and_l.add (Properties::length_qn);
-	}
-
-	send_change (p_and_l);
+	send_change (Properties::position);
 }
+
 void
 Region::update_last_length ()
 {

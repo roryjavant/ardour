@@ -89,6 +89,10 @@ class LIBARDOUR_API MidiRegion : public Region
 
 	int separate_by_channel (ARDOUR::Session&, std::vector< boost::shared_ptr<Region> >&) const;
 
+	void set_position_frame (framepos_t mf);
+	void set_position_qnote (double qn);
+	void set_position (const AudioMusic& pos);
+
 	/* automation */
 
 	boost::shared_ptr<Evoral::Control> control(const Evoral::Parameter& id, bool create=false);
